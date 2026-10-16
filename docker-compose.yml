@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: favodemel_site_app
+    restart: always
+    environment:
+      PORT: 3300
+      EVOLUTION_URL: http://137.131.164.202:8081
+      EVOLUTION_INSTANCE: FavoDeMel
+      EVOLUTION_API_KEY: 429683C4C977415CAAFCCE10F7D57E11
+      NUMERO_DA_LOJA: '557988125726'
+    volumes:
+      - ./data:/app/data
+      - ./assets:/app/assets
+    networks:
+      - favo_net
+
+  caddy:
+    image: caddy:alpine
+    container_name: favodemel_caddy
+    restart: always
+    ports:
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - favo_net
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  favo_net:
+    driver: bridge
