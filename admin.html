@@ -25,12 +25,16 @@
             <p>Acesso exclusivo para gestão do catálogo e pedidos</p>
             
             <form id="formAdminLogin">
+                <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
+                    <label for="adminEmailInput">E-mail de Acesso</label>
+                    <input type="email" id="adminEmailInput" class="form-control" placeholder="admin@admin.com" required autofocus>
+                </div>
                 <div class="form-group" style="text-align: left;">
                     <label for="adminPasswordInput">Senha de Acesso</label>
-                    <input type="password" id="adminPasswordInput" class="form-control" placeholder="Digite sua senha..." required autofocus>
+                    <input type="password" id="adminPasswordInput" class="form-control" placeholder="Digite sua senha..." required>
                 </div>
                 <div id="loginErrorMsg" style="color: var(--color-status-red); font-size: 0.82rem; margin-bottom: 1rem; display: none;">
-                    Senha incorreta. Tente novamente.
+                    Credenciais incorretas. Tente novamente.
                 </div>
                 <button type="submit" id="btnSubmitLogin" class="btn-admin btn-admin-primary" style="width: 100%; padding: 0.85rem;">
                     <span>Entrar no Painel</span>
@@ -38,7 +42,10 @@
                 </button>
             </form>
             <div style="margin-top: 1.5rem;">
-                <a href="catalogo.html" style="color: var(--color-text-muted); font-size: 0.8rem; text-decoration: none;">Voltar ao Catálogo Público</a>
+                <a href="/" style="color: var(--color-text-muted); font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    <span>Voltar à Página Inicial</span>
+                </a>
             </div>
         </div>
     </div>
@@ -79,12 +86,16 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                     <span>Pedidos & Vendas</span>
                 </button>
+                <button class="admin-nav-item" data-tab="tabSeguranca">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>Segurança & Acesso</span>
+                </button>
             </nav>
 
             <div class="admin-sidebar-footer">
-                <a href="catalogo.html" target="_blank" class="admin-link-store">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                    <span>Visualizar Loja Aberta</span>
+                <a href="/" target="_blank" class="admin-link-store">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span>Voltar à Página Inicial</span>
                 </a>
                 <button id="btnAdminLogout" class="admin-btn-logout">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -376,6 +387,78 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- ==========================================================
+                     TAB 6: SEGURANÇA & CREDENCIAIS DE ACESSO
+                     ========================================================== -->
+                <div id="tabSeguranca" class="admin-tab-pane">
+                    <div class="admin-card" style="max-width: 680px; margin: 0 auto;">
+                        <div class="admin-card-header">
+                            <h3>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                <span>Segurança & Credenciais de Acesso</span>
+                            </h3>
+                        </div>
+
+                        <form id="formAlterarCredenciais" style="padding: 1.5rem;">
+                            <p style="color: var(--color-text-muted); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                                Altere o e-mail e a senha do administrador. As credenciais são atualizadas diretamente no banco de dados com proteção anti-força bruta.
+                            </p>
+
+                            <!-- Feedback Messages -->
+                            <div id="msgCredenciaisSucesso" class="alert-box success" style="display: none; margin-bottom: 1.25rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                <span id="txtCredenciaisSucesso">Credenciais atualizadas com sucesso!</span>
+                            </div>
+
+                            <div id="msgCredenciaisErro" class="alert-box danger" style="display: none; margin-bottom: 1.25rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                <span id="txtCredenciaisErro">Erro ao atualizar credenciais.</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="emailAtualDisplay">E-mail Atual Cadastrado</label>
+                                <input type="text" id="emailAtualDisplay" class="form-control" readonly style="background: #F3EFEA; color: var(--color-text-muted); cursor: not-allowed;" value="admin@admin.com">
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="senhaAtualInput">Senha Atual <span style="color: var(--color-status-red); font-size: 0.75rem;">(Obrigatória para autorizar a troca)</span></label>
+                                <input type="password" id="senhaAtualInput" class="form-control" placeholder="Digite sua senha atual..." required>
+                            </div>
+
+                            <div style="border-top: 1px solid var(--color-border); margin: 1.5rem 0;"></div>
+
+                            <div class="admin-grid-2">
+                                <div class="form-group">
+                                    <label for="novoEmailInput">Novo E-mail</label>
+                                    <input type="email" id="novoEmailInput" class="form-control" placeholder="exemplo@favodemel.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmacaoEmailInput">Confirmar Novo E-mail <span style="color: var(--color-primary); font-size: 0.75rem;">(Duplo check)</span></label>
+                                    <input type="email" id="confirmacaoEmailInput" class="form-control" placeholder="Repita o novo e-mail..." required>
+                                </div>
+                            </div>
+
+                            <div class="admin-grid-2" style="margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label for="novaSenhaInput">Nova Senha</label>
+                                    <input type="password" id="novaSenhaInput" class="form-control" placeholder="Mínimo de 4 caracteres..." minlength="4" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmacaoSenhaInput">Confirmar Nova Senha <span style="color: var(--color-primary); font-size: 0.75rem;">(Duplo check)</span></label>
+                                    <input type="password" id="confirmacaoSenhaInput" class="form-control" placeholder="Repita a nova senha..." minlength="4" required>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 1.75rem; text-align: right;">
+                                <button type="submit" id="btnSalvarCredenciais" class="btn-admin btn-admin-primary" style="padding: 0.75rem 1.75rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                    <span>Salvar Novas Credenciais</span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
 

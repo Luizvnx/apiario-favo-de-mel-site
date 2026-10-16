@@ -2,6 +2,7 @@
  * Apiário Favo de Mel - Servidor de Desenvolvimento Local & API Administrativa
  * Suporte a .env, Gestão de Catálogo, PostgreSQL & Fallback Local Resiliente
  * Tabelas: tb_bot_config, tb_categorias, tb_produtos, tb_pedidos
+ * Segurança: Rota Secreta (/admin/favodemel), Rate Limit Anti-Brute Force, E-mail + Senha
  */
 
 require('dotenv').config();
@@ -20,7 +21,59 @@ db.init();
 
 let PORT = parseInt(process.env.PORT, 10) || 3300;
 const API_URL = process.env.API_URL || 'http://localhost:8080';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+
+// =========================================================================
+// RATE LIMITER ANTI-BRUTE FORCE PARA LOGIN ADMINISTRATIVO
+// =========================================================================
+const loginAttempts = new Map(); // ip -> { count: number, blockedUntil: number }
+const MAX_FAILED_ATTEMPTS = 5;
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // Bloqueio temporário de 15 minutos
+
+function getClientIp(req) {
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+        return xForwardedFor.split(',')[0].trim();
+    }
+    return req.socket.remoteAddress || '127.0.0.1';
+}
+
+function checkRateLimit(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip);
+    if (!record) return { allowed: true, remaining: MAX_FAILED_ATTEMPTS };
+
+    if (record.blockedUntil && record.blockedUntil > now) {
+        const minutesLeft = Math.ceil((record.blockedUntil - now) / 60000);
+        return { allowed: false, blockedUntil: record.blockedUntil, minutesLeft };
+    }
+
+    if (record.blockedUntil && record.blockedUntil <= now) {
+        loginAttempts.delete(ip);
+        return { allowed: true, remaining: MAX_FAILED_ATTEMPTS };
+    }
+
+    const remaining = Math.max(0, MAX_FAILED_ATTEMPTS - record.count);
+    return { allowed: true, remaining };
+}
+
+function recordFailedAttempt(ip) {
+    const now = Date.now();
+    let record = loginAttempts.get(ip);
+    if (!record) {
+        record = { count: 0, blockedUntil: 0 };
+    }
+    record.count += 1;
+    if (record.count >= MAX_FAILED_ATTEMPTS) {
+        record.blockedUntil = now + BLOCK_DURATION_MS;
+        console.warn(`[Segurança] IP ${ip} bloqueado por ${BLOCK_DURATION_MS / 60000} minutos após ${record.count} tentativas incorretas.`);
+    }
+    loginAttempts.set(ip, record);
+    return record;
+}
+
+function resetLoginAttempts(ip) {
+    loginAttempts.delete(ip);
+}
 
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -64,6 +117,30 @@ function parseBody(req) {
     });
 }
 
+function render404(pathName) {
+    return `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>404 - Página Não Encontrada</title>
+            <style>
+                body { font-family: sans-serif; text-align: center; padding: 4rem 1rem; background: #FAF7F2; color: #2C231C; }
+                h1 { color: #D97706; font-size: 3rem; margin-bottom: 0.5rem; }
+                p { color: #6E6359; font-size: 1.1rem; }
+                a { display: inline-block; margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: #D97706; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h1>404</h1>
+            <p>O arquivo ou página <strong>${pathName}</strong> não foi encontrado.</p>
+            <a href="/">Voltar ao Início</a>
+        </body>
+        </html>
+    `;
+}
+
 // =========================================================================
 // SERVIDOR HTTP
 // =========================================================================
@@ -87,9 +164,36 @@ const server = http.createServer(async (req, res) => {
         return res.end(`window.FAVODEMEL_API_URL = "";\nconsole.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
     }
 
-    // Atalho amigável para o painel administrativo
-    if (safePath === '/admin' || safePath === '/admin/') {
-        safePath = '/admin.html';
+    const serveFile = (targetFile) => {
+        fs.readFile(targetFile, (err, data) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+                return res.end(`500 - Erro interno ao ler arquivo: ${err.message}`);
+            }
+
+            const ext = path.extname(targetFile).toLowerCase();
+            const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(data);
+        });
+    };
+
+    // 🔒 SEGURANÇA: ROTA SECRETA EXCLUSIVA DO PAINEL ADMINISTRATIVO
+    // Apenas /admin/favodemel ou /favodemel/admin dão acesso à tela administrativa.
+    const isSecretAdminRoute = safePath === '/admin/favodemel' || 
+                               safePath === '/admin/favodemel/' || 
+                               safePath === '/favodemel/admin' || 
+                               safePath === '/favodemel/admin/';
+
+    if (isSecretAdminRoute) {
+        return serveFile(path.join(BASE_DIR, 'admin.html'));
+    }
+
+    // 🔒 Bloqueia varreduras diretas em /admin ou /admin.html respondendo como 404
+    if (safePath === '/admin' || safePath === '/admin/' || safePath === '/admin.html') {
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(render404(safePath));
     }
 
     // =========================================================================
@@ -344,21 +448,135 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // 7. Autenticação Administrativa
+    // 7. Autenticação Administrativa com Rate Limit Anti-Brute Force e E-mail + Senha
     if (safePath === '/api/admin/login' && req.method === 'POST') {
+        const clientIp = getClientIp(req);
+        const rateCheck = checkRateLimit(clientIp);
+
+        if (!rateCheck.allowed) {
+            return sendJson(res, 429, {
+                sucesso: false,
+                erro: `Muitas tentativas incorretas. Acesso bloqueado temporariamente por ${rateCheck.minutesLeft} minuto(s).`
+            });
+        }
+
         try {
             const body = await parseBody(req);
-            const { dados: config } = await db.obterConfigLoja();
-            const validPassword = config.admin_senha || ADMIN_PASSWORD;
+            const { credenciais } = await db.obterCredenciaisAdmin();
 
-            if (body.senha === validPassword) {
-                const token = 'adm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
-                return sendJson(res, 200, { sucesso: true, token, nome: 'Administrador Favo de Mel' });
+            const inputEmail = (body.email || '').trim().toLowerCase();
+            const inputSenha = (body.senha || '').trim();
+
+            const emailCorreto = (credenciais.email || 'admin@admin.com').trim().toLowerCase();
+            const senhaCorreta = credenciais.senha || 'admin';
+
+            // Permite o e-mail cadastrado ou 'admin'/'admin@favodemel.com' no caso de credenciais default
+            const emailValido = inputEmail === emailCorreto || 
+                                (emailCorreto === 'admin@admin.com' && (inputEmail === 'admin' || inputEmail === 'admin@favodemel.com'));
+            const senhaValida = inputSenha === senhaCorreta;
+
+            if (emailValido && senhaValida) {
+                resetLoginAttempts(clientIp);
+                const token = 'adm_' + Date.now() + '_' + crypto.randomBytes(12).toString('hex');
+                return sendJson(res, 200, {
+                    sucesso: true,
+                    token,
+                    email: emailCorreto,
+                    nome: 'Administrador Favo de Mel'
+                });
             } else {
-                return sendJson(res, 401, { sucesso: false, erro: 'Senha administrativa incorreta' });
+                const record = recordFailedAttempt(clientIp);
+                const remaining = Math.max(0, MAX_FAILED_ATTEMPTS - record.count);
+
+                if (record.blockedUntil > 0) {
+                    return sendJson(res, 429, {
+                        sucesso: false,
+                        erro: 'Limite de 5 tentativas excedido! Acesso temporariamente bloqueado por 15 minutos.'
+                    });
+                }
+
+                return sendJson(res, 401, {
+                    sucesso: false,
+                    erro: `E-mail ou senha incorretos. Tentativas restantes: ${remaining}.`
+                });
             }
         } catch (err) {
             return sendJson(res, 400, { sucesso: false, erro: err.message });
+        }
+    }
+
+    // 8. Consulta do E-mail Atual do Administrador (Não expõe a senha)
+    if (safePath === '/api/admin/credenciais' && req.method === 'GET') {
+        try {
+            const { credenciais } = await db.obterCredenciaisAdmin();
+            return sendJson(res, 200, {
+                sucesso: true,
+                email: credenciais.email || 'admin@admin.com'
+            });
+        } catch (err) {
+            return sendJson(res, 500, { sucesso: false, erro: err.message });
+        }
+    }
+
+    // 9. Alteração de Credenciais (E-mail e Senha) com Duplo Check
+    if (safePath === '/api/admin/alterar-credenciais' && req.method === 'POST') {
+        try {
+            const body = await parseBody(req);
+            const { credenciais } = await db.obterCredenciaisAdmin();
+
+            const senhaAtual = (body.senhaAtual || '').trim();
+            const novoEmail = (body.novoEmail || '').trim().toLowerCase();
+            const confirmacaoEmail = (body.confirmacaoEmail || '').trim().toLowerCase();
+            const novaSenha = (body.novaSenha || '').trim();
+            const confirmacaoSenha = (body.confirmacaoSenha || '').trim();
+
+            // Validação de segurança: a senha atual precisa estar correta
+            if (senhaAtual !== credenciais.senha) {
+                return sendJson(res, 401, {
+                    sucesso: false,
+                    erro: 'A senha atual informada está incorreta. Digite sua senha atual para autorizar a troca.'
+                });
+            }
+
+            // Duplo check de e-mail
+            if (!novoEmail || !novoEmail.includes('@') || novoEmail.length < 5) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    erro: 'Por favor, informe um endereço de e-mail válido.'
+                });
+            }
+            if (novoEmail !== confirmacaoEmail) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    erro: 'Os e-mails informados não coincidem. Verifique a confirmação de e-mail.'
+                });
+            }
+
+            // Duplo check de confirmação de senha
+            if (!novaSenha || novaSenha.length < 4) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    erro: 'A nova senha deve ter no mínimo 4 caracteres.'
+                });
+            }
+            if (novaSenha !== confirmacaoSenha) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    erro: 'A confirmação de senha não confere com a nova senha digitada.'
+                });
+            }
+
+            // Salva as novas credenciais diretamente no PostgreSQL (tb_bot_config) e no fallback local
+            const { credenciais: salvas, fonte } = await db.salvarCredenciaisAdmin(novoEmail, novaSenha);
+
+            return sendJson(res, 200, {
+                sucesso: true,
+                mensagem: 'E-mail e senha atualizados com sucesso no banco de dados!',
+                email: salvas.email,
+                fonte
+            });
+        } catch (err) {
+            return sendJson(res, 400, { sucesso: false, erro: 'Erro ao alterar credenciais: ' + err.message });
         }
     }
 
@@ -375,21 +593,6 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
         return res.end('403 - Acesso Negado');
     }
-
-    const serveFile = (targetFile) => {
-        fs.readFile(targetFile, (err, data) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-                return res.end(`500 - Erro interno ao ler arquivo: ${err.message}`);
-            }
-
-            const ext = path.extname(targetFile).toLowerCase();
-            const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(data);
-        });
-    };
 
     fs.stat(filePath, (err, stats) => {
         if (!err && stats.isFile()) {
@@ -409,26 +612,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="UTF-8">
-                <title>404 - Página Não Encontrada</title>
-                <style>
-                    body { font-family: sans-serif; text-align: center; padding: 4rem 1rem; background: #FAF7F2; color: #2C231C; }
-                    h1 { color: #D97706; font-size: 3rem; margin-bottom: 0.5rem; }
-                    p { color: #6E6359; font-size: 1.1rem; }
-                    a { display: inline-block; margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: #D97706; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                <h1>404</h1>
-                <p>O arquivo ou página <strong>${safePath}</strong> não foi encontrado.</p>
-                <a href="/">Voltar ao Início</a>
-            </body>
-            </html>
-        `);
+        res.end(render404(safePath));
     });
 });
 
@@ -437,11 +621,10 @@ function iniciarServidor(porta) {
     server.listen(porta, '0.0.0.0', () => {
         console.log('\n======================================================');
         console.log('🐝 Apiário Favo de Mel - Servidor & Painel Administrativo');
-        console.log(`Catálogo:     http://localhost:${porta}/catalogo.html`);
-        console.log(`Painel Admin: http://localhost:${porta}/admin.html`);
-        console.log(`Site Oficial: http://localhost:${porta}/`);
-        console.log(`Banco:        PostgreSQL (${process.env.DB_NAME || 'evolution_db'}) c/ Fallback Resiliente`);
-        console.log('Pressione Ctrl+C para encerrar o servidor');
+        console.log(`Catálogo:       http://localhost:${porta}/catalogo.html`);
+        console.log(`Site Oficial:   http://localhost:${porta}/`);
+        console.log(`Painel Seguro:  http://localhost:${porta}/admin/favodemel`);
+        console.log(`Banco:          PostgreSQL (${process.env.DB_NAME || 'evolution_db'}) c/ Fallback Resiliente`);
         console.log('======================================================\n');
     });
 }

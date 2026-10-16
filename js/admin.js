@@ -35,6 +35,7 @@ class AdminApp {
         this.configurarEventosPix();
         this.configurarEventosLoja();
         this.configurarEventosPedidos();
+        this.configurarEventosSeguranca();
 
         if (this.token) {
             this.iniciarSessao();
@@ -52,14 +53,15 @@ class AdminApp {
     }
 
     // =========================================================================
-    // 1. AUTENTICAÇÃO
+    // 1. AUTENTICAÇÃO COM E-MAIL E SENHA + RATE LIMIT
     // =========================================================================
     configurarEventosAutenticacao() {
         const formLogin = document.getElementById('formAdminLogin');
         if (formLogin) {
             formLogin.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const senha = document.getElementById('adminPasswordInput').value.trim();
+                const email = document.getElementById('adminEmailInput')?.value.trim();
+                const senha = document.getElementById('adminPasswordInput')?.value.trim();
                 const erroEl = document.getElementById('loginErrorMsg');
                 erroEl.style.display = 'none';
 
@@ -67,7 +69,7 @@ class AdminApp {
                     const res = await fetch(this.getApiUrl('/api/admin/login'), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ senha })
+                        body: JSON.stringify({ email, senha })
                     });
                     const data = await res.json();
 
@@ -76,19 +78,12 @@ class AdminApp {
                         sessionStorage.setItem('favodemel_admin_token', this.token);
                         this.iniciarSessao();
                     } else {
-                        erroEl.innerText = data.erro || 'Senha incorreta.';
+                        erroEl.innerText = data.erro || 'Credenciais incorretas.';
                         erroEl.style.display = 'block';
                     }
                 } catch (err) {
-                    // Fallback local se o servidor estiver rodando sem API backend
-                    if (senha === 'admin') {
-                        this.token = 'local_admin_session';
-                        sessionStorage.setItem('favodemel_admin_token', this.token);
-                        this.iniciarSessao();
-                    } else {
-                        erroEl.innerText = 'Senha incorreta. (Padrão: admin)';
-                        erroEl.style.display = 'block';
-                    }
+                    erroEl.innerText = 'Falha ao conectar com o servidor. Tente novamente.';
+                    erroEl.style.display = 'block';
                 }
             });
         }
@@ -103,7 +98,9 @@ class AdminApp {
     exibirTelaLogin() {
         document.getElementById('adminLoginOverlay')?.style.setProperty('display', 'flex');
         document.getElementById('adminApp')?.style.setProperty('display', 'none');
-        document.getElementById('adminPasswordInput').value = '';
+        if (document.getElementById('adminPasswordInput')) {
+            document.getElementById('adminPasswordInput').value = '';
+        }
     }
 
     async iniciarSessao() {
@@ -111,6 +108,7 @@ class AdminApp {
         document.getElementById('adminApp')?.style.setProperty('display', 'flex');
 
         await this.carregarStatusBanco();
+        await this.carregarCredenciaisAdmin();
         await this.carregarConfiguracoes();
         await this.carregarCategorias();
         await this.carregarImagensGaleria();
@@ -147,6 +145,16 @@ class AdminApp {
         }
     }
 
+    async carregarCredenciaisAdmin() {
+        try {
+            const res = await fetch(this.getApiUrl('/api/admin/credenciais'));
+            const data = await res.json();
+            if (data.sucesso && data.email) {
+                const el = document.getElementById('emailAtualDisplay');
+                if (el) el.value = data.email;
+            }
+        } catch (_) {}
+    }
 
     // =========================================================================
     // 2. NAVEGAÇÃO DE ABAS
@@ -158,7 +166,8 @@ class AdminApp {
             tabCategorias: { titulo: 'Categorias do Catálogo', subtitulo: 'Organize as seções e filtros dos produtos' },
             tabPix: { titulo: 'Chave PIX & Pagamentos', subtitulo: 'Configure sua chave oficial e teste o código Copia e Cola' },
             tabLoja: { titulo: 'Configurações da Loja', subtitulo: 'Horários, telefone WhatsApp de vendas e taxas de entrega' },
-            tabPedidos: { titulo: 'Pedidos & Vendas', subtitulo: 'Histórico de pedidos recebidos pelo site e atualizações de entrega' }
+            tabPedidos: { titulo: 'Pedidos & Vendas', subtitulo: 'Histórico de pedidos recebidos pelo site e atualizações de entrega' },
+            tabSeguranca: { titulo: 'Segurança & Credenciais', subtitulo: 'Altere o e-mail e a senha de acesso administrativo' }
         };
 
         botoesAba.forEach(btn => {
@@ -934,8 +943,93 @@ class AdminApp {
             });
         });
     }
+
+    // =========================================================================
+    // 8. SEGURANÇA E ALTERAÇÃO DE CREDENCIAIS
+    // =========================================================================
+    configurarEventosSeguranca() {
+        const formCreds = document.getElementById('formAlterarCredenciais');
+        if (!formCreds) return;
+
+        formCreds.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const msgSucesso = document.getElementById('msgCredenciaisSucesso');
+            const msgErro = document.getElementById('msgCredenciaisErro');
+            const txtSucesso = document.getElementById('txtCredenciaisSucesso');
+            const txtErro = document.getElementById('txtCredenciaisErro');
+
+            msgSucesso.style.display = 'none';
+            msgErro.style.display = 'none';
+
+            const senhaAtual = document.getElementById('senhaAtualInput').value.trim();
+            const novoEmail = document.getElementById('novoEmailInput').value.trim().toLowerCase();
+            const confirmacaoEmail = document.getElementById('confirmacaoEmailInput').value.trim().toLowerCase();
+            const novaSenha = document.getElementById('novaSenhaInput').value.trim();
+            const confirmacaoSenha = document.getElementById('confirmacaoSenhaInput').value.trim();
+
+            // Duplo check frontend de e-mail
+            if (novoEmail !== confirmacaoEmail) {
+                txtErro.innerText = 'Os e-mails informados não coincidem (duplo check falhou). Verifique a confirmação.';
+                msgErro.style.display = 'flex';
+                return;
+            }
+
+            // Duplo check frontend de senha
+            if (novaSenha !== confirmacaoSenha) {
+                txtErro.innerText = 'As novas senhas informadas não coincidem. Digite-as novamente.';
+                msgErro.style.display = 'flex';
+                return;
+            }
+
+            if (novaSenha.length < 4) {
+                txtErro.innerText = 'A nova senha deve possuir pelo menos 4 caracteres.';
+                msgErro.style.display = 'flex';
+                return;
+            }
+
+            const btnSalvar = document.getElementById('btnSalvarCredenciais');
+            const btnOriginal = btnSalvar.innerHTML;
+            btnSalvar.disabled = true;
+            btnSalvar.innerText = 'Atualizando...';
+
+            try {
+                const res = await fetch(this.getApiUrl('/api/admin/alterar-credenciais'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        senhaAtual,
+                        novoEmail,
+                        confirmacaoEmail,
+                        novaSenha,
+                        confirmacaoSenha
+                    })
+                });
+
+                const data = await res.json();
+                if (data.sucesso) {
+                    txtSucesso.innerText = data.mensagem || 'E-mail e senha atualizados com sucesso no banco de dados!';
+                    msgSucesso.style.display = 'flex';
+                    const displayEl = document.getElementById('emailAtualDisplay');
+                    if (displayEl) displayEl.value = data.email || novoEmail;
+                    formCreds.reset();
+                    if (displayEl) displayEl.value = data.email || novoEmail;
+                } else {
+                    txtErro.innerText = data.erro || 'Falha ao atualizar credenciais.';
+                    msgErro.style.display = 'flex';
+                }
+            } catch (err) {
+                txtErro.innerText = 'Falha de comunicação com o servidor: ' + err.message;
+                msgErro.style.display = 'flex';
+            } finally {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = btnOriginal;
+            }
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     window.adminApp = new AdminApp();
 });
+

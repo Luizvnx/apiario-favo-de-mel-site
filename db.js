@@ -257,6 +257,60 @@ class DatabaseAdapter {
     }
 
     // =========================================================================
+    // CREDENCIAIS ADMINISTRATIVAS (tb_bot_config)
+    // =========================================================================
+    async obterCredenciaisAdmin() {
+        const fallback = this.readJson('admin_credentials.json', {
+            email: 'admin@admin.com',
+            senha: process.env.ADMIN_PASSWORD || 'admin'
+        });
+
+        if (!this.isConnected) {
+            return { credenciais: fallback, fonte: 'local_json' };
+        }
+
+        try {
+            const res = await this.query("SELECT valor FROM tb_bot_config WHERE chave = 'admin_credentials'");
+            if (res.rows.length > 0 && res.rows[0].valor) {
+                const creds = res.rows[0].valor;
+                this.writeJson('admin_credentials.json', creds);
+                return { credenciais: creds, fonte: 'postgresql' };
+            }
+            await this.query(`
+                INSERT INTO tb_bot_config (chave, valor, atualizado_em)
+                VALUES ('admin_credentials', $1, CURRENT_TIMESTAMP)
+                ON CONFLICT (chave) DO NOTHING;
+            `, [JSON.stringify(fallback)]);
+            return { credenciais: fallback, fonte: 'postgresql' };
+        } catch (err) {
+            console.warn('[DB] Erro ao obter credenciais no PostgreSQL, usando cache local:', err.message);
+            return { credenciais: fallback, fonte: 'local_json' };
+        }
+    }
+
+    async salvarCredenciaisAdmin(email, senha) {
+        const dados = { email: email.trim().toLowerCase(), senha: senha.trim() };
+        this.writeJson('admin_credentials.json', dados);
+
+        if (!this.isConnected) {
+            return { sucesso: true, credenciais: dados, fonte: 'local_json' };
+        }
+
+        try {
+            await this.query(`
+                INSERT INTO tb_bot_config (chave, valor, atualizado_em)
+                VALUES ('admin_credentials', $1, CURRENT_TIMESTAMP)
+                ON CONFLICT (chave)
+                DO UPDATE SET valor = EXCLUDED.valor, atualizado_em = CURRENT_TIMESTAMP;
+            `, [JSON.stringify(dados)]);
+            return { sucesso: true, credenciais: dados, fonte: 'postgresql' };
+        } catch (err) {
+            console.error('[DB] Erro ao salvar credenciais no PostgreSQL:', err.message);
+            return { sucesso: true, credenciais: dados, fonte: 'local_json' };
+        }
+    }
+
+    // =========================================================================
     // CONFIGURAÇÕES DA LOJA (tb_bot_config)
     // =========================================================================
     async obterConfigLoja() {
