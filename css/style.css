@@ -111,26 +111,19 @@ img {
     margin-bottom: 0.85rem;
 }
 
-.section-tag::before {
+.section-tag::before,
+.section-tag::after {
     content: '';
     display: inline-block;
     width: 20px;
     height: 2px;
     background: #D98200;
     border-radius: 2px;
+    flex-shrink: 0;
 }
 
 .section-header .section-tag {
     justify-content: center;
-}
-
-.section-header .section-tag::after {
-    content: '';
-    display: inline-block;
-    width: 20px;
-    height: 2px;
-    background: #D98200;
-    border-radius: 2px;
 }
 
 .section-header {
