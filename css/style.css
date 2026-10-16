@@ -217,6 +217,124 @@ img {
 }
 
 /* ==========================================================================
+   BOTÃO WHATSAPP HERO (TRANSIÇÃO LÍQUIDA / ÁGUA ENCHENDO)
+   ========================================================================== */
+.btn-whatsapp-outline {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: transparent;
+    color: #1EA952;
+    border: 1.5px solid #1EA952;
+    box-shadow: 0 2px 8px rgba(30, 169, 82, 0.15);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.45s ease,
+                border-color 0.45s ease;
+}
+
+/* Camada da água (inicia na base com leve menisco curvo e sobe como líquido) */
+.btn-whatsapp-outline::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: #1EA952;
+    z-index: 1;
+    border-radius: 50% 50% 0 0 / 10px 10px 0 0;
+    transition: height 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+                border-radius 0.5s ease;
+}
+
+.btn-whatsapp-outline:hover::before {
+    height: 100%;
+    border-radius: 0;
+}
+
+.btn-whatsapp-outline:hover {
+    border-color: #1EA952;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(30, 169, 82, 0.55), 0 0 14px rgba(30, 169, 82, 0.4);
+}
+
+.btn-whatsapp-outline svg,
+.btn-whatsapp-outline span {
+    position: relative;
+    z-index: 2;
+    color: #1EA952;
+    fill: currentColor;
+    transition: color 0.35s ease, fill 0.35s ease;
+}
+
+.btn-whatsapp-outline:hover span {
+    color: #FFFFFF !important;
+}
+
+.btn-whatsapp-outline:hover svg {
+    fill: #FFFFFF !important;
+}
+
+/* ==========================================================================
+   BOTÃO INSTAGRAM (TRANSIÇÃO LÍQUIDA / ÁGUA ENCHENDO)
+   ========================================================================== */
+.btn-instagram {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: transparent;
+    color: #E1306C;
+    border: 1.5px solid #E1306C;
+    box-shadow: 0 2px 8px rgba(225, 48, 108, 0.15);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.45s ease,
+                border-color 0.45s ease;
+}
+
+/* Camada líquida subindo */
+.btn-instagram::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: #E1306C;
+    z-index: 1;
+    border-radius: 50% 50% 0 0 / 10px 10px 0 0;
+    transition: height 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+                border-radius 0.5s ease;
+}
+
+.btn-instagram:hover::before {
+    height: 100%;
+    border-radius: 0;
+}
+
+.btn-instagram:hover {
+    border-color: #E1306C;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(225, 48, 108, 0.55), 0 0 14px rgba(225, 48, 108, 0.4);
+}
+
+.btn-instagram svg,
+.btn-instagram span {
+    position: relative;
+    z-index: 2;
+    color: #E1306C;
+    fill: currentColor;
+    transition: color 0.35s ease, fill 0.35s ease;
+}
+
+.btn-instagram:hover span {
+    color: #FFFFFF !important;
+}
+
+.btn-instagram:hover svg {
+    fill: #FFFFFF !important;
+}
+
+/* ==========================================================================
    HEADER & NAVBAR
    ========================================================================== */
 .site-header {
