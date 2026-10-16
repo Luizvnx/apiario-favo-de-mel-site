@@ -159,6 +159,11 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     let safePath = decodeURIComponent(parsedUrl.pathname);
 
+    // Aliases e normalização de caminhos estáticos quando acessado via sub-rotas (/admin/... ou /favodemel/...)
+    if (/^\/(admin|favodemel)\/(css|js|assets|data)\//.test(safePath)) {
+        safePath = safePath.replace(/^\/(admin|favodemel)/, '');
+    }
+
     // Endpoint dinâmico de configuração para frontend
     if (safePath === '/config.js') {
         res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
