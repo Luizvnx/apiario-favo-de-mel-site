@@ -4,7 +4,8 @@
   "description": "Website Oficial e Catálogo Digital do Apiário Favo de Mel",
   "main": "index.html",
   "scripts": {
-    "start": "echo Site estático pronto",
+    "dev": "node server.js",
+    "start": "node server.js",
     "build": "echo Build estático concluído"
   },
   "keywords": [

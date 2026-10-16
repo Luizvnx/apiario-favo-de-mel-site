@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo | Apiário Favo de Mel</title>
+    <meta name="description" content="Painel de Controle e Gestão de Produtos, Chave PIX, Categorias e Pedidos do Apiário Favo de Mel.">
+    
+    <!-- Tipografia Oficial da Marca -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/admin.css?v=1.0">
+</head>
+<body>
+
+    <!-- ==========================================================================
+         1. TELA DE LOGIN ADMINISTRATIVO
+         ========================================================================== -->
+    <div id="adminLoginOverlay" class="admin-login-overlay">
+        <div class="admin-login-card">
+            <img src="assets/products/logo-favo-de-mel.png" alt="Logo Apiário Favo de Mel" class="admin-login-logo">
+            <h1>Apiário Favo de Mel</h1>
+            <p>Acesso exclusivo para gestão do catálogo e pedidos</p>
+            
+            <form id="formAdminLogin">
+                <div class="form-group" style="text-align: left;">
+                    <label for="adminPasswordInput">Senha de Acesso</label>
+                    <input type="password" id="adminPasswordInput" class="form-control" placeholder="Digite sua senha..." required autofocus>
+                </div>
+                <div id="loginErrorMsg" style="color: var(--color-status-red); font-size: 0.82rem; margin-bottom: 1rem; display: none;">
+                    Senha incorreta. Tente novamente.
+                </div>
+                <button type="submit" id="btnSubmitLogin" class="btn-admin btn-admin-primary" style="width: 100%; padding: 0.85rem;">
+                    <span>Entrar no Painel</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
+            </form>
+            <div style="margin-top: 1.5rem;">
+                <a href="catalogo.html" style="color: var(--color-text-muted); font-size: 0.8rem; text-decoration: none;">Voltar ao Catálogo Público</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         2. LAYOUT DO PAINEL PRINCIPAL
+         ========================================================================== -->
+    <div id="adminApp" class="admin-layout" style="display: none;">
+        
+        <!-- SIDEBAR DE NAVEGAÇÃO -->
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar-header">
+                <img src="assets/products/logo-favo-de-mel.png" alt="Apiário Favo de Mel" class="admin-sidebar-logo">
+                <div class="admin-brand-info">
+                    <h2>Favo de Mel</h2>
+                    <span>Administrador</span>
+                </div>
+            </div>
+
+            <nav class="admin-nav">
+                <button class="admin-nav-item active" data-tab="tabProdutos">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <span>Produtos & Estoque</span>
+                </button>
+                <button class="admin-nav-item" data-tab="tabCategorias">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    <span>Categorias</span>
+                </button>
+                <button class="admin-nav-item" data-tab="tabPix">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                    <span>Chave PIX & Pagamentos</span>
+                </button>
+                <button class="admin-nav-item" data-tab="tabLoja">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Configurações da Loja</span>
+                </button>
+                <button class="admin-nav-item" data-tab="tabPedidos">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    <span>Pedidos & Vendas</span>
+                </button>
+            </nav>
+
+            <div class="admin-sidebar-footer">
+                <a href="catalogo.html" target="_blank" class="admin-link-store">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    <span>Visualizar Loja Aberta</span>
+                </a>
+                <button id="btnAdminLogout" class="admin-btn-logout">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Sair da Sessão</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ÁREA CENTRAL DE CONTEÚDO -->
+        <main class="admin-main">
+            <!-- TOPBAR -->
+            <header class="admin-topbar">
+                <div class="admin-topbar-title">
+                    <h1 id="topbarTitle">Produtos & Estoque</h1>
+                    <p id="topbarSubtitle">Gerencie itens, fotos, descrições e preços do catálogo</p>
+                </div>
+                <div class="admin-topbar-actions">
+                    <div class="status-indicator">
+                        <span class="status-dot green"></span>
+                        <span id="serverStatusText">Servidor Local Conectado</span>
+                    </div>
+                    <button id="btnOpenNewProductModal" class="btn-admin btn-admin-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Novo Produto</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="admin-content-area">
+
+                <!-- ==========================================================
+                     TAB 1: PRODUTOS & CATÁLOGO
+                     ========================================================== -->
+                <div id="tabProdutos" class="admin-tab-pane active">
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h3>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path></svg>
+                                <span>Lista de Produtos Cadastrados (<span id="totalProdutosCount">0</span>)</span>
+                            </h3>
+                            <div style="display: flex; gap: 0.75rem;">
+                                <input type="text" id="filtroProdutoInput" class="form-control" placeholder="Buscar por nome..." style="max-width: 240px; padding: 0.45rem 0.75rem; font-size: 0.85rem;">
+                                <select id="filtroCategoriaSelect" class="form-control" style="max-width: 200px; padding: 0.45rem 0.75rem; font-size: 0.85rem;">
+                                    <option value="todas">Todas as Categorias</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 70px;">Foto</th>
+                                        <th>Produto</th>
+                                        <th>Categoria</th>
+                                        <th>Preço (R$)</th>
+                                        <th>Estoque</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaProdutosBody">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--color-text-muted);">
+                                            Carregando catálogo de produtos...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==========================================================
+                     TAB 2: CATEGORIAS
+                     ========================================================== -->
+                <div id="tabCategorias" class="admin-tab-pane">
+                    <div class="admin-grid-2">
+                        <!-- Formulário Nova Categoria -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                                    <span>Adicionar / Editar Categoria</span>
+                                </h3>
+                            </div>
+                            <form id="formCategoria">
+                                <input type="hidden" id="categoriaIdInput" value="">
+                                <div class="form-group">
+                                    <label for="categoriaNomeInput">Nome da Categoria</label>
+                                    <input type="text" id="categoriaNomeInput" class="form-control" placeholder="Ex: Méis Raros & Floradas" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="categoriaIconeSelect">Ícone Representativo (Feather SVGs)</label>
+                                    <select id="categoriaIconeSelect" class="form-control">
+                                        <option value="droplet">Gota / Mel (droplet)</option>
+                                        <option value="shield">Escudo / Própolis (shield)</option>
+                                        <option value="layers">Camadas / Cera & Artesanais (layers)</option>
+                                        <option value="package">Caixa / Acessórios (package)</option>
+                                        <option value="gift">Presente / Kits (gift)</option>
+                                        <option value="feather">Pena / Nobreza (feather)</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                                    <button type="button" id="btnCancelarEdicaoCategoria" class="btn-admin btn-admin-secondary" style="display: none;">Cancelar</button>
+                                    <button type="submit" class="btn-admin btn-admin-primary">Salvar Categoria</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Lista de Categorias Atuais -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3>
+                                    <span>Categorias Ativas no Site</span>
+                                </h3>
+                            </div>
+                            <div class="admin-table-wrap">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Ícone</th>
+                                            <th>Produtos</th>
+                                            <th style="text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaCategoriasBody">
+                                        <!-- Preenchido via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==========================================================
+                     TAB 3: CHAVE PIX & PAGAMENTOS COM TESTADOR COPIA E COLA
+                     ========================================================== -->
+                <div id="tabPix" class="admin-tab-pane">
+                    <div class="admin-grid-2">
+                        <!-- Formulário de Configuração do PIX -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                    <span>Configuração da Chave PIX Oficial</span>
+                                </h3>
+                            </div>
+                            <form id="formPixConfig">
+                                <div class="form-group">
+                                    <label for="pixTipoInput">Tipo de Chave</label>
+                                    <select id="pixTipoInput" class="form-control">
+                                        <option value="telefone">Telefone (Celular com DDD)</option>
+                                        <option value="cpf">CPF</option>
+                                        <option value="cnpj">CNPJ</option>
+                                        <option value="email">E-mail</option>
+                                        <option value="aleatoria">Chave Aleatória (EVP)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pixChaveInput">Chave PIX</label>
+                                    <input type="text" id="pixChaveInput" class="form-control" placeholder="Ex: 79988125726" value="79988125726" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pixTitularInput">Nome do Titular / Razão Social (Máx 25 caracteres)</label>
+                                    <input type="text" id="pixTitularInput" class="form-control" placeholder="Ex: Apiario Favo de Mel" value="Apiario Favo de Mel" maxlength="25" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pixCidadeInput">Cidade do Titular (Máx 15 caracteres)</label>
+                                    <input type="text" id="pixCidadeInput" class="form-control" placeholder="Ex: Aracaju" value="Aracaju" maxlength="15" required>
+                                </div>
+                                <button type="submit" class="btn-admin btn-admin-primary" style="margin-top: 0.5rem;">
+                                    Salvar Dados do PIX
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Testador / Simulador Oficial Copia e Cola EMV -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                    <span>Simulador & Teste do Código Copia e Cola</span>
+                                </h3>
+                            </div>
+                            <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                                Teste aqui o payload padrão Banco Central (BR Code) e confira se seu app de banco lê perfeitamente com o valor preenchido:
+                            </p>
+
+                            <div class="form-group">
+                                <label for="simuladorValorInput">Valor de Teste (R$)</label>
+                                <input type="number" id="simuladorValorInput" class="form-control" value="60.00" step="0.50" min="1">
+                            </div>
+
+                            <div class="pix-test-box">
+                                <div class="pix-qr-container">
+                                    <img id="simuladorQrCodeImg" src="" alt="QR Code PIX">
+                                </div>
+                                <div style="flex: 1; text-align: left;">
+                                    <div style="font-size: 0.82rem; font-weight: 600; color: var(--color-dark);">
+                                        Código Copia e Cola Gerado (EMV / BCB):
+                                    </div>
+                                    <textarea id="simuladorPayloadText" class="pix-code-field" rows="3" readonly></textarea>
+                                    <button type="button" id="btnCopiarSimuladorPix" class="btn-admin btn-admin-secondary btn-admin-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        <span>Copiar Código Copia e Cola</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==========================================================
+                     TAB 4: CONFIGURAÇÕES DA LOJA
+                     ========================================================== -->
+                <div id="tabLoja" class="admin-tab-pane">
+                    <div class="admin-card" style="max-width: 750px;">
+                        <div class="admin-card-header">
+                            <h3>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                <span>Configurações Gerais de Operação</span>
+                            </h3>
+                        </div>
+                        <form id="formStoreGeneral">
+                            <div class="form-group">
+                                <label for="storeNomeInput">Nome da Loja</label>
+                                <input type="text" id="storeNomeInput" class="form-control" value="Apiário Favo de Mel" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="storeWhatsappInput">WhatsApp Oficial de Vendas (Recebe os pedidos)</label>
+                                <input type="text" id="storeWhatsappInput" class="form-control" value="557988125726" required>
+                            </div>
+                            <div class="admin-grid-2">
+                                <div class="form-group">
+                                    <label for="storeStatusSelect">Status da Loja</label>
+                                    <select id="storeStatusSelect" class="form-control">
+                                        <option value="aberto">Aberto para Pedidos</option>
+                                        <option value="pausado">Pausado Momentaneamente</option>
+                                        <option value="fechado">Fechado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="storeTaxaEntregaInput">Taxa de Entrega Padrão (R$)</label>
+                                    <input type="number" id="storeTaxaEntregaInput" class="form-control" value="0.00" step="0.50" min="0">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="storeMensagemEntregaInput">Texto Informativo de Entrega</label>
+                                <input type="text" id="storeMensagemEntregaInput" class="form-control" value="A combinar na confirmação">
+                            </div>
+                            <button type="submit" class="btn-admin btn-admin-primary">Salvar Configurações da Loja</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ==========================================================
+                     TAB 5: PEDIDOS & VENDAS
+                     ========================================================== -->
+                <div id="tabPedidos" class="admin-tab-pane">
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h3>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path></svg>
+                                <span>Histórico de Pedidos Registrados</span>
+                            </h3>
+                            <button id="btnAtualizarPedidos" class="btn-admin btn-admin-secondary btn-admin-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                <span>Recarregar</span>
+                            </button>
+                        </div>
+
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Cliente</th>
+                                        <th>Itens</th>
+                                        <th>Total</th>
+                                        <th>Pagamento</th>
+                                        <th>Status do Pedido</th>
+                                        <th style="text-align: right;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaPedidosBody">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+         3. MODAL DE CADASTRO / EDIÇÃO DE PRODUTO
+         ========================================================================== -->
+    <div id="modalProdutoOverlay" class="admin-modal-overlay">
+        <div class="admin-modal-box">
+            <div class="admin-modal-header">
+                <h3 id="modalProdutoTitle">Cadastrar Novo Produto</h3>
+                <button type="button" id="btnCloseModalProduto" class="btn-admin btn-admin-secondary btn-admin-sm" style="border: none; padding: 0.25rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <form id="formProdutoModal" class="admin-modal-body">
+                <input type="hidden" id="prodEditId" value="">
+
+                <div class="form-group">
+                    <label for="prodNomeInput">Nome do Produto</label>
+                    <input type="text" id="prodNomeInput" class="form-control" placeholder="Ex: Mel Silvestre em Pote (500g)" required>
+                </div>
+
+                <div class="admin-grid-2">
+                    <div class="form-group">
+                        <label for="prodCategoriaSelect">Categoria</label>
+                        <select id="prodCategoriaSelect" class="form-control" required>
+                            <!-- Preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodPrecoInput">Preço de Venda (R$)</label>
+                        <input type="number" id="prodPrecoInput" class="form-control" placeholder="50.00" step="0.50" min="0" required>
+                    </div>
+                </div>
+
+                <div class="admin-grid-2">
+                    <div class="form-group">
+                        <label for="prodPesoInput">Peso / Volume</label>
+                        <input type="text" id="prodPesoInput" class="form-control" placeholder="Ex: 500g, 20ml, 1kg">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodEstoqueInput">Estoque Disponível (Unidades)</label>
+                        <input type="number" id="prodEstoqueInput" class="form-control" value="20" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="prodDescricaoInput">Descrição Detalhada</label>
+                    <textarea id="prodDescricaoInput" class="form-control" rows="3" placeholder="Propriedades, origem das floradas e benefícios..."></textarea>
+                </div>
+
+                <!-- SELETOR VISUAL DE FOTO DA GALERIA DO APIÁRIO -->
+                <div class="form-group">
+                    <label>Foto do Produto (Galeria do Apiário)</label>
+                    <div class="image-picker-preview">
+                        <img id="imagePreviewImg" src="assets/products/Mel-in-Natura-500g.png" alt="Prévia da foto" class="image-picker-thumb">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem; color: var(--color-dark); margin-bottom: 0.25rem;">
+                                Arquivo Selecionado:
+                            </div>
+                            <input type="text" id="prodFotoInput" class="form-control" style="font-size: 0.8rem; padding: 0.45rem;" value="Mel-in-Natura-500g.png" readonly>
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">
+                                Clique em uma imagem abaixo para selecionar:
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Visual de Fotos Autênticas -->
+                    <div id="imageGalleryGrid" class="image-gallery-grid">
+                        <!-- Carregado via JS -->
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                    <input type="checkbox" id="prodAtivoCheckbox" checked style="width: 18px; height: 18px; accent-color: var(--color-primary);">
+                    <label for="prodAtivoCheckbox" style="margin-bottom: 0; text-transform: none; cursor: pointer;">
+                        Produto Ativo e Visível no Catálogo
+                    </label>
+                </div>
+            </form>
+
+            <div class="admin-modal-footer">
+                <button type="button" id="btnCancelModalProduto" class="btn-admin btn-admin-secondary">Cancelar</button>
+                <button type="button" id="btnSaveModalProduto" class="btn-admin btn-admin-primary">Salvar Produto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts do Sistema -->
+    <script src="/config.js"></script>
+    <script src="js/pix-util.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

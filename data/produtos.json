@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1,
+    "categoria_id": 1,
+    "nome": "Mel de Uruçú (Nativa)",
+    "preco": 85.00,
+    "peso": "280g",
+    "descricao": "Mel nobre e medicinal de abelha nativa sem ferrão Uruçu. Acidez equilibrada e propriedades bioativas excepcionais colhido na reserva.",
+    "estoque": 15,
+    "foto": "Mel-in-Natura-500g.png",
+    "ativo": true
+  },
+  {
+    "id": 2,
+    "categoria_id": 1,
+    "nome": "Meleira com Mel Nobre",
+    "preco": 60.00,
+    "peso": "280g",
+    "descricao": "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro de florada silvestre e pegador dosador.",
+    "estoque": 20,
+    "foto": "Meleira-com-mel-280g.jpeg",
+    "ativo": true
+  },
+  {
+    "id": 3,
+    "categoria_id": 2,
+    "nome": "Extrato de Própolis Verde (20ml)",
+    "preco": 35.00,
+    "peso": "20ml",
+    "descricao": "Extrato concentrado de própolis verde de alta pureza. Rico em Artepillin-C com forte ação imunoestimulante.",
+    "estoque": 45,
+    "foto": "Propolis-Verde-20ml.png",
+    "ativo": true
+  },
+  {
+    "id": 4,
+    "categoria_id": 2,
+    "nome": "Extrato de Própolis Vermelha (20ml)",
+    "preco": 48.00,
+    "peso": "20ml",
+    "descricao": "A raríssima e premiada própolis vermelha dos manguezais de Sergipe. Máxima concentração antioxidante e regenerativa.",
+    "estoque": 30,
+    "foto": "Propolis-Vermelha-20ml.png",
+    "ativo": true
+  },
+  {
+    "id": 5,
+    "categoria_id": 2,
+    "nome": "Pólen Apícola Desidratado (140g)",
+    "preco": 42.00,
+    "peso": "140g",
+    "descricao": "Superalimento natural das abelhas repleto de aminoácidos essenciais, vitaminas do complexo B e minerais energizantes.",
+    "estoque": 25,
+    "foto": "Polen-Apicola-140g.png",
+    "ativo": true
+  },
+  {
+    "id": 6,
+    "categoria_id": 1,
+    "nome": "Favo de Mel em Pote (500g)",
+    "preco": 55.00,
+    "peso": "500g",
+    "descricao": "O mel em seu estado mais puro e sagrado direto do favo rústico. Experiência gastronômica ímpar de mastigar a pura cera virgem.",
+    "estoque": 18,
+    "foto": "Mel-com-Favo-500g.png",
+    "ativo": true
+  },
+  {
+    "id": 7,
+    "categoria_id": 3,
+    "nome": "Licor Nobre de Mel (250ml)",
+    "preco": 38.00,
+    "peso": "250ml",
+    "descricao": "Elixir artesanal elaborado a partir da lenta infusão de mel cru silvestre e especiarias aromáticas nobres.",
+    "estoque": 16,
+    "foto": "Licor-de-Mel-250ml.png",
+    "ativo": true
+  },
+  {
+    "id": 8,
+    "categoria_id": 3,
+    "nome": "Vinagre Nobre de Mel (315ml)",
+    "preco": 28.00,
+    "peso": "315ml",
+    "descricao": "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado para saladas e pratos nobres.",
+    "estoque": 22,
+    "foto": "Vinagre-de-Mel-315ml.png",
+    "ativo": true
+  },
+  {
+    "id": 9,
+    "categoria_id": 3,
+    "nome": "Vela Artesanal de Cera Pura de Abelha",
+    "preco": 18.00,
+    "peso": "Unidade",
+    "descricao": "Vela aromática 100% natural sem derivados de petróleo. Aroma suave e adocicado de favo com queima limpa e duradoura.",
+    "estoque": 35,
+    "foto": "Velas-artesanais-de-cera-de-abelha.png",
+    "ativo": true
+  },
+  {
+    "id": 10,
+    "categoria_id": 3,
+    "nome": "Cera Bruta de Apis (1kg)",
+    "preco": 95.00,
+    "peso": "1kg",
+    "descricao": "Bloco maciço de cera virgem de opérculo purificada. Ideal para cosmética, pomadas medicinais, marcenaria nobre e apicultura.",
+    "estoque": 12,
+    "foto": "Cera-Bruta-de-Apis.png",
+    "ativo": true
+  },
+  {
+    "id": 11,
+    "categoria_id": 1,
+    "nome": "Mel In Natura Garrafa (1400g)",
+    "preco": 65.00,
+    "peso": "1400g",
+    "descricao": "Embalagem família econômica com 1,4kg de mel cru silvestre colhido nas matas nativas. Pureza garantida.",
+    "estoque": 28,
+    "foto": "Mel-in-Natura-1400g.jpg",
+    "ativo": true
+  },
+  {
+    "id": 12,
+    "categoria_id": 3,
+    "nome": "Kit Presente Especial Apiário",
+    "preco": 135.00,
+    "peso": "Kit",
+    "descricao": "Caixa rústica de madeira artesanal com mel nobre, vela de cera de abelha, sabonete fitoterápico e geleia real.",
+    "estoque": 8,
+    "foto": "kit-presente.png",
+    "ativo": true
+  }
+]

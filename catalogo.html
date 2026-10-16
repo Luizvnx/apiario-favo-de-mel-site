@@ -15,8 +15,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/catalogo.css">
+    <link rel="stylesheet" href="/css/style.css?v=4.0">
+    <link rel="stylesheet" href="/css/catalogo.css?v=4.0">
 </head>
 <body class="catalogo-body">
 
@@ -236,7 +236,7 @@
                         <div class="payment-options-grid">
                             <div class="payment-opt-card active" data-payment="pix">
                                 <div class="payment-opt-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 512 512" fill="currentColor"><path d="M380.2 121.7L265.4 6.9c-5.1-5.1-13.6-5.1-18.7 0L131.8 121.7c-5.1 5.1-5.1 13.6 0 18.7l114.8 114.8c5.1 5.1 13.6 5.1 18.7 0l114.9-114.8c5.1-5.1 5.1-13.6 0-18.7zm-248.4 268.6l114.8 114.8c5.1 5.1 13.6 5.1 18.7 0l114.8-114.8c5.1-5.1 5.1-13.6 0-18.7L265.3 256.8c-5.1-5.1-13.6-5.1-18.7 0L131.8 371.6c-5.1 5.1-5.1 13.6 0 18.7zm-5.6-134.3L6.9 141.2c-5.1-5.1-5.1-13.6 0-18.7L121.7 7.7c5.1-5.1 13.6-5.1 18.7 0l114.8 114.8c5.1 5.1 5.1 13.6 0 18.7L140.4 256c-5.1 5.1-13.6 5.1-18.7 0zm253.9 0l114.8-114.8c5.1-5.1 5.1-13.6 0-18.7l-114.8-114.8c-5.1-5.1-13.6-5.1-18.7 0L142.4 122.5c-5.1 5.1-5.1 13.6 0 18.7l114.8 114.8c5.1 5.1 13.6 5.1 18.7 0z"/></svg>
+                                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"><path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156"/></svg>
                                 </div>
                                 <div class="payment-opt-title">PIX</div>
                             </div>
@@ -254,17 +254,38 @@
                             </div>
                         </div>
 
-                        <!-- Box de Detalhes do PIX -->
+                        <!-- Box de Detalhes do PIX com Copia e Cola Oficial -->
                         <div id="pixDetailsBox" class="pix-details-box">
-                            <p style="font-size: 0.85rem; font-weight: 600; color: #2C231C; margin-bottom: 0.35rem;">
-                                Chave PIX Oficial (Telefone do Apiário):
-                            </p>
-                            <div class="pix-key-wrap">
-                                <span id="pixKeyValue" class="pix-key-val">79988125726</span>
-                                <button type="button" id="btnCopyPix" class="btn-copy-pix">Copiar Chave</button>
+                            <div class="pix-box-header">
+                                <span class="pix-badge-title">Pagamento Instantâneo via PIX</span>
                             </div>
-                            <p style="font-size: 0.775rem; color: #6E6359; margin: 0;">
-                                O comprovante será enviado diretamente na conversa do WhatsApp.
+
+                            <!-- QR Code Dinâmico e Copia e Cola -->
+                            <div class="pix-checkout-body">
+                                <div class="pix-qr-wrap">
+                                    <img id="pixCheckoutQrImg" src="" alt="QR Code PIX Dinâmico" class="pix-qr-img">
+                                </div>
+                                <div class="pix-info-wrap">
+                                    <div class="pix-label-sm">Código PIX Copia e Cola (Banco Central):</div>
+                                    <div class="pix-payload-container">
+                                        <textarea id="pixCopiaEColaText" class="pix-payload-input" rows="2" readonly></textarea>
+                                        <button type="button" id="btnCopyPixPayload" class="btn-copy-payload">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            <span>Copiar Código Copia e Cola</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="pix-key-row">
+                                        <span class="pix-label-sm">Ou use a Chave Direta:</span>
+                                        <div class="pix-key-wrap">
+                                            <span id="pixKeyValue" class="pix-key-val">79988125726</span>
+                                            <button type="button" id="btnCopyPix" class="btn-copy-pix">Copiar Chave</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="pix-instructions-note">
+                                Abra o aplicativo do seu banco, escolha <strong>Pix Copia e Cola</strong> ou aponte a câmera para o QR Code. O valor já virá preenchido.
                             </p>
                         </div>
 
@@ -302,6 +323,23 @@
                     <p style="color: #6E6359;">Uma cópia deste pedido foi salva e encaminhada para a nossa equipe.</p>
                     
                     <div id="successOrderCode" class="order-badge-pill">#FD-0000</div>
+
+                    <!-- Box de Pagamento PIX no Sucesso -->
+                    <div id="successPixBox" style="background: #FAF7F2; border: 1px solid var(--color-border); border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; text-align: left; display: none;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-dark); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"><path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156"/></svg>
+                            <span>Pague com PIX Copia e Cola:</span>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="successPixPayloadInput" class="form-control" style="font-family: monospace; font-size: 0.78rem;" readonly>
+                            <button type="button" id="btnCopySuccessPix" class="btn-admin btn-admin-primary btn-admin-sm" style="white-space: nowrap;">
+                                Copiar Código
+                            </button>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--color-text-muted);">
+                            Chave Celular: <strong>79988125726</strong> (Apiário Favo de Mel)
+                        </div>
+                    </div>
                     
                     <p style="font-size: 0.95rem; margin-bottom: 2rem;">
                         Caso seu WhatsApp não tenha aberto automaticamente, clique no botão abaixo para conversar com nosso vendedor:
@@ -328,7 +366,20 @@
         </div>
     </div>
 
+    <!-- Rodapé Elegante do Catálogo -->
+    <footer class="catalog-footer">
+        <div class="container catalog-footer-inner">
+            <p>&copy; 2026 Apiário Favo de Mel. Tradição apícola & pureza da natureza.</p>
+            <a href="admin.html" class="admin-access-link" title="Acesso Administrativo ao Catálogo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Painel do Administrador</span>
+            </a>
+        </div>
+    </footer>
+
     <!-- Scripts -->
-    <script src="/js/catalogo.js"></script>
+    <script src="/config.js"></script>
+    <script src="js/pix-util.js"></script>
+    <script src="js/catalogo.js"></script>
 </body>
 </html>

@@ -1,0 +1,38 @@
+[
+  {
+    "codigo_pedido": "FD-8421",
+    "token_acesso": "a1b2c3d4e5f67890",
+    "cliente_nome": "Mariana Oliveira",
+    "cliente_telefone": "(79) 99876-5432",
+    "tipo_entrega": "entrega",
+    "endereco": {
+      "rua": "Av. Beira Mar",
+      "numero": "1420",
+      "bairro": "Treze de Julho",
+      "cidade": "Aracaju",
+      "complemento": "Apto 402"
+    },
+    "forma_pagamento": "pix",
+    "troco_para": "",
+    "observacoes": "Favor embalar com carinho, é para presente.",
+    "itens": [
+      {
+        "id": 1,
+        "nome": "Mel de Uruçú (Nativa)",
+        "preco": 85.00,
+        "quantidade": 1
+      },
+      {
+        "id": 3,
+        "nome": "Extrato de Própolis Verde (20ml)",
+        "preco": 35.00,
+        "quantidade": 1
+      }
+    ],
+    "subtotal": 120.00,
+    "taxa_entrega": 0,
+    "total": 120.00,
+    "status": "preparando",
+    "criado_em": "2026-10-16T10:15:00.000Z"
+  }
+]

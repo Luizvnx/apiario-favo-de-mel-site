@@ -286,17 +286,42 @@ class PedidoTrackingApp {
 
         if (f === 'pix') {
             badge.innerText = 'PIX';
+            
+            let payload = '';
+            const chave = '79988125726';
+            const codigoTxid = (this.codigoPedido || 'FAVODEMEL').replace(/[^a-zA-Z0-9]/g, '');
+            const valNum = parseFloat(total) || 0;
+
+            if (typeof PixUtil !== 'undefined') {
+                payload = PixUtil.gerarCopiaECola({
+                    chave: chave,
+                    tipo: 'telefone',
+                    nome: 'Apiario Favo de Mel',
+                    cidade: 'Aracaju',
+                    valor: valNum,
+                    txid: codigoTxid
+                });
+            }
+
+            const qrUrl = typeof PixUtil !== 'undefined' ? PixUtil.gerarQrCodeUrl(payload, 180) : '';
+
             box.innerHTML = `
-                <p>Pagamento via PIX instantâneo. Use a chave oficial abaixo:</p>
-                <div class="pix-box-inner">
-                    <div style="font-size: 0.78rem; font-weight: 700; color: #8C5905; text-transform: uppercase;">Chave PIX (Telefone):</div>
-                    <div class="pix-key-wrap">
-                        <span class="pix-key-val" id="pixKeyTracking">79988125726</span>
-                        <button class="btn-copy-pix" id="btnCopyPixTracking" onclick="copiarChavePixTracking()">Copiar Chave</button>
+                <div style="font-size: 0.85rem; color: #2C231C; margin-bottom: 0.85rem;">
+                    Pagamento via PIX instantâneo. Use o código Copia e Cola oficial ou escaneie o QR Code:
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center; background: #FAF7F2; padding: 1rem; border-radius: 8px; border: 1px solid #E8DFD3; margin-bottom: 0.85rem;">
+                    ${qrUrl ? `<img src="${qrUrl}" alt="QR Code PIX" style="width: 100px; height: 100px; background: white; padding: 4px; border-radius: 4px; border: 1px solid #E8DFD3; flex-shrink: 0;">` : ''}
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #8C5905; text-transform: uppercase; margin-bottom: 0.25rem;">PIX Copia e Cola:</div>
+                        <input type="text" id="pixTrackingPayload" value="${payload}" class="form-control" style="font-family: monospace; font-size: 0.72rem; padding: 0.4rem; margin-bottom: 0.4rem;" readonly>
+                        <button class="btn-copy-pix" id="btnCopyPixPayloadTracking" onclick="copiarPixPayloadTracking()" style="background: #D98200; color: white; border: none; padding: 0.4rem 0.8rem; font-size: 0.78rem; font-weight: 600; border-radius: 4px; cursor: pointer;">
+                            Copiar Código Copia e Cola
+                        </button>
                     </div>
-                    <p style="font-size: 0.8rem; color: #6E6359; margin-top: 0.5rem; margin-bottom: 0;">
-                        Envie o comprovante no WhatsApp da loja para agilizar a liberação imediata.
-                    </p>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.5rem; border-top: 1px dashed #E8DFD3; font-size: 0.82rem;">
+                    <span>Chave Telefone: <strong>${chave}</strong></span>
+                    <button class="btn-copy-pix" id="btnCopyPixTracking" onclick="copiarChavePixTracking()" style="background: white; border: 1px solid #E8DFD3; padding: 0.3rem 0.6rem; font-size: 0.78rem; border-radius: 4px; cursor: pointer;">Copiar Chave</button>
                 </div>
             `;
         } else if (f === 'dinheiro') {
@@ -330,7 +355,7 @@ class PedidoTrackingApp {
         if (isEntrega) {
             titulo.innerText = 'Endereço de Entrega';
             badge.className = 'card-count-badge';
-            badge.innerText = '🚚 Entrega';
+            badge.innerText = 'Entrega';
 
             const end = typeof endereco === 'string' ? JSON.parse(endereco || '{}') : (endereco || {});
             const rua = end.rua ? `${end.rua}` : '';
@@ -350,7 +375,7 @@ class PedidoTrackingApp {
         } else {
             titulo.innerText = 'Retirada no Apiário';
             badge.className = 'card-count-badge';
-            badge.innerText = '🏪 Retirada';
+            badge.innerText = 'Retirada no Local';
 
             body.innerHTML = `
                 <p><strong>Local de Retirada:</strong> Apiário Favo de Mel</p>
@@ -365,21 +390,26 @@ class PedidoTrackingApp {
 
 function copiarChavePixTracking() {
     const key = document.getElementById('pixKeyTracking')?.innerText || '79988125726';
-    navigator.clipboard.writeText(key).then(() => {
-        const btn = document.getElementById('btnCopyPixTracking');
-        if (btn) {
-            const orig = btn.innerText;
-            btn.innerText = 'Copiado!';
-            btn.style.background = '#15803D';
-            setTimeout(() => {
-                btn.innerText = orig;
-                btn.style.background = '';
-            }, 2500);
-        }
-    });
+    const btn = document.getElementById('btnCopyPixTracking');
+    if (typeof PixUtil !== 'undefined') {
+        PixUtil.copiarParaClipboard(key, btn, 'Copiado!');
+    } else {
+        navigator.clipboard.writeText(key);
+    }
+}
+
+function copiarPixPayloadTracking() {
+    const code = document.getElementById('pixTrackingPayload')?.value || '';
+    const btn = document.getElementById('btnCopyPixPayloadTracking');
+    if (typeof PixUtil !== 'undefined') {
+        PixUtil.copiarParaClipboard(code, btn, 'Código Copiado!');
+    } else {
+        navigator.clipboard.writeText(code);
+    }
 }
 
 // Inicializa a aplicação ao carregar
 document.addEventListener('DOMContentLoaded', () => {
     new PedidoTrackingApp();
 });
+

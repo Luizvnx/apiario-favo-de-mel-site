@@ -94,27 +94,23 @@ body.catalogo-body {
 .store-status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #166534;
-    background: #F0FDF4;
-    border: 1px solid #BBF7D0;
-    padding: 0.25rem 0.65rem;
-    border-radius: 4px;
+    gap: 0.45rem;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
 .store-status-pill .dot {
     width: 7px;
     height: 7px;
-    background: #22C55E;
+    background: #15803d;
     border-radius: 50%;
-    animation: pulseDot 2s infinite;
-}
-
-@keyframes pulseDot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.85); }
+    display: inline-block;
+    box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.2);
 }
 
 .catalog-header-actions {
@@ -229,29 +225,38 @@ body.catalogo-body {
 }
 
 .category-pill {
-    padding: 0.5rem 1.05rem;
-    font-size: 0.84rem;
-    font-weight: 600;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.015em;
+    padding: 0.55rem 1.15rem;
     border-radius: 6px;
-    background: var(--color-bg);
+    background: #FFFFFF;
     border: 1px solid var(--color-border);
     color: var(--color-text-muted);
     cursor: pointer;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     transition: var(--transition);
 }
 
 .category-pill:hover {
-    color: var(--color-primary);
-    border-color: rgba(201, 116, 0, 0.4);
-    background: #FFFFFF;
+    color: var(--color-dark);
+    border-color: #C8BAA8;
+    background: #FAF7F2;
 }
 
 .category-pill.active {
     background: var(--color-dark);
-    color: white;
+    color: #FFFFFF;
     border-color: var(--color-dark);
-    box-shadow: 0 2px 8px rgba(26, 19, 13, 0.18);
+    box-shadow: 0 2px 8px rgba(26, 19, 13, 0.15);
+}
+
+.category-pill.active svg {
+    stroke: #D98200;
 }
 
 /* ==========================================================================
@@ -325,22 +330,14 @@ body.catalogo-body {
     transform: scale(1.04);
 }
 
-.card-category-tag {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
-    pointer-events: none;
-    background: #FFFFFF;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+.card-category-label {
+    font-size: 0.72rem;
+    font-weight: 600;
     text-transform: uppercase;
-    color: #8C5905;
-    padding: 0.25rem 0.6rem;
-    border-radius: 4px;
-    border: 1px solid #E6D8C3;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    letter-spacing: 0.08em;
+    color: var(--color-primary);
+    margin-bottom: 0.4rem;
+    display: block;
 }
 
 .card-content {
@@ -846,47 +843,217 @@ body.catalogo-body {
     font-size: 0.85rem;
 }
 
-/* Caixa PIX */
+/* Caixa PIX com Copia e Cola Oficial */
 .pix-details-box {
     background: #FAF7F2;
-    border: 1px dashed var(--color-primary);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 1.25rem;
     margin-bottom: 1.5rem;
-    text-align: center;
+    text-align: left;
+}
+
+.pix-box-header {
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pix-badge-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+}
+
+.pix-checkout-body {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+}
+
+.pix-qr-wrap {
+    width: 130px;
+    height: 130px;
+    background: white;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pix-qr-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.pix-info-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.pix-label-sm {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-bottom: 0.35rem;
+}
+
+.pix-payload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.pix-payload-input {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.75rem;
+    background: #FFFFFF;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-dark);
+    resize: none;
+    line-height: 1.3;
+}
+
+.btn-copy-payload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: var(--color-primary);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-copy-payload:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-copy-payload.copied {
+    background: #15803D !important;
+}
+
+.pix-key-row {
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .pix-key-wrap {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 0.5rem;
-    margin: 0.75rem 0;
 }
 
 .pix-key-val {
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 0.88rem;
     background: white;
-    padding: 0.4rem 0.8rem;
+    padding: 0.35rem 0.65rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
-    letter-spacing: 0.05em;
+    font-family: monospace;
 }
 
 .btn-copy-pix {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-    background: var(--color-primary);
-    color: white;
-    border: none;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+    background: white;
+    color: var(--color-dark);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-weight: 600;
+    transition: var(--transition);
 }
 
 .btn-copy-pix:hover {
-    background: var(--color-primary-hover);
+    background: #F8F5F0;
+    border-color: var(--color-text-muted);
+}
+
+.btn-copy-pix.copied {
+    background: #15803D !important;
+    color: white !important;
+}
+
+.pix-instructions-note {
+    font-size: 0.76rem;
+    color: var(--color-text-muted);
+    margin-top: 0.85rem;
+    line-height: 1.4;
+}
+
+/* Rodapé do Catálogo */
+.catalog-footer {
+    border-top: 1px solid var(--color-border);
+    background: #FFFFFF;
+    padding: 2.5rem 0 5rem 0;
+    margin-top: 4.5rem;
+}
+
+.catalog-footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.admin-access-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: #FAF7F2;
+    transition: all 0.2s ease;
+}
+
+.admin-access-link:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: white;
+}
+
+@media (max-width: 600px) {
+    .pix-checkout-body {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .pix-key-row {
+        justify-content: center;
+    }
 }
 
 /* Tela de Sucesso */
@@ -908,14 +1075,15 @@ body.catalogo-body {
 
 .order-badge-pill {
     display: inline-block;
-    background: #F0FDF4;
-    color: #166534;
-    border: 1px solid #BBF7D0;
-    font-size: 1.1rem;
-    font-weight: 800;
-    padding: 0.4rem 1.25rem;
-    border-radius: 4px;
-    margin: 1rem 0 1.5rem 0;
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: transparent;
+    border: none;
+    letter-spacing: 0.04em;
+    padding: 0.4rem 0;
+    margin: 0.5rem 0 1.25rem 0;
 }
 
 /* ==========================================================================

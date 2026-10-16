@@ -18,8 +18,8 @@
         rel="stylesheet">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="/css/style.css?v=2.3">
-    <link rel="stylesheet" href="/css/pedido.css?v=1.0">
+    <link rel="stylesheet" href="/css/style.css?v=4.0">
+    <link rel="stylesheet" href="/css/pedido.css?v=4.0">
 </head>
 
 <body class="tracking-body">
@@ -58,7 +58,9 @@
 
         <!-- Error State (404 ou 403 Anti-IDOR) -->
         <div id="trackingError" class="tracking-state-box hidden">
-            <div class="tracking-state-icon">⚠️</div>
+            <div class="tracking-state-icon" style="color: #D97706; margin-bottom: 1rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
             <h2 id="trackingErrorTitle">Pedido Não Encontrado</h2>
             <p id="trackingErrorDesc">
                 O link de rastreamento é exclusivo e seguro. Verifique o endereço completo recebido no seu WhatsApp ou fale diretamente com nossa equipe.
@@ -172,7 +174,7 @@
                     <div class="tracking-card">
                         <div class="card-header">
                             <h3 id="tituloModalidadeEntrega">Endereço de Entrega</h3>
-                            <span id="badgeModalidadeEntrega" class="card-count-badge">🚚 Entrega</span>
+                            <span id="badgeModalidadeEntrega" class="card-count-badge">Entrega</span>
                         </div>
                         <div class="delivery-details-body" id="deliveryDetailsBody">
                             <!-- Preenchido via JS -->
@@ -206,8 +208,9 @@
                         <a id="btnFalarWhatsAppPedido" href="https://wa.me/557988125726" target="_blank" class="btn btn-whatsapp-outline" style="width: 100%;">
                             <span>Falar no WhatsApp sobre este Pedido</span>
                         </a>
-                        <span class="security-privacy-note">
-                            🔒 Acesso seguro criptografado vinculado ao seu pedido.
+                        <span class="security-privacy-note" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span>Acesso seguro criptografado vinculado ao seu pedido.</span>
                         </span>
                     </div>
 
@@ -220,7 +223,10 @@
     </main>
 
     <!-- Scripts -->
-    <script src="/js/pedido.js?v=1.0"></script>
+    <script src="/config.js"></script>
+    <script src="/js/pix-util.js"></script>
+    <script src="/js/pedido.js?v=2.0"></script>
 </body>
 
 </html>
+

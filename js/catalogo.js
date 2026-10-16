@@ -14,6 +14,19 @@ class CatalogoApp {
         this.tipoEntrega = 'entrega';
         this.formaPagamento = 'pix';
         
+        this.config = {
+            nome_loja: 'Apiário Favo de Mel',
+            whatsapp: '557988125726',
+            status_loja: 'aberto',
+            status_texto: 'Aberto para Pedidos',
+            taxa_entrega_padrao: 0,
+            mensagem_entrega: 'A combinar na confirmação',
+            pix_chave: '79988125726',
+            pix_tipo: 'telefone',
+            pix_titular: 'Apiario Favo de Mel',
+            pix_cidade: 'Aracaju'
+        };
+
         this.init();
     }
 
@@ -64,13 +77,28 @@ class CatalogoApp {
     }
 
     async carregarDadosDoServidor() {
+        // Carrega configurações da loja e do PIX
+        try {
+            const resCfg = await fetch(this.getApiUrl('/api/catalogo/config'));
+            const dataCfg = await resCfg.json();
+            if (dataCfg.sucesso && dataCfg.config) {
+                this.config = { ...this.config, ...dataCfg.config };
+                
+                // Atualiza texto de status na barra superior se existir
+                const statusPill = document.querySelector('.store-status-pill span');
+                if (statusPill && this.config.status_texto) {
+                    statusPill.innerText = this.config.status_texto;
+                }
+            }
+        } catch (_) {}
+
         try {
             const gridEl = document.getElementById('catalogGrid');
             if (gridEl) {
                 gridEl.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
-                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem; animation: pulseDot 1.5s infinite;">🍯</div>
-                        <p style="font-weight: 600;">Carregando produtos direto da colmeia...</p>
+                        <div class="tracking-spinner" style="width: 36px; height: 36px; border: 3px solid #E8DFD3; border-top-color: #D98200; border-radius: 50%; margin: 0 auto 1rem auto; animation: spinTrack 0.8s linear infinite;"></div>
+                        <p style="font-weight: 500; font-size: 0.95rem;">Carregando produtos do catálogo...</p>
                     </div>
                 `;
             }
@@ -89,24 +117,24 @@ class CatalogoApp {
             console.warn('Utilizando catálogo integrado do Apiário Favo de Mel (Modo Resiliente):', err.message);
             // Fallback com catálogo 100% autêntico do Apiário Favo de Mel
             this.categorias = [
-                { id: 1, nome: "Méis & Acessórios", icone: "🍯" },
-                { id: 2, nome: "Cuidados Naturais e Própolis", icone: "🌿" },
-                { id: 3, nome: "Artesanais, Cera & Bebidas", icone: "🕯️" }
+                { id: 1, nome: "Méis & Acessórios" },
+                { id: 2, nome: "Cuidados Naturais e Própolis" },
+                { id: 3, nome: "Artesanais, Cera & Bebidas" }
             ];
 
             this.produtos = [
-                { id: 1, categoria_id: 1, nome: "Mel de Uruçú (Nativa)", preco: 85.00, descricao: "Mel nobre e medicinal de abelha nativa sem ferrão Uruçu. Acidez equilibrada e propriedades bioativas excepcionais.", estoque: 15, foto: "/img/mel-silvestre.jpg" },
-                { id: 2, categoria_id: 1, nome: "Meleira com Mel Nobre", preco: 60.00, descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro de florada silvestre.", estoque: 20, foto: "/img/mel-laranjeira.jpg" },
-                { id: 3, categoria_id: 2, nome: "Pomada de Própolis Pura (20g)", preco: 45.00, descricao: "Pomada natural de própolis puro e cera de abelha. Potente ação cicatrizante, regeneradora e anti-inflamatória.", estoque: 30, foto: "/img/propolis-verde.jpg" },
-                { id: 4, categoria_id: 2, nome: "Hidratante Labial Mel & Cera", preco: 12.00, descricao: "Hidratação nutritiva e duradoura para os lábios à base de pura cera de opérculo e mel cru.", estoque: 50, foto: "/img/sabonete-mel.jpg" },
-                { id: 5, categoria_id: 2, nome: "Cone Hindu Terapêutico", preco: 15.00, descricao: "Confeccionado artesanalmente com algodão nobre e cera virgem de abelhas para desobstrução e alívio das vias aéreas.", estoque: 40, foto: "/img/favo-mel.jpg" },
-                { id: 6, categoria_id: 2, nome: "Pasta Nutritiva de Cera de Abelha", preco: 19.00, descricao: "Tratamento hidratante natural intenso para peles ressecadas à base de cera pura e óleos botânicos.", estoque: 25, foto: "/img/mel-pimenta.jpg" },
-                { id: 7, categoria_id: 3, nome: "Hidromel Tradicional (250ml)", preco: 25.00, descricao: "A lendária bebida artesanal dos deuses, fermentada lentamente a partir de puro mel silvestre e leveduras nobres.", estoque: 18, foto: "/img/hero.jpg" },
-                { id: 8, categoria_id: 3, nome: "Vela Artesanal de Cera Pura", preco: 12.00, descricao: "Vela 100% natural de pura cera de abelhas sem parafina. Aroma suave de mel e queima limpa e aromática.", estoque: 35, foto: "/img/historia.jpg" },
-                { id: 9, categoria_id: 3, nome: "Aromatizador Colmeia", preco: 10.00, descricao: "Difusor de aroma artesanal que traz o aconchego aromático da natureza e das floradas para seu ambiente.", estoque: 40, foto: "/img/selo-qualidade.jpg" },
-                { id: 10, categoria_id: 3, nome: "Desmoldante Culinário Natural", preco: 15.00, descricao: "Desmoldante culinário natural e atóxico à base de cera de abelhas, ideal para formas de bolos e pães.", estoque: 30, foto: "/img/mel-laranjeira.jpg" },
-                { id: 11, categoria_id: 3, nome: "Cera Alveolada Pura (kg)", preco: 100.00, descricao: "Lâminas de cera pura de abelhas alveolada para manejo apícola nobre, artesanato e cosméticos.", estoque: 10, foto: "/img/favo-mel.jpg" },
-                { id: 12, categoria_id: 3, nome: "Formão Reforçado para Apicultura", preco: 85.00, descricao: "Ferramenta essencial e robusta em aço forjado para abertura e manejo seguro de colmeias.", estoque: 8, foto: "/img/mel-silvestre.jpg" }
+                { id: 1, categoria_id: 1, nome: "Mel de Uruçú (Nativa)", preco: 85.00, descricao: "Mel nobre e medicinal de abelha nativa sem ferrão Uruçu. Acidez equilibrada e propriedades bioativas excepcionais.", estoque: 15, foto: "Mel-in-Natura-500g.png" },
+                { id: 2, categoria_id: 1, nome: "Meleira com Mel Nobre", preco: 60.00, descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro de florada silvestre.", estoque: 20, foto: "Meleira-com-mel-280g.jpeg" },
+                { id: 3, categoria_id: 2, nome: "Pomada de Própolis Pura (20g)", preco: 45.00, descricao: "Pomada natural de própolis puro e cera de abelha. Potente ação cicatrizante, regeneradora e anti-inflamatória.", estoque: 30, foto: "Propolis-Verde-20ml.png" },
+                { id: 4, categoria_id: 2, nome: "Extrato de Própolis Vermelha (20ml)", preco: 48.00, descricao: "A raríssima própolis vermelha com máxima concentração antioxidante.", estoque: 25, foto: "Propolis-Vermelha-20ml.png" },
+                { id: 5, categoria_id: 2, nome: "Pólen Apícola Desidratado (140g)", preco: 42.00, descricao: "Superalimento natural das abelhas com aminoácidos essenciais e minerais energizantes.", estoque: 25, foto: "Polen-Apicola-140g.png" },
+                { id: 6, categoria_id: 1, nome: "Favo de Mel em Pote (500g)", preco: 55.00, descricao: "Mel puro direto do favo rústico com cera virgem mastigável.", estoque: 18, foto: "Mel-com-Favo-500g.png" },
+                { id: 7, categoria_id: 3, nome: "Licor Nobre de Mel (250ml)", preco: 38.00, descricao: "Elixir artesanal elaborado a partir da lenta infusão de mel cru silvestre e especiarias.", estoque: 16, foto: "Licor-de-Mel-250ml.png" },
+                { id: 8, categoria_id: 3, nome: "Vinagre Nobre de Mel (315ml)", preco: 28.00, descricao: "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado.", estoque: 22, foto: "Vinagre-de-Mel-315ml.png" },
+                { id: 9, categoria_id: 3, nome: "Vela Artesanal de Cera Pura", preco: 18.00, descricao: "Vela 100% natural de pura cera de abelhas sem parafina. Queima limpa e aromática.", estoque: 35, foto: "Velas-artesanais-de-cera-de-abelha.png" },
+                { id: 10, categoria_id: 3, nome: "Cera Bruta de Apis (1kg)", preco: 95.00, descricao: "Bloco maciço de cera virgem purificada para artesanato e apicultura.", estoque: 12, foto: "Cera-Bruta-de-Apis.png" },
+                { id: 11, categoria_id: 1, nome: "Mel In Natura Garrafa (1400g)", preco: 65.00, descricao: "Embalagem família econômica com 1,4kg de mel cru silvestre colhido nas matas nativas.", estoque: 28, foto: "Mel-in-Natura-1400g.jpg" },
+                { id: 12, categoria_id: 3, nome: "Kit Presente Especial Apiário", preco: 135.00, descricao: "Caixa rústica de madeira artesanal com mel nobre, vela de cera, sabonete fitoterápico e geleia real.", estoque: 8, foto: "kit-presente.png" }
             ];
         }
     }
@@ -120,16 +148,29 @@ class CatalogoApp {
 
         let html = `
             <button class="category-pill ${this.categoriaAtiva === 'todos' ? 'active' : ''}" data-cat="todos">
-                🌟 Todos os Produtos (${this.produtos.length})
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Todos (${this.produtos.length})</span>
             </button>
         `;
 
         this.categorias.forEach(cat => {
             const count = this.produtos.filter(p => String(p.categoria_id) === String(cat.id)).length;
-            const icone = cat.icone || '🍯';
+            const nomeLimpo = (cat.nome || '')
+                .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
+                .trim();
+
+            let iconeSvg = '';
+            if (String(cat.id) === '1') {
+                iconeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>`;
+            } else if (String(cat.id) === '2') {
+                iconeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+            } else {
+                iconeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
+            }
+
             html += `
                 <button class="category-pill ${this.categoriaAtiva === String(cat.id) ? 'active' : ''}" data-cat="${cat.id}">
-                    ${icone} ${cat.nome} (${count})
+                    ${iconeSvg}<span>${nomeLimpo} (${count})</span>
                 </button>
             `;
         });
@@ -149,6 +190,50 @@ class CatalogoApp {
     // =========================================================================
     // RENDERIZAÇÃO DA VITRINE DE PRODUTOS
     // =========================================================================
+    resolverFoto(prod) {
+        if (prod.foto && !prod.foto.includes('site-assets') && !prod.foto.includes('avatar-favo-de-mel')) {
+            return prod.foto;
+        }
+        const nomeNorm = (prod.nome || '').toLowerCase();
+        if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu') || nomeNorm.includes('silvestre')) {
+            return '/assets/products/Mel-in-Natura-500g.png';
+        }
+        if (nomeNorm.includes('meleira')) {
+            return '/assets/products/Meleira-com-mel-280g.jpeg';
+        }
+        if (nomeNorm.includes('pomada') || nomeNorm.includes('própolis') || nomeNorm.includes('propolis')) {
+            return '/assets/products/Propolis-Verde-20ml.png';
+        }
+        if (nomeNorm.includes('hidratante') || nomeNorm.includes('labial') || nomeNorm.includes('sabonete')) {
+            return '/assets/products/Kit-de-sabinete-terapeutico.jpeg';
+        }
+        if (nomeNorm.includes('cone') || nomeNorm.includes('favo')) {
+            return '/assets/products/Mel-com-Favo-500g.png';
+        }
+        if (nomeNorm.includes('pasta') || nomeNorm.includes('cera bruta')) {
+            return '/assets/products/Cera-Bruta-de-Apis.png';
+        }
+        if (nomeNorm.includes('hidromel') || nomeNorm.includes('licor')) {
+            return '/assets/products/Licor-de-Mel-250ml.png';
+        }
+        if (nomeNorm.includes('vela')) {
+            return '/assets/products/Velas-artesanais-de-cera-de-abelha.png';
+        }
+        if (nomeNorm.includes('aromatizador') || nomeNorm.includes('polen') || nomeNorm.includes('pólen')) {
+            return '/assets/products/Polen-Apicola-140g.png';
+        }
+        if (nomeNorm.includes('desmoldante')) {
+            return '/assets/products/Desmoldante-de-forma.jpeg';
+        }
+        if (nomeNorm.includes('alveolada')) {
+            return '/assets/products/Cera-alveolada.jpeg';
+        }
+        if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) {
+            return '/assets/products/Formao.jpeg';
+        }
+        return '/assets/products/Mel-in-Natura-500g.png';
+    }
+
     renderizarProdutos() {
         const gridEl = document.getElementById('catalogGrid');
         if (!gridEl) return;
@@ -187,17 +272,18 @@ class CatalogoApp {
             const itemNoCarrinho = this.carrinho.find(i => String(i.id) === String(prod.id));
             const qtdNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
             
-            // Foto do produto com fallback
-            const fotoUrl = prod.foto || '/site-assets/avatar-favo-de-mel.png';
-            const catNome = prod.categoria_nome || 'Apiário Favo de Mel';
+            const fotoUrl = this.resolverFoto(prod);
+            const catNomeLimpo = (prod.categoria_nome || 'Apiário Favo de Mel')
+                .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
+                .trim();
 
             return `
                 <div class="catalog-card" data-id="${prod.id}">
                     <div class="card-img-area" onclick="catalogoApp.adicionarItem(${prod.id})">
-                        <span class="card-category-tag">${catNome}</span>
-                        <img src="${fotoUrl}" alt="${prod.nome}" loading="lazy">
+                        <img src="${fotoUrl}" alt="${prod.nome}" loading="lazy" onerror="this.src='/assets/products/Mel-in-Natura-500g.png'">
                     </div>
                     <div class="card-content">
+                        <span class="card-category-label">${catNomeLimpo}</span>
                         <h3 class="card-title">${prod.nome}</h3>
                         <p class="card-desc">${prod.descricao || 'Produto natural de altíssima qualidade direto do apiário.'}</p>
                         
@@ -433,24 +519,47 @@ class CatalogoApp {
                 const pixBox = document.getElementById('pixDetailsBox');
                 const trocoBox = document.getElementById('trocoGroup');
 
-                if (pixBox) pixBox.style.display = this.formaPagamento === 'pix' ? 'block' : 'none';
+                if (pixBox) {
+                    pixBox.style.display = this.formaPagamento === 'pix' ? 'block' : 'none';
+                    if (this.formaPagamento === 'pix') {
+                        this.atualizarPixCheckout();
+                    }
+                }
                 if (trocoBox) trocoBox.style.display = this.formaPagamento === 'dinheiro' ? 'block' : 'none';
             });
         });
 
-        // Botão de Copiar Chave PIX
+        // Botão de Copiar Código PIX Copia e Cola Oficial
+        document.getElementById('btnCopyPixPayload')?.addEventListener('click', () => {
+            const code = document.getElementById('pixCopiaEColaText')?.value || '';
+            const btn = document.getElementById('btnCopyPixPayload');
+            if (typeof PixUtil !== 'undefined') {
+                PixUtil.copiarParaClipboard(code, btn, 'Código Copiado!');
+            } else {
+                navigator.clipboard.writeText(code);
+            }
+        });
+
+        // Botão de Copiar Chave PIX Direta
         document.getElementById('btnCopyPix')?.addEventListener('click', () => {
-            const key = document.getElementById('pixKeyValue')?.innerText || '79988125726';
-            navigator.clipboard.writeText(key).then(() => {
-                const btn = document.getElementById('btnCopyPix');
-                const orig = btn.innerText;
-                btn.innerText = 'Copiado!';
-                btn.style.background = '#15803D';
-                setTimeout(() => {
-                    btn.innerText = orig;
-                    btn.style.background = '';
-                }, 2500);
-            });
+            const key = document.getElementById('pixKeyValue')?.innerText || this.config.pix_chave || '79988125726';
+            const btn = document.getElementById('btnCopyPix');
+            if (typeof PixUtil !== 'undefined') {
+                PixUtil.copiarParaClipboard(key, btn, 'Chave Copiada!');
+            } else {
+                navigator.clipboard.writeText(key);
+            }
+        });
+
+        // Botão de Copiar PIX na tela de sucesso
+        document.getElementById('btnCopySuccessPix')?.addEventListener('click', () => {
+            const code = document.getElementById('successPixPayloadInput')?.value || '';
+            const btn = document.getElementById('btnCopySuccessPix');
+            if (typeof PixUtil !== 'undefined') {
+                PixUtil.copiarParaClipboard(code, btn, 'Código Copiado!');
+            } else {
+                navigator.clipboard.writeText(code);
+            }
         });
 
         // Máscara de Telefone no Checkout
@@ -476,11 +585,44 @@ class CatalogoApp {
         }
     }
 
+    atualizarPixCheckout() {
+        const total = this.calcularTotal();
+        const chave = this.config.pix_chave || '79988125726';
+        const tipo = this.config.pix_tipo || 'telefone';
+        const titular = this.config.pix_titular || 'Apiario Favo de Mel';
+        const cidade = this.config.pix_cidade || 'Aracaju';
+
+        let payload = '';
+        if (typeof PixUtil !== 'undefined') {
+            payload = PixUtil.gerarCopiaECola({
+                chave,
+                tipo,
+                nome: titular,
+                cidade: cidade,
+                valor: total,
+                txid: 'FAVODEMEL'
+            });
+        }
+
+        const inputPayload = document.getElementById('pixCopiaEColaText');
+        if (inputPayload) inputPayload.value = payload;
+
+        const imgQr = document.getElementById('pixCheckoutQrImg');
+        if (imgQr && typeof PixUtil !== 'undefined') {
+            imgQr.src = PixUtil.gerarQrCodeUrl(payload, 200);
+        }
+
+        const keyVal = document.getElementById('pixKeyValue');
+        if (keyVal) keyVal.innerText = chave;
+    }
+
     abrirModalCheckout() {
         const total = this.calcularTotal();
         const totalFormatado = total.toFixed(2).replace('.', ',');
         const checkoutTotalDisplay = document.getElementById('checkoutTotalDisplay');
         if (checkoutTotalDisplay) checkoutTotalDisplay.innerText = `R$ ${totalFormatado}`;
+
+        this.atualizarPixCheckout();
 
         document.getElementById('checkoutModalOverlay')?.classList.add('active');
         document.getElementById('checkoutFormView')?.style.setProperty('display', 'block');
@@ -570,16 +712,16 @@ class CatalogoApp {
 
             const linhasItens = this.carrinho.map(i => {
                 const sub = ((i.quantidade || 1) * parseFloat(i.preco || 0)).toFixed(2).replace('.', ',');
-                return `🍯 ${i.quantidade}x *${i.nome}* = R$ ${sub}`;
+                return `• ${i.quantidade}x *${i.nome}* = R$ ${sub}`;
             }).join('\n');
 
             let txtEnd = this.tipoEntrega === 'entrega' 
-                ? `📍 *Endereço:* ${endereco.rua || ''}, ${endereco.numero || ''} - ${endereco.bairro || ''}, ${endereco.cidade || ''} (${endereco.complemento || ''})`
-                : `🏪 *Modalidade:* Retirada no Apiário`;
+                ? `*Endereço de Entrega:* ${endereco.rua || ''}, ${endereco.numero || ''} - ${endereco.bairro || ''}, ${endereco.cidade || ''} (${endereco.complemento || ''})`
+                : `*Modalidade:* Retirada no Apiário`;
 
             let txtPag = this.formaPagamento === 'pix' ? 'PIX (Chave: 79988125726)' : (this.formaPagamento === 'cartao' ? 'Cartão' : `Dinheiro (Troco: ${trocoPara || 'Não'})`);
 
-            const msgWa = `🍯 *NOVO PEDIDO DO SITE - APIÁRIO FAVO DE MEL* 🐝\n📦 *Pedido:* #${codigoPedido}\n👤 *Cliente:* ${nome}\n📱 *WhatsApp:* ${telefone}\n\n${txtEnd}\n💳 *Pagamento:* ${txtPag}\n\n🛒 *Itens:*\n${linhasItens}\n\n⭐ *TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}`;
+            const msgWa = `*NOVO PEDIDO DO SITE - APIÁRIO FAVO DE MEL*\n*Pedido:* #${codigoPedido}\n*Cliente:* ${nome}\n*WhatsApp:* ${telefone}\n\n${txtEnd}\n*Pagamento:* ${txtPag}\n\n*Itens:*\n${linhasItens}\n\n*TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}`;
 
             const numeroVendedor = '557988125726';
             const waUrl = `https://wa.me/${numeroVendedor}?text=${encodeURIComponent(msgWa)}`;
@@ -619,6 +761,36 @@ class CatalogoApp {
             successView.style.setProperty('display', 'block');
             document.getElementById('successOrderCode').innerText = `#${dados.codigo_pedido}`;
             
+            // Exibe PIX Copia e Cola na tela de confirmação se o pagamento for PIX
+            const successPixBox = document.getElementById('successPixBox');
+            if (successPixBox) {
+                if (this.formaPagamento === 'pix') {
+                    successPixBox.style.display = 'block';
+                    const chave = this.config.pix_chave || '79988125726';
+                    const tipo = this.config.pix_tipo || 'telefone';
+                    const titular = this.config.pix_titular || 'Apiario Favo de Mel';
+                    const cidade = this.config.pix_cidade || 'Aracaju';
+                    const valTotal = dados.pedido ? dados.pedido.total : this.calcularTotal();
+
+                    let payload = '';
+                    if (typeof PixUtil !== 'undefined') {
+                        payload = PixUtil.gerarCopiaECola({
+                            chave,
+                            tipo,
+                            nome: titular,
+                            cidade: cidade,
+                            valor: valTotal,
+                            txid: (dados.codigo_pedido || 'FAVODEMEL').replace(/[^a-zA-Z0-9]/g, '')
+                        });
+                    }
+
+                    const inputPix = document.getElementById('successPixPayloadInput');
+                    if (inputPix) inputPix.value = payload;
+                } else {
+                    successPixBox.style.display = 'none';
+                }
+            }
+
             const btnWa = document.getElementById('btnOpenWhatsAppOrder');
             if (btnWa && dados.whatsapp_url) {
                 btnWa.href = dados.whatsapp_url;

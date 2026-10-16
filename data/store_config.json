@@ -1,0 +1,13 @@
+{
+  "nome_loja": "Apiário Favo de Mel",
+  "whatsapp": "557988125726",
+  "status_loja": "aberto",
+  "status_texto": "Aberto para Pedidos",
+  "taxa_entrega_padrao": 0,
+  "mensagem_entrega": "A combinar na confirmação",
+  "pix_chave": "79988125726",
+  "pix_tipo": "telefone",
+  "pix_titular": "Apiario Favo de Mel",
+  "pix_cidade": "Aracaju",
+  "admin_senha": "admin"
+}
