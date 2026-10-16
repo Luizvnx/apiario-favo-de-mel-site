@@ -1,0 +1,589 @@
+/* ==========================================================================
+   ACOMPANHAMENTO DE PEDIDOS (TREM DELIVERY) - APIÁRIO FAVO DE MEL
+   ========================================================================== */
+
+body.tracking-body {
+    background-color: #F8F5F0;
+    color: #2C231C;
+    min-height: 100vh;
+}
+
+.tracking-navbar {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E8DFD3;
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tracking-nav-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tracking-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tracking-brand img {
+    height: 44px;
+    width: auto;
+}
+
+.tracking-brand-title {
+    display: block;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #1A130D;
+    line-height: 1.15;
+}
+
+.tracking-brand-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: #8C5905;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+
+.tracking-main {
+    padding: 2.5rem 1.5rem 5rem 1.5rem;
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* State Box (Loading & Error) */
+.tracking-state-box {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: #FFFFFF;
+    border: 1px solid #E8DFD3;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(26, 19, 13, 0.04);
+}
+
+.tracking-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #E8DFD3;
+    border-top-color: #D98200;
+    border-radius: 50%;
+    margin: 0 auto 1.5rem auto;
+    animation: spinTrack 1s linear infinite;
+}
+
+@keyframes spinTrack {
+    to { transform: rotate(360deg); }
+}
+
+.tracking-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.tracking-state-box h2 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: #1A130D;
+}
+
+.tracking-state-box p {
+    color: #6E6359;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Order Header Card */
+.tracking-header-card {
+    background: #FFFFFF;
+    border: 1px solid #E8DFD3;
+    border-radius: 14px;
+    padding: 2.25rem;
+    box-shadow: 0 4px 18px rgba(26, 19, 13, 0.05);
+    margin-bottom: 2rem;
+}
+
+.tracking-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.tracking-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #9A6208;
+    display: block;
+    margin-bottom: 0.4rem;
+}
+
+.tracking-title {
+    font-size: 2.1rem;
+    color: #1A130D;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.tracking-title span {
+    font-family: monospace;
+    color: #C97400;
+}
+
+.tracking-date {
+    font-size: 0.88rem;
+    color: #6E6359;
+    margin-top: 0.35rem;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.status-novo {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+}
+
+.status-preparo {
+    background: #DBEAFE;
+    color: #1E40AF;
+    border: 1px solid #BFDBFE;
+}
+
+.status-rota {
+    background: #F3E8FF;
+    color: #6B21A8;
+    border: 1px solid #E9D5FF;
+}
+
+.status-entregue {
+    background: #D1FAE5;
+    color: #065F46;
+    border: 1px solid #A7F3D0;
+}
+
+.status-cancelado {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+}
+
+/* Live Stepper */
+.stepper-wrap {
+    position: relative;
+    margin: 2.5rem 0 1.5rem 0;
+    padding: 0 1rem;
+}
+
+.stepper-progress-bar {
+    position: absolute;
+    top: 18px;
+    left: 40px;
+    right: 40px;
+    height: 4px;
+    background: #E8DFD3;
+    z-index: 1;
+    border-radius: 2px;
+}
+
+.stepper-progress-fill {
+    height: 100%;
+    background: #1EA952;
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stepper-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+}
+
+.step-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 3px solid #E8DFD3;
+    color: #9C8E82;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.step-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #9C8E82;
+    transition: color 0.3s ease;
+}
+
+.step-item.active .step-icon {
+    background: #1EA952;
+    border-color: #1EA952;
+    color: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(30, 169, 82, 0.2);
+}
+
+.step-item.active .step-label {
+    color: #1A130D;
+    font-weight: 700;
+}
+
+.step-item.completed .step-icon {
+    background: #1EA952;
+    border-color: #1EA952;
+    color: #FFFFFF;
+}
+
+.step-item.completed .step-label {
+    color: #1EA952;
+}
+
+/* Status Live Announcement Banner */
+.status-live-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #FCF9F4;
+    border: 1px solid #E8DFD3;
+    border-radius: 8px;
+    padding: 0.85rem 1.25rem;
+    margin-top: 1.5rem;
+    font-size: 0.92rem;
+    color: #2C231C;
+    font-weight: 500;
+}
+
+.live-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #1EA952;
+    display: inline-block;
+    box-shadow: 0 0 0 3px rgba(30, 169, 82, 0.25);
+    animation: livePulse 2s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.15); }
+}
+
+/* Two-Column Grid */
+.tracking-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 1.75rem;
+}
+
+.tracking-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.tracking-card {
+    background: #FFFFFF;
+    border: 1px solid #E8DFD3;
+    border-radius: 12px;
+    padding: 1.75rem;
+    box-shadow: 0 2px 10px rgba(26, 19, 13, 0.04);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #F0E8DC;
+    margin-bottom: 1.25rem;
+}
+
+.card-header h3 {
+    font-size: 1.15rem;
+    font-family: var(--font-heading);
+    color: #1A130D;
+    margin: 0;
+}
+
+.card-count-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8C5905;
+    background: #FFF8EC;
+    border: 1px solid #F3E5CC;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+}
+
+/* Order Items List */
+.order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.order-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px dashed #E8DFD3;
+    gap: 1rem;
+}
+
+.order-item-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.item-main-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.item-qty-badge {
+    width: 26px;
+    height: 26px;
+    background: #F5EFE6;
+    border: 1px solid #E6D8C3;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #8C5905;
+    font-family: monospace;
+}
+
+.item-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1A130D;
+}
+
+.item-unit-price {
+    font-size: 0.78rem;
+    color: #6E6359;
+}
+
+.item-total-price {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1A130D;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+/* Totals Box */
+.order-totals-box {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 2px solid #F0E8DC;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.92rem;
+    color: #6E6359;
+}
+
+.total-highlight {
+    padding-top: 0.75rem;
+    border-top: 1px solid #E8DFD3;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1A130D;
+}
+
+.total-val {
+    color: #C97400;
+    font-size: 1.35rem;
+}
+
+.mono {
+    font-family: monospace;
+}
+
+/* Payment Details Box */
+.payment-details-box p {
+    font-size: 0.92rem;
+    margin-bottom: 0.6rem;
+}
+
+.pix-box-inner {
+    background: #FFF8EC;
+    border: 1px solid #F3E5CC;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+}
+
+.pix-key-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FFFFFF;
+    border: 1px solid #E6D8C3;
+    border-radius: 6px;
+    padding: 0.5rem 0.85rem;
+    margin-top: 0.5rem;
+    gap: 0.5rem;
+}
+
+.pix-key-val {
+    font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1A130D;
+}
+
+.btn-copy-pix {
+    background: #C97400;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-copy-pix:hover {
+    background: #B86500;
+}
+
+/* Delivery Details Body */
+.delivery-details-body p,
+.customer-details-body p {
+    font-size: 0.92rem;
+    margin-bottom: 0.45rem;
+    color: #2C231C;
+    line-height: 1.5;
+}
+
+.obs-box {
+    margin-top: 0.85rem;
+    padding: 0.75rem 1rem;
+    background: #F5EFE6;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    border-left: 3px solid #D98200;
+}
+
+.obs-box p {
+    margin: 0.25rem 0 0 0;
+    font-style: italic;
+    color: #6E6359;
+}
+
+/* Support CTA Card */
+.cta-support-card {
+    text-align: center;
+    background: #FCF9F4;
+    border-color: #E6D8C3;
+}
+
+.cta-support-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #E8F8EE;
+    color: #1EA952;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem auto;
+}
+
+.cta-support-card h3 {
+    font-size: 1.15rem;
+    margin-bottom: 0.4rem;
+}
+
+.cta-support-card p {
+    font-size: 0.86rem;
+    color: #6E6359;
+    margin-bottom: 1.25rem;
+}
+
+.security-privacy-note {
+    display: block;
+    font-size: 0.75rem;
+    color: #9C8E82;
+    margin-top: 0.75rem;
+}
+
+/* Responsive Queries */
+@media (max-width: 768px) {
+    .tracking-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tracking-title {
+        font-size: 1.6rem;
+    }
+
+    .stepper-progress-bar {
+        left: 25px;
+        right: 25px;
+    }
+
+    .step-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.78rem;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+    }
+}

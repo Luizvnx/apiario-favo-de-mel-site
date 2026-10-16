@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento de Pedido | Apiário Favo de Mel</title>
+    <meta name="description" content="Acompanhe em tempo real o status e a entrega do seu pedido no Apiário Favo de Mel.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/assets/images/logo-favo-de-mel.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css?v=2.3">
+    <link rel="stylesheet" href="/css/pedido.css?v=1.0">
+</head>
+
+<body class="tracking-body">
+
+    <!-- Top Navigation Bar -->
+    <header class="tracking-navbar">
+        <div class="container tracking-nav-wrap">
+            <a href="/" class="tracking-brand">
+                <img src="/assets/images/logo-favo-de-mel.png" alt="Apiário Favo de Mel">
+                <div>
+                    <span class="tracking-brand-title">Apiário Favo de Mel</span>
+                    <span class="tracking-brand-sub">Méis Nobres & Naturais</span>
+                </div>
+            </a>
+            <div class="tracking-nav-actions">
+                <a href="/catalogo.html" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Voltar ao Catálogo</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Tracking Container -->
+    <main class="container tracking-main">
+
+        <!-- Loading State -->
+        <div id="trackingLoading" class="tracking-state-box">
+            <div class="tracking-spinner"></div>
+            <p>Carregando status do seu pedido direto da colmeia...</p>
+        </div>
+
+        <!-- Error State (404 ou 403 Anti-IDOR) -->
+        <div id="trackingError" class="tracking-state-box hidden">
+            <div class="tracking-state-icon">⚠️</div>
+            <h2 id="trackingErrorTitle">Pedido Não Encontrado</h2>
+            <p id="trackingErrorDesc">
+                O link de rastreamento é exclusivo e seguro. Verifique o endereço completo recebido no seu WhatsApp ou fale diretamente com nossa equipe.
+            </p>
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/catalogo.html" class="btn btn-primary">Abrir Catálogo</a>
+                <a href="https://wa.me/557988125726" target="_blank" class="btn btn-whatsapp-outline">Falar no WhatsApp</a>
+            </div>
+        </div>
+
+        <!-- Order Content View -->
+        <div id="trackingContent" class="hidden">
+
+            <!-- Order Header Card -->
+            <div class="tracking-header-card">
+                <div class="tracking-header-top">
+                    <div>
+                        <span class="tracking-tag">Acompanhamento em Tempo Real</span>
+                        <h1 class="tracking-title">Pedido <span id="displayCodigoPedido">#FD-0000</span></h1>
+                        <p class="tracking-date" id="displayDataPedido">Realizado em --/--/---- às --:--</p>
+                    </div>
+                    <div id="statusBadgeContainer">
+                        <span id="displayStatusBadge" class="status-badge status-novo">Pedido Recebido</span>
+                    </div>
+                </div>
+
+                <!-- Live Stepper (Linha do Tempo Estilo Trem Delivery) -->
+                <div class="stepper-wrap">
+                    <div class="stepper-progress-bar">
+                        <div id="stepperProgressFill" class="stepper-progress-fill" style="width: 15%;"></div>
+                    </div>
+
+                    <div class="stepper-steps">
+                        <!-- Step 1 -->
+                        <div class="step-item active" id="step1">
+                            <div class="step-icon">1</div>
+                            <span class="step-label">Recebido</span>
+                        </div>
+                        <!-- Step 2 -->
+                        <div class="step-item" id="step2">
+                            <div class="step-icon">2</div>
+                            <span class="step-label">Em Preparo</span>
+                        </div>
+                        <!-- Step 3 -->
+                        <div class="step-item" id="step3">
+                            <div class="step-icon">3</div>
+                            <span class="step-label" id="step3Label">A Caminho</span>
+                        </div>
+                        <!-- Step 4 -->
+                        <div class="step-item" id="step4">
+                            <div class="step-icon">4</div>
+                            <span class="step-label">Concluído</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Live Announcement Banner -->
+                <div class="status-live-banner" id="statusLiveBanner">
+                    <span class="live-dot"></span>
+                    <span id="statusLiveText">Aguardando confirmação e atendimento da equipe Favo de Mel.</span>
+                </div>
+            </div>
+
+            <!-- Two-Column Grid: Details & Summary -->
+            <div class="tracking-grid">
+
+                <!-- Left Column: Items & Totals -->
+                <div class="tracking-col">
+                    <div class="tracking-card">
+                        <div class="card-header">
+                            <h3>Itens do Pedido</h3>
+                            <span id="displayQtdItens" class="card-count-badge">0 itens</span>
+                        </div>
+                        <div class="order-items-list" id="orderItemsList">
+                            <!-- Inserido dinamicamente via JS -->
+                        </div>
+
+                        <!-- Totals Section -->
+                        <div class="order-totals-box">
+                            <div class="total-row">
+                                <span>Subtotal</span>
+                                <span id="displaySubtotal" class="mono">R$ 0,00</span>
+                            </div>
+                            <div class="total-row">
+                                <span id="labelTaxaEntrega">Taxa de Entrega</span>
+                                <span id="displayTaxaEntrega" class="mono">A combinar</span>
+                            </div>
+                            <div class="total-row total-highlight">
+                                <span>Total a Pagar</span>
+                                <span id="displayTotal" class="mono total-val">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Information Card -->
+                    <div class="tracking-card" id="cardPagamento">
+                        <div class="card-header">
+                            <h3>Forma de Pagamento</h3>
+                            <span id="displayFormaPagamentoBadge" class="card-count-badge">PIX</span>
+                        </div>
+                        <div id="detalhesPagamentoBox" class="payment-details-box">
+                            <!-- Preenchido dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Delivery & Support -->
+                <div class="tracking-col">
+
+                    <!-- Delivery Details Card -->
+                    <div class="tracking-card">
+                        <div class="card-header">
+                            <h3 id="tituloModalidadeEntrega">Endereço de Entrega</h3>
+                            <span id="badgeModalidadeEntrega" class="card-count-badge">🚚 Entrega</span>
+                        </div>
+                        <div class="delivery-details-body" id="deliveryDetailsBody">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Customer Information Card -->
+                    <div class="tracking-card">
+                        <div class="card-header">
+                            <h3>Dados do Cliente</h3>
+                        </div>
+                        <div class="customer-details-body">
+                            <p><strong>Nome:</strong> <span id="displayClienteNome">--</span></p>
+                            <p><strong>WhatsApp:</strong> <span id="displayClienteTelefone">--</span></p>
+                            <div id="boxObservacoes" class="obs-box hidden">
+                                <strong>Observações:</strong>
+                                <p id="displayObservacoes">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp Live Support CTA -->
+                    <div class="tracking-card cta-support-card">
+                        <div class="cta-support-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z"/>
+                            </svg>
+                        </div>
+                        <h3>Dúvidas sobre o pedido?</h3>
+                        <p>Nossa equipe de apicultores está à disposição no WhatsApp para esclarecer qualquer dúvida ou ajustar seu pedido.</p>
+                        <a id="btnFalarWhatsAppPedido" href="https://wa.me/557988125726" target="_blank" class="btn btn-whatsapp-outline" style="width: 100%;">
+                            <span>Falar no WhatsApp sobre este Pedido</span>
+                        </a>
+                        <span class="security-privacy-note">
+                            🔒 Acesso seguro criptografado vinculado ao seu pedido.
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="/js/pedido.js?v=1.0"></script>
+</body>
+
+</html>
