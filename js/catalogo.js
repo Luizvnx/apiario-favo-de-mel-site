@@ -505,6 +505,9 @@ class CatalogoApp {
                 const addressFields = document.getElementById('addressFieldsGroup');
                 if (addressFields) {
                     addressFields.style.display = this.tipoEntrega === 'entrega' ? 'block' : 'none';
+                    if (this.tipoEntrega === 'entrega') {
+                        setTimeout(() => document.getElementById('checkoutCep')?.focus(), 150);
+                    }
                 }
             });
         });
@@ -578,6 +581,34 @@ class CatalogoApp {
             });
         }
 
+        // Busca e Auto-Preenchimento por CEP no Checkout (ViaCEP)
+        const cepInput = document.getElementById('checkoutCep');
+        if (cepInput) {
+            cepInput.addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, '');
+                if (v.length > 8) v = v.slice(0, 8);
+                if (v.length > 5) {
+                    e.target.value = `${v.slice(0, 5)}-${v.slice(5)}`;
+                } else {
+                    e.target.value = v;
+                }
+
+                if (v.length === 8) {
+                    this.consultarCep(v);
+                } else {
+                    const statusMsg = document.getElementById('cepStatusMsg');
+                    if (statusMsg) statusMsg.style.display = 'none';
+                }
+            });
+
+            cepInput.addEventListener('blur', (e) => {
+                const v = e.target.value.replace(/\D/g, '');
+                if (v.length === 8) {
+                    this.consultarCep(v);
+                }
+            });
+        }
+
         // Submissão do Formulário de Checkout
         const formCheckout = document.getElementById('formCheckout');
         if (formCheckout) {
@@ -616,6 +647,81 @@ class CatalogoApp {
         if (keyVal) keyVal.innerText = chave;
     }
 
+    async consultarCep(cepLimpo) {
+        const spinner = document.getElementById('cepLoadingSpinner');
+        const statusMsg = document.getElementById('cepStatusMsg');
+        const ruaInput = document.getElementById('checkoutRua');
+        const numeroInput = document.getElementById('checkoutNumero');
+        const bairroInput = document.getElementById('checkoutBairro');
+        const cidadeInput = document.getElementById('checkoutCidade');
+
+        if (spinner) spinner.style.display = 'flex';
+        if (statusMsg) {
+            statusMsg.className = 'cep-status-msg loading';
+            statusMsg.innerText = 'Buscando endereço pelo CEP...';
+            statusMsg.style.display = 'block';
+        }
+
+        try {
+            const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+            const data = await res.json();
+
+            if (data.erro) {
+                if (statusMsg) {
+                    statusMsg.className = 'cep-status-msg error';
+                    statusMsg.innerText = 'CEP não localizado. Por favor, digite os dados da sua rua manualmente.';
+                    statusMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            // Preenchimento automático dos dados do endereço
+            if (ruaInput) {
+                ruaInput.value = data.logradouro || '';
+                if (data.logradouro) ruaInput.classList.add('highlight-success');
+            }
+            if (bairroInput) {
+                bairroInput.value = data.bairro || '';
+                if (data.bairro) bairroInput.classList.add('highlight-success');
+            }
+            if (cidadeInput) {
+                cidadeInput.value = data.localidade ? `${data.localidade} - ${data.uf}` : '';
+                if (data.localidade) cidadeInput.classList.add('highlight-success');
+            }
+
+            // Remove o destaque suave após 2.5s
+            setTimeout(() => {
+                ruaInput?.classList.remove('highlight-success');
+                bairroInput?.classList.remove('highlight-success');
+                cidadeInput?.classList.remove('highlight-success');
+            }, 2500);
+
+            if (statusMsg) {
+                statusMsg.className = 'cep-status-msg success';
+                statusMsg.innerText = `✓ Endereço localizado: ${data.localidade} - ${data.uf}. Agora digite o número da sua casa!`;
+                statusMsg.style.display = 'block';
+            }
+
+            // Foco imediato no campo "Número" para facilitar a vida do cliente!
+            if (numeroInput) {
+                setTimeout(() => {
+                    numeroInput.focus();
+                    numeroInput.classList.add('highlight-focus');
+                }, 120);
+            }
+
+        } catch (err) {
+            console.warn('Falha ao consultar ViaCEP:', err.message);
+            if (statusMsg) {
+                statusMsg.className = 'cep-status-msg error';
+                statusMsg.innerText = 'Não foi possível consultar o CEP automaticamente. Digite seu endereço manualmente.';
+                statusMsg.style.display = 'block';
+            }
+        } finally {
+            if (spinner) spinner.style.display = 'none';
+        }
+    }
+
     abrirModalCheckout() {
         const total = this.calcularTotal();
         const totalFormatado = total.toFixed(2).replace('.', ',');
@@ -652,6 +758,7 @@ class CatalogoApp {
         let endereco = {};
         if (this.tipoEntrega === 'entrega') {
             endereco = {
+                cep: document.getElementById('checkoutCep')?.value.trim() || '',
                 rua: document.getElementById('checkoutRua')?.value.trim() || '',
                 numero: document.getElementById('checkoutNumero')?.value.trim() || '',
                 bairro: document.getElementById('checkoutBairro')?.value.trim() || '',
@@ -715,8 +822,10 @@ class CatalogoApp {
                 return `• ${i.quantidade}x *${i.nome}* = R$ ${sub}`;
             }).join('\n');
 
+            const cepTxt = endereco.cep ? ` (CEP: ${endereco.cep})` : '';
+            const compTxt = endereco.complemento ? ` [${endereco.complemento}]` : '';
             let txtEnd = this.tipoEntrega === 'entrega' 
-                ? `*Endereço de Entrega:* ${endereco.rua || ''}, ${endereco.numero || ''} - ${endereco.bairro || ''}, ${endereco.cidade || ''} (${endereco.complemento || ''})`
+                ? `*Endereço de Entrega:* ${endereco.rua || ''}, ${endereco.numero || ''} - ${endereco.bairro || ''}, ${endereco.cidade || ''}${compTxt}${cepTxt}`
                 : `*Modalidade:* Retirada no Apiário`;
 
             let txtPag = this.formaPagamento === 'pix' ? 'PIX (Chave: 79988125726)' : (this.formaPagamento === 'cartao' ? 'Cartão' : `Dinheiro (Troco: ${trocoPara || 'Não'})`);

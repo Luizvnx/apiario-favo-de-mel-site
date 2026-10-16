@@ -385,8 +385,11 @@ const server = http.createServer(async (req, res) => {
                 return `• ${i.quantidade}x *${i.nome}* = R$ ${sub}`;
             }).join('\n');
 
+            const end = novoPedido.endereco || {};
+            const cepStr = end.cep ? ` (CEP: ${end.cep})` : '';
+            const compStr = end.complemento ? ` [${end.complemento}]` : '';
             let txtEnd = novoPedido.tipo_entrega === 'entrega'
-                ? `*Endereço:* ${novoPedido.endereco.rua || ''}, ${novoPedido.endereco.numero || ''} - ${novoPedido.endereco.bairro || ''}, ${novoPedido.endereco.cidade || ''}`
+                ? `*Endereço:* ${end.rua || ''}, ${end.numero || ''} - ${end.bairro || ''}, ${end.cidade || ''}${compStr}${cepStr}`
                 : `*Modalidade:* Retirada no Apiário`;
 
             let txtPag = novoPedido.forma_pagamento === 'pix' ? `PIX (Chave: ${config.pix_chave || '79988125726'})` : (novoPedido.forma_pagamento === 'cartao' ? 'Cartão' : `Dinheiro (Troco: ${novoPedido.troco_para || 'Não'})`);

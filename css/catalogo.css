@@ -1058,6 +1058,61 @@ body.catalogo-body {
     gap: 0.75rem;
 }
 
+.cep-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cep-loading-spinner {
+    position: absolute;
+    right: 12px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.spin-icon {
+    animation: spinCep 0.8s linear infinite;
+    color: var(--color-primary);
+}
+
+@keyframes spinCep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.cep-status-msg {
+    font-size: 0.8rem;
+    margin-top: 0.35rem;
+    display: none;
+    font-weight: 500;
+}
+
+.cep-status-msg.success {
+    color: #059669;
+}
+
+.cep-status-msg.error {
+    color: #DC2626;
+}
+
+.cep-status-msg.loading {
+    color: var(--color-primary);
+}
+
+.form-control.highlight-success {
+    border-color: #10B981 !important;
+    background-color: #F0FDF4 !important;
+    transition: all 0.3s ease;
+}
+
+.form-control.highlight-focus:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px rgba(217, 130, 0, 0.25) !important;
+}
+
+
 @media (max-width: 600px) {
     .pix-checkout-body {
         flex-direction: column;
