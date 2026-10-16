@@ -15,5 +15,9 @@
     "favo-de-mel"
   ],
   "author": "Apiário Favo de Mel",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^18.0.8",
+    "pg": "^8.23.1"
+  }
 }

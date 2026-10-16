@@ -1,44 +1,22 @@
 /**
  * Apiário Favo de Mel - Servidor de Desenvolvimento Local & API Administrativa
- * Suporte a .env, Gestão de Catálogo, Configurações de PIX e Pedidos
- * Zero dependências externas (Usa apenas módulos nativos do Node.js)
+ * Suporte a .env, Gestão de Catálogo, PostgreSQL & Fallback Local Resiliente
+ * Tabelas: tb_bot_config, tb_categorias, tb_produtos, tb_pedidos
  */
 
+require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const db = require('./db');
 
 const BASE_DIR = __dirname;
 const DATA_DIR = path.join(BASE_DIR, 'data');
 const PRODUCTS_ASSETS_DIR = path.join(BASE_DIR, 'assets', 'products');
 
-// Garante que o diretório data exista
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// 1. Carrega variáveis de ambiente do arquivo .env automaticamente (se existir)
-const envPath = path.join(BASE_DIR, '.env');
-if (fs.existsSync(envPath)) {
-    try {
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        envContent.split(/\r?\n/).forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed && !trimmed.startsWith('#')) {
-                const idx = trimmed.indexOf('=');
-                if (idx > 0) {
-                    const key = trimmed.slice(0, idx).trim();
-                    const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
-                    if (!process.env[key]) {
-                        process.env[key] = val;
-                    }
-                }
-            }
-        });
-    } catch (e) {
-        console.warn('Aviso: Falha ao ler .env:', e.message);
-    }
-}
+// Inicializa o adaptador do Banco de Dados PostgreSQL
+db.init();
 
 let PORT = parseInt(process.env.PORT, 10) || 3300;
 const API_URL = process.env.API_URL || 'http://localhost:8080';
@@ -64,31 +42,6 @@ const MIME_TYPES = {
     '.mp4': 'video/mp4',
     '.pdf': 'application/pdf'
 };
-
-// =========================================================================
-// HELPERS DE ARMAZENAMENTO JSON
-// =========================================================================
-function readJson(filename, defaultValue) {
-    const p = path.join(DATA_DIR, filename);
-    if (!fs.existsSync(p)) return defaultValue;
-    try {
-        return JSON.parse(fs.readFileSync(p, 'utf8'));
-    } catch (err) {
-        console.error(`Erro ao ler JSON ${filename}:`, err);
-        return defaultValue;
-    }
-}
-
-function writeJson(filename, data) {
-    const p = path.join(DATA_DIR, filename);
-    try {
-        fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf8');
-        return true;
-    } catch (err) {
-        console.error(`Erro ao salvar JSON ${filename}:`, err);
-        return false;
-    }
-}
 
 function sendJson(res, statusCode, data) {
     res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -131,7 +84,7 @@ const server = http.createServer(async (req, res) => {
     // Endpoint dinâmico de configuração para frontend
     if (safePath === '/config.js') {
         res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
-        return res.end(`window.FAVODEMEL_API_URL = "";\nconsole.log("[Config] Modo Local Ativo - Servidor Favo de Mel Integrado");`);
+        return res.end(`window.FAVODEMEL_API_URL = "";\nconsole.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
     }
 
     // Atalho amigável para o painel administrativo
@@ -143,51 +96,60 @@ const server = http.createServer(async (req, res) => {
     // ROTAS DE API
     // =========================================================================
 
-    // 1. Configurações da Loja e PIX
+    // 0. Status do Banco de Dados
+    if (safePath === '/api/admin/status-banco' && req.method === 'GET') {
+        return sendJson(res, 200, {
+            sucesso: true,
+            status: db.getStatus()
+        });
+    }
+
+    // 1. Configurações da Loja e PIX (tb_bot_config)
     if (safePath === '/api/catalogo/config' || safePath === '/api/admin/config') {
         if (req.method === 'GET') {
-            const config = readJson('store_config.json', {
-                nome_loja: 'Apiário Favo de Mel',
-                whatsapp: '557988125726',
-                status_loja: 'aberto',
-                status_texto: 'Aberto para Pedidos',
-                taxa_entrega_padrao: 0,
-                mensagem_entrega: 'A combinar na confirmação',
-                pix_chave: '79988125726',
-                pix_tipo: 'telefone',
-                pix_titular: 'Apiario Favo de Mel',
-                pix_cidade: 'Aracaju'
-            });
-            // Oculta a senha em chamadas públicas
-            const safeConfig = { ...config };
-            delete safeConfig.admin_senha;
-            return sendJson(res, 200, { sucesso: true, config: safeConfig });
+            try {
+                const { dados, fonte } = await db.obterConfigLoja();
+                const safeConfig = { ...dados };
+                delete safeConfig.admin_senha;
+                return sendJson(res, 200, { sucesso: true, config: safeConfig, fonte });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
 
         if (req.method === 'POST') {
             try {
                 const body = await parseBody(req);
-                const current = readJson('store_config.json', {});
-                const updated = {
-                    ...current,
-                    ...body
-                };
-                writeJson('store_config.json', updated);
-                const safeConfig = { ...updated };
+                const { dados, fonte } = await db.salvarConfigLoja(body);
+                const safeConfig = { ...dados };
                 delete safeConfig.admin_senha;
-                return sendJson(res, 200, { sucesso: true, mensagem: 'Configurações atualizadas com sucesso', config: safeConfig });
+                return sendJson(res, 200, {
+                    sucesso: true,
+                    mensagem: 'Configurações atualizadas com sucesso',
+                    config: safeConfig,
+                    fonte
+                });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: 'Dados inválidos: ' + err.message });
             }
         }
     }
 
-    // 2. Catálogo de Produtos e Categorias
+    // 2. Catálogo de Produtos e Categorias (tb_produtos e tb_categorias)
     if (safePath === '/api/catalogo/produtos') {
         if (req.method === 'GET') {
-            const produtos = readJson('produtos.json', []);
-            const categorias = readJson('categorias.json', []);
-            return sendJson(res, 200, { sucesso: true, produtos, categorias });
+            try {
+                const { produtos, fonte: fonteP } = await db.listarProdutos(true);
+                const { categorias, fonte: fonteC } = await db.listarCategorias(true);
+                return sendJson(res, 200, {
+                    sucesso: true,
+                    produtos,
+                    categorias,
+                    fonte: fonteP === 'postgresql' || fonteC === 'postgresql' ? 'postgresql' : 'local_json'
+                });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
     }
 
@@ -197,29 +159,19 @@ const server = http.createServer(async (req, res) => {
         const produtoId = idMatch ? parseInt(idMatch[1], 10) : null;
 
         if (req.method === 'GET') {
-            const produtos = readJson('produtos.json', []);
-            return sendJson(res, 200, { sucesso: true, produtos });
+            try {
+                const { produtos, fonte } = await db.listarProdutos(false);
+                return sendJson(res, 200, { sucesso: true, produtos, fonte });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
 
         if (req.method === 'POST') {
             try {
                 const body = await parseBody(req);
-                const produtos = readJson('produtos.json', []);
-                const novoId = produtos.length > 0 ? Math.max(...produtos.map(p => p.id || 0)) + 1 : 1;
-                const novoProduto = {
-                    id: novoId,
-                    categoria_id: parseInt(body.categoria_id, 10) || 1,
-                    nome: body.nome || 'Novo Produto',
-                    preco: parseFloat(body.preco) || 0,
-                    peso: body.peso || '',
-                    descricao: body.descricao || '',
-                    estoque: parseInt(body.estoque, 10) || 0,
-                    foto: body.foto || 'Mel-in-Natura-500g.png',
-                    ativo: body.ativo !== false
-                };
-                produtos.unshift(novoProduto);
-                writeJson('produtos.json', produtos);
-                return sendJson(res, 201, { sucesso: true, produto: novoProduto });
+                const { produto, fonte } = await db.criarProduto(body);
+                return sendJson(res, 201, { sucesso: true, produto, fonte });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: 'Erro ao criar produto: ' + err.message });
             }
@@ -228,31 +180,20 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'PUT' && produtoId) {
             try {
                 const body = await parseBody(req);
-                let produtos = readJson('produtos.json', []);
-                const idx = produtos.findIndex(p => p.id === produtoId);
-                if (idx === -1) {
-                    return sendJson(res, 404, { sucesso: false, erro: 'Produto não encontrado' });
-                }
-                produtos[idx] = {
-                    ...produtos[idx],
-                    ...body,
-                    id: produtoId,
-                    preco: parseFloat(body.preco !== undefined ? body.preco : produtos[idx].preco),
-                    categoria_id: parseInt(body.categoria_id !== undefined ? body.categoria_id : produtos[idx].categoria_id, 10),
-                    estoque: parseInt(body.estoque !== undefined ? body.estoque : produtos[idx].estoque, 10)
-                };
-                writeJson('produtos.json', produtos);
-                return sendJson(res, 200, { sucesso: true, produto: produtos[idx] });
+                const { produto, fonte } = await db.atualizarProduto(produtoId, body);
+                return sendJson(res, 200, { sucesso: true, produto, fonte });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: 'Erro ao atualizar produto: ' + err.message });
             }
         }
 
         if (req.method === 'DELETE' && produtoId) {
-            let produtos = readJson('produtos.json', []);
-            const filtered = produtos.filter(p => p.id !== produtoId);
-            writeJson('produtos.json', filtered);
-            return sendJson(res, 200, { sucesso: true, mensagem: 'Produto excluído com sucesso' });
+            try {
+                const { fonte } = await db.deletarProduto(produtoId);
+                return sendJson(res, 200, { sucesso: true, mensagem: 'Produto excluído com sucesso', fonte });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
     }
 
@@ -262,41 +203,31 @@ const server = http.createServer(async (req, res) => {
         const catId = idMatch ? idMatch[1] : null;
 
         if (req.method === 'GET') {
-            const categorias = readJson('categorias.json', []);
-            return sendJson(res, 200, { sucesso: true, categorias });
+            try {
+                const { categorias, fonte } = await db.listarCategorias(false);
+                return sendJson(res, 200, { sucesso: true, categorias, fonte });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
 
         if (req.method === 'POST') {
             try {
                 const body = await parseBody(req);
-                let categorias = readJson('categorias.json', []);
-                if (body.id) {
-                    // Atualiza
-                    const idx = categorias.findIndex(c => String(c.id) === String(body.id));
-                    if (idx !== -1) {
-                        categorias[idx] = { ...categorias[idx], ...body };
-                    }
-                } else {
-                    // Cria
-                    const novoId = String(categorias.length > 0 ? Math.max(...categorias.map(c => parseInt(c.id, 10) || 0)) + 1 : 1);
-                    categorias.push({
-                        id: novoId,
-                        nome: body.nome || 'Nova Categoria',
-                        icone: body.icone || 'droplet'
-                    });
-                }
-                writeJson('categorias.json', categorias);
-                return sendJson(res, 200, { sucesso: true, categorias });
+                const { categoria, categorias, fonte } = await db.salvarCategoria(body);
+                return sendJson(res, 200, { sucesso: true, categoria, categorias, fonte });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: err.message });
             }
         }
 
         if (req.method === 'DELETE' && catId) {
-            let categorias = readJson('categorias.json', []);
-            const filtered = categorias.filter(c => String(c.id) !== String(catId));
-            writeJson('categorias.json', filtered);
-            return sendJson(res, 200, { sucesso: true, categorias: filtered });
+            try {
+                const { categorias, fonte } = await db.deletarCategoria(catId);
+                return sendJson(res, 200, { sucesso: true, categorias, fonte });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
     }
 
@@ -319,12 +250,10 @@ const server = http.createServer(async (req, res) => {
     if (safePath === '/api/catalogo/pedidos' && req.method === 'POST') {
         try {
             const body = await parseBody(req);
-            const pedidos = readJson('pedidos.json', []);
-            const config = readJson('store_config.json', { whatsapp: '557988125726' });
+            const { dados: config } = await db.obterConfigLoja();
 
             const codigoPedido = `FD-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
-            const tokenAcesso = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-                .map(b => b.toString(16).padStart(2, '0')).join('');
+            const tokenAcesso = crypto.randomBytes(16).toString('hex');
 
             const novoPedido = {
                 codigo_pedido: codigoPedido,
@@ -344,8 +273,7 @@ const server = http.createServer(async (req, res) => {
                 criado_em: new Date().toISOString()
             };
 
-            pedidos.unshift(novoPedido);
-            writeJson('pedidos.json', pedidos);
+            const { pedido: pedidoSalvo, fonte } = await db.salvarPedido(novoPedido);
 
             // Monta mensagem WhatsApp
             const linhasItens = novoPedido.itens.map(i => {
@@ -369,7 +297,8 @@ const server = http.createServer(async (req, res) => {
                 codigo_pedido: codigoPedido,
                 token_acesso: tokenAcesso,
                 whatsapp_url: waUrl,
-                pedido: novoPedido
+                pedido: pedidoSalvo,
+                fonte
             });
         } catch (err) {
             return sendJson(res, 400, { sucesso: false, erro: 'Erro ao processar pedido: ' + err.message });
@@ -378,13 +307,16 @@ const server = http.createServer(async (req, res) => {
 
     // Consulta de Pedido para a página pedido.html
     if (safePath.startsWith('/api/pedido/') && req.method === 'GET') {
-        const queryId = safePath.replace('/api/pedido/', '').trim();
-        const pedidos = readJson('pedidos.json', []);
-        const pedido = pedidos.find(p => p.codigo_pedido === queryId || p.token_acesso === queryId);
-        if (pedido) {
-            return sendJson(res, 200, { sucesso: true, pedido });
+        try {
+            const queryId = safePath.replace('/api/pedido/', '').trim();
+            const pedido = await db.obterPedidoPorCodigo(queryId);
+            if (pedido) {
+                return sendJson(res, 200, { sucesso: true, pedido });
+            }
+            return sendJson(res, 404, { sucesso: false, erro: 'Pedido não localizado' });
+        } catch (err) {
+            return sendJson(res, 500, { sucesso: false, erro: err.message });
         }
-        return sendJson(res, 404, { sucesso: false, erro: 'Pedido não localizado' });
     }
 
     // Gestão de Pedidos (Admin)
@@ -393,25 +325,19 @@ const server = http.createServer(async (req, res) => {
         const pedidoCodigo = idMatch ? idMatch[1] : null;
 
         if (req.method === 'GET') {
-            const pedidos = readJson('pedidos.json', []);
-            return sendJson(res, 200, { sucesso: true, pedidos });
+            try {
+                const { pedidos, fonte } = await db.listarPedidos();
+                return sendJson(res, 200, { sucesso: true, pedidos, fonte });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
         }
 
         if (req.method === 'PATCH' && pedidoCodigo) {
             try {
                 const body = await parseBody(req);
-                let pedidos = readJson('pedidos.json', []);
-                const idx = pedidos.findIndex(p => p.codigo_pedido === pedidoCodigo);
-                if (idx === -1) {
-                    return sendJson(res, 404, { sucesso: false, erro: 'Pedido não encontrado' });
-                }
-                pedidos[idx] = {
-                    ...pedidos[idx],
-                    status: body.status || pedidos[idx].status,
-                    atualizado_em: new Date().toISOString()
-                };
-                writeJson('pedidos.json', pedidos);
-                return sendJson(res, 200, { sucesso: true, pedido: pedidos[idx] });
+                const { status, fonte } = await db.atualizarStatusPedido(pedidoCodigo, body.status);
+                return sendJson(res, 200, { sucesso: true, codigo: pedidoCodigo, status, fonte });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: err.message });
             }
@@ -422,7 +348,7 @@ const server = http.createServer(async (req, res) => {
     if (safePath === '/api/admin/login' && req.method === 'POST') {
         try {
             const body = await parseBody(req);
-            const config = readJson('store_config.json', {});
+            const { dados: config } = await db.obterConfigLoja();
             const validPassword = config.admin_senha || ADMIN_PASSWORD;
 
             if (body.senha === validPassword) {
@@ -510,11 +436,11 @@ const server = http.createServer(async (req, res) => {
 function iniciarServidor(porta) {
     server.listen(porta, '0.0.0.0', () => {
         console.log('\n======================================================');
-        console.log('Apiário Favo de Mel - Servidor com Painel Administrativo');
+        console.log('🐝 Apiário Favo de Mel - Servidor & Painel Administrativo');
         console.log(`Catálogo:     http://localhost:${porta}/catalogo.html`);
         console.log(`Painel Admin: http://localhost:${porta}/admin.html`);
         console.log(`Site Oficial: http://localhost:${porta}/`);
-        console.log(`API Local:    Ativa com armazenamento em /data`);
+        console.log(`Banco:        PostgreSQL (${process.env.DB_NAME || 'evolution_db'}) c/ Fallback Resiliente`);
         console.log('Pressione Ctrl+C para encerrar o servidor');
         console.log('======================================================\n');
     });

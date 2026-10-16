@@ -110,6 +110,7 @@ class AdminApp {
         document.getElementById('adminLoginOverlay')?.style.setProperty('display', 'none');
         document.getElementById('adminApp')?.style.setProperty('display', 'flex');
 
+        await this.carregarStatusBanco();
         await this.carregarConfiguracoes();
         await this.carregarCategorias();
         await this.carregarImagensGaleria();
@@ -117,6 +118,35 @@ class AdminApp {
         await this.carregarPedidos();
         this.atualizarSimuladorPix();
     }
+
+    async carregarStatusBanco() {
+        const statusTextEl = document.getElementById('serverStatusText');
+        const statusDotEl = document.querySelector('.status-dot');
+        if (!statusTextEl) return;
+
+        try {
+            const res = await fetch(this.getApiUrl('/api/admin/status-banco'));
+            const data = await res.json();
+            if (data.sucesso && data.status) {
+                if (data.status.conectado) {
+                    statusTextEl.innerText = `PostgreSQL: Conectado (${data.status.banco})`;
+                    if (statusDotEl) {
+                        statusDotEl.className = 'status-dot green';
+                        statusDotEl.title = `Conectado ao PostgreSQL em ${data.status.host}:${data.status.porta}`;
+                    }
+                } else {
+                    statusTextEl.innerText = `Armazenamento Local (Docker/PG offline)`;
+                    if (statusDotEl) {
+                        statusDotEl.className = 'status-dot amber';
+                        statusDotEl.title = 'Operando em modo cache local resiliente até o PostgreSQL/Docker ser iniciado';
+                    }
+                }
+            }
+        } catch (_) {
+            statusTextEl.innerText = 'Servidor Local Conectado';
+        }
+    }
+
 
     // =========================================================================
     // 2. NAVEGAÇÃO DE ABAS
