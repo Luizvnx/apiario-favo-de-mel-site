@@ -99,6 +99,7 @@ img {
 .section-tag {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
     font-size: 0.78rem;
     font-weight: 700;
@@ -109,20 +110,24 @@ img {
     border: none;
     padding: 0;
     margin-bottom: 0.85rem;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .section-tag::before,
 .section-tag::after {
-    content: '';
-    display: inline-block;
-    width: 20px;
-    height: 2px;
-    background: #D98200;
-    border-radius: 2px;
-    flex-shrink: 0;
+    content: '' !important;
+    display: inline-block !important;
+    width: 22px !important;
+    height: 2px !important;
+    background: #D98200 !important;
+    border-radius: 2px !important;
+    flex-shrink: 0 !important;
 }
 
-.section-header .section-tag {
+.section-header .section-tag,
+.catalog-cta-box .section-tag,
+.social-section .section-tag {
     justify-content: center;
 }
 
@@ -1361,6 +1366,17 @@ textarea.form-control {
 @media (max-width: 576px) {
     .container {
         padding: 0 1.15rem;
+    }
+
+    .section-tag {
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        gap: 0.5rem;
+    }
+
+    .section-tag::before,
+    .section-tag::after {
+        width: 16px !important;
     }
 
     .brand-logo img {
