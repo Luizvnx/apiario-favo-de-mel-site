@@ -96,6 +96,55 @@
     </div>
 
     <!-- ==========================================================================
+         MODAL DE DETALHES E PERSONALIZAÇÃO DO PRODUTO (ESTILO TREM DELIVERY)
+         ========================================================================== -->
+    <div id="productModalOverlay" class="product-modal-overlay">
+        <div class="product-modal-box">
+            <button id="btnCloseProductModal" class="btn-close-modal" aria-label="Fechar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            
+            <div class="product-modal-media">
+                <img id="productModalImg" src="" alt="Produto" class="product-modal-img">
+                <span id="productModalBadge" class="product-modal-badge" style="display: none;"></span>
+            </div>
+
+            <div class="product-modal-content">
+                <div class="product-modal-header">
+                    <span id="productModalCategory" class="product-modal-category"></span>
+                    <h2 id="productModalTitle" class="product-modal-title"></h2>
+                    <div id="productModalPrice" class="product-modal-price"></div>
+                </div>
+
+                <div class="product-modal-body">
+                    <p id="productModalDesc" class="product-modal-desc"></p>
+                    
+                    <div class="product-modal-obs-wrap">
+                        <label for="productModalObs">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            Observações deste item (opcional)
+                        </label>
+                        <textarea id="productModalObs" class="form-control" rows="2" placeholder="Ex: Embalar para presente, laço rústico, etc."></textarea>
+                    </div>
+                </div>
+
+                <div class="product-modal-footer">
+                    <div class="qty-stepper modal-qty-stepper">
+                        <button id="btnModalQtyMinus" class="qty-btn" type="button">−</button>
+                        <span id="productModalQty" class="qty-value">1</span>
+                        <button id="btnModalQtyPlus" class="qty-btn" type="button">+</button>
+                    </div>
+
+                    <button id="btnModalAddToCart" class="btn btn-primary btn-modal-add" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                        <span>Adicionar • <strong id="productModalTotalPrice">R$ 0,00</strong></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
          GAVETA LATERAL DO CARRINHO (DRAWER)
          ========================================================================== -->
     <div id="cartDrawerOverlay" class="cart-drawer-overlay"></div>
@@ -108,6 +157,17 @@
             <button id="btnCloseDrawer" class="btn-close-drawer" aria-label="Fechar Carrinho">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
+        </div>
+
+        <!-- Meta de Frete Grátis Dinâmica (Estilo Trem Delivery) -->
+        <div id="freeDeliveryWidget" class="free-delivery-widget">
+            <div class="free-delivery-info">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="free-delivery-truck"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                <span id="freeDeliveryMsg">Faltam <strong>R$ 0,00</strong> para <strong>Frete Grátis</strong>!</span>
+            </div>
+            <div class="free-delivery-bar">
+                <div id="freeDeliveryBarFill" class="free-delivery-fill" style="width: 0%;"></div>
+            </div>
         </div>
 
         <div class="cart-drawer-body">
@@ -318,6 +378,20 @@
                         <div class="form-group">
                             <label for="checkoutObs">Observações do Pedido (Opcional)</label>
                             <input type="text" id="checkoutObs" class="form-control" placeholder="Ex: Ligar ao chegar, mel mais claro...">
+                        </div>
+
+                        <!-- Resumo dos Itens do Pedido (Acordeão Retrátil Estilo Trem Delivery) -->
+                        <div id="checkoutItemsPreview" class="checkout-items-preview">
+                            <div id="checkoutPreviewHeader" class="checkout-preview-header" role="button" tabindex="0">
+                                <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                                    <span>Itens do pedido (<strong id="checkoutPreviewCount">0</strong>)</span>
+                                </span>
+                                <svg id="checkoutPreviewChevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.25s ease;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                            <div id="checkoutPreviewList" class="checkout-preview-list" style="display: none;">
+                                <!-- Preenchido dinamicamente via JS -->
+                            </div>
                         </div>
 
                         <!-- Resumo do Valor -->

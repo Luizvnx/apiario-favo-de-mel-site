@@ -901,10 +901,10 @@ class AdminApp {
                         </select>
                     </td>
                     <td style="text-align: right;">
-                        <a href="pedido.html?id=${ped.codigo_pedido}" target="_blank" class="btn-admin btn-admin-secondary btn-admin-sm" title="Abrir rastreio do cliente" style="margin-right: 4px;">
+                        <a href="/pedido.html?codigo=${encodeURIComponent(ped.codigo_pedido)}${ped.token_acesso ? `&token=${encodeURIComponent(ped.token_acesso)}` : ''}" target="_blank" class="btn-admin btn-admin-secondary btn-admin-sm" title="Abrir rastreio em tempo real do cliente" style="margin-right: 4px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </a>
-                        <button class="btn-admin btn-admin-primary btn-admin-sm btn-whatsapp-cliente" data-tel="${ped.cliente_telefone}" data-code="${ped.codigo_pedido}" data-nome="${ped.cliente_nome}" title="Conversar no WhatsApp">
+                        <button class="btn-admin btn-admin-primary btn-admin-sm btn-whatsapp-cliente" data-tel="${ped.cliente_telefone}" data-code="${ped.codigo_pedido}" data-nome="${ped.cliente_nome}" data-status="${ped.status}" data-token="${ped.token_acesso || ''}" title="Notificar ou conversar no WhatsApp">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z"/></svg>
                         </button>
                     </td>
@@ -912,36 +912,65 @@ class AdminApp {
             `;
         }).join('');
 
-        // Alteração de status
+        // Alteração de status com disparo automático
         tbody.querySelectorAll('.select-status-pedido').forEach(sel => {
             sel.addEventListener('change', async () => {
                 const codigo = sel.getAttribute('data-code');
                 const novoStatus = sel.value;
+                const originalBg = sel.style.backgroundColor;
+
+                sel.style.backgroundColor = '#FEF3C7';
+                sel.disabled = true;
 
                 try {
-                    await fetch(this.getApiUrl(`/api/admin/pedidos/${codigo}`), {
+                    const res = await fetch(this.getApiUrl(`/api/admin/pedidos/${codigo}`), {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status: novoStatus })
                     });
-                } catch (_) {}
+                    const data = await res.json();
+                    if (data.sucesso) {
+                        sel.style.backgroundColor = '#DCFCE7';
+                        setTimeout(() => {
+                            sel.style.backgroundColor = originalBg;
+                        }, 1200);
+                    }
+                } catch (err) {
+                    sel.style.backgroundColor = '#FEE2E2';
+                } finally {
+                    sel.disabled = false;
+                }
 
                 const ped = this.pedidos.find(p => p.codigo_pedido === codigo);
                 if (ped) ped.status = novoStatus;
             });
         });
 
-        // Abrir conversa com cliente
+        // Abrir conversa ou enviar notificação de status ao cliente
         tbody.querySelectorAll('.btn-whatsapp-cliente').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tel = (btn.getAttribute('data-tel') || '').replace(/\D/g, '');
                 const nome = btn.getAttribute('data-nome') || 'Cliente';
                 const codigo = btn.getAttribute('data-code');
+                const status = btn.getAttribute('data-status') || 'novo';
+                const token = btn.getAttribute('data-token') || '';
 
                 let fone = tel;
                 if (!fone.startsWith('55')) fone = `55${fone}`;
 
-                const msg = `Olá, ${nome}! Aqui é do Apiário Favo de Mel referente ao seu pedido #${codigo}. Como podemos lhe ajudar hoje?`;
+                const rastreioUrl = `${window.location.origin}/pedido.html?codigo=${encodeURIComponent(codigo)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+
+                let msg = '';
+                if (status === 'preparando') {
+                    msg = `🍯 Olá, ${nome}! Seu pedido #${codigo} no Apiário Favo de Mel já está sendo preparado com muito carinho. Acompanhe em tempo real pelo link: ${rastreioUrl}`;
+                } else if (status === 'enviado') {
+                    msg = `🛵 Olá, ${nome}! Seu pedido #${codigo} do Apiário Favo de Mel acabou de sair para entrega e está a caminho! Acompanhe pelo link: ${rastreioUrl}`;
+                } else if (status === 'entregue') {
+                    msg = `🎉 Olá, ${nome}! Seu pedido #${codigo} foi entregue com sucesso. Esperamos que aprecie a pureza dos nossos méis do Apiário Favo de Mel! 🐝`;
+                } else {
+                    msg = `🍯 Olá, ${nome}! Informações sobre seu pedido #${codigo} no Apiário Favo de Mel. Acompanhe em tempo real pelo link: ${rastreioUrl}`;
+                }
+
                 window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
             });
         });

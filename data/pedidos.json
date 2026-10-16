@@ -1,5 +1,88 @@
 [
   {
+    "codigo_pedido": "FD-477596",
+    "token_acesso": "a03e2b52fe9803a37bc4cf91dd70f27c",
+    "cliente_nome": "Carlos Veloz",
+    "cliente_telefone": "(79) 99123-4567",
+    "tipo_entrega": "entrega",
+    "endereco": {
+      "cep": "49010-010",
+      "rua": "Avenida Otoniel Dórea",
+      "numero": "88",
+      "bairro": "Centro",
+      "cidade": "Aracaju - SE",
+      "complemento": ""
+    },
+    "forma_pagamento": "pix",
+    "troco_para": "",
+    "observacoes": "",
+    "itens": [
+      {
+        "cartId": "cart_1_1792179213256_152",
+        "id": 1,
+        "nome": "Mel com Favo 500g",
+        "preco": 65,
+        "foto": "/assets/products/Mel-com-Favo-500g.png",
+        "quantidade": 3,
+        "obs": ""
+      }
+    ],
+    "subtotal": 195,
+    "taxa_entrega": 0,
+    "total": 195,
+    "status": "enviado",
+    "criado_em": "2026-10-16T19:47:54.776Z",
+    "atualizado_em": "2026-10-16T19:51:08.243Z"
+  },
+  {
+    "codigo_pedido": "FD-065813",
+    "token_acesso": "46a3965f381c551ce92032c40a7683ef",
+    "cliente_nome": "Carlos Veloz",
+    "cliente_telefone": "(79) 99123-4567",
+    "tipo_entrega": "entrega",
+    "endereco": {
+      "cep": "49010-010",
+      "rua": "Avenida Otoniel Dórea",
+      "numero": "88",
+      "bairro": "Centro",
+      "cidade": "Aracaju - SE",
+      "complemento": ""
+    },
+    "forma_pagamento": "pix",
+    "troco_para": "",
+    "observacoes": "",
+    "itens": [
+      {
+        "id": 1,
+        "nome": "Mel de Uruçú (Nativa)",
+        "preco": 85,
+        "foto": null,
+        "quantidade": 1
+      },
+      {
+        "id": 2,
+        "nome": "Meleira com Mel",
+        "preco": 60,
+        "foto": null,
+        "quantidade": 1
+      },
+      {
+        "cartId": "cart_1_1792176731218_565",
+        "id": 1,
+        "nome": "Mel com Favo 500g",
+        "preco": 65,
+        "foto": "/assets/products/Mel-com-Favo-500g.png",
+        "quantidade": 2,
+        "obs": "Embalar para presente rEmbalar para presente rustico"
+      }
+    ],
+    "subtotal": 275,
+    "taxa_entrega": 0,
+    "total": 275,
+    "status": "novo",
+    "criado_em": "2026-10-16T19:19:50.658Z"
+  },
+  {
     "codigo_pedido": "FD-8421",
     "token_acesso": "a1b2c3d4e5f67890",
     "cliente_nome": "Mariana Oliveira",
@@ -19,19 +102,19 @@
       {
         "id": 1,
         "nome": "Mel de Uruçú (Nativa)",
-        "preco": 85.00,
+        "preco": 85,
         "quantidade": 1
       },
       {
         "id": 3,
         "nome": "Extrato de Própolis Verde (20ml)",
-        "preco": 35.00,
+        "preco": 35,
         "quantidade": 1
       }
     ],
-    "subtotal": 120.00,
+    "subtotal": 120,
     "taxa_entrega": 0,
-    "total": 120.00,
+    "total": 120,
     "status": "preparando",
     "criado_em": "2026-10-16T10:15:00.000Z"
   }

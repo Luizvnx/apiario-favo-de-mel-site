@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const db = require('./db');
+const whatsappService = require('./services/whatsappNotificationService');
 
 const BASE_DIR = __dirname;
 const DATA_DIR = path.join(BASE_DIR, 'data');
@@ -387,7 +388,8 @@ const server = http.createServer(async (req, res) => {
             // Monta mensagem WhatsApp
             const linhasItens = novoPedido.itens.map(i => {
                 const sub = ((i.quantidade || 1) * parseFloat(i.preco || 0)).toFixed(2).replace('.', ',');
-                return `• ${i.quantidade}x *${i.nome}* = R$ ${sub}`;
+                const obsTxt = i.obs ? ` _(Obs: ${i.obs})_` : '';
+                return `• ${i.quantidade}x *${i.nome}*${obsTxt} = R$ ${sub}`;
             }).join('\n');
 
             const end = novoPedido.endereco || {};
@@ -404,6 +406,15 @@ const server = http.createServer(async (req, res) => {
             const numeroVendedor = (config.whatsapp || '557988125726').replace(/\D/g, '');
             const waUrl = `https://wa.me/${numeroVendedor}?text=${encodeURIComponent(msgWa)}`;
 
+            // Disparo assíncrono das notificações via Evolution API (Estilo Trem Delivery)
+            const originUrl = req.headers.origin || (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3300');
+            whatsappService.notifyStoreNewOrder(novoPedido, originUrl).catch(err => {
+                console.error('[WhatsApp Loja] Erro assíncrono ao notificar vendedor:', err.message);
+            });
+            whatsappService.notifyCustomerNewOrder(novoPedido, originUrl).catch(err => {
+                console.error('[WhatsApp Cliente] Erro assíncrono ao notificar cliente:', err.message);
+            });
+
             return sendJson(res, 201, {
                 sucesso: true,
                 codigo_pedido: codigoPedido,
@@ -417,10 +428,11 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // Consulta de Pedido para a página pedido.html
-    if (safePath.startsWith('/api/pedido/') && req.method === 'GET') {
+    // Consulta de Pedido para a página pedido.html (Suporta /api/pedido/:id e /api/catalogo/pedidos/:id)
+    const isPedidoQuery = safePath.startsWith('/api/pedido/') || safePath.startsWith('/api/catalogo/pedidos/');
+    if (isPedidoQuery && req.method === 'GET') {
         try {
-            const queryId = safePath.replace('/api/pedido/', '').trim();
+            const queryId = safePath.replace('/api/pedido/', '').replace('/api/catalogo/pedidos/', '').trim();
             const pedido = await db.obterPedidoPorCodigo(queryId);
             if (pedido) {
                 return sendJson(res, 200, { sucesso: true, pedido });
@@ -449,6 +461,16 @@ const server = http.createServer(async (req, res) => {
             try {
                 const body = await parseBody(req);
                 const { status, fonte } = await db.atualizarStatusPedido(pedidoCodigo, body.status);
+                
+                // Dispara notificação de mudança de status para o cliente via WhatsApp (Estilo Trem Delivery)
+                const pedidoCompleto = await db.obterPedidoPorCodigo(pedidoCodigo);
+                if (pedidoCompleto) {
+                    const originUrl = req.headers.origin || (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3300');
+                    whatsappService.notifyCustomerStatusUpdate(pedidoCompleto, body.status, originUrl).catch(err => {
+                        console.error('[WhatsApp Status] Erro assíncrono ao notificar cliente:', err.message);
+                    });
+                }
+
                 return sendJson(res, 200, { sucesso: true, codigo: pedidoCodigo, status, fonte });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: err.message });

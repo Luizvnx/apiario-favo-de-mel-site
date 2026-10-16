@@ -14,13 +14,11 @@ class PedidoTrackingApp {
     }
 
     getApiUrl(endpoint) {
-        const base = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
-        if (!base && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-            if (window.location.port !== '8080') {
-                return `http://localhost:8080${endpoint}`;
-            }
+        if (window.FAVODEMEL_API_URL !== undefined && window.FAVODEMEL_API_URL !== null) {
+            const base = String(window.FAVODEMEL_API_URL).trim().replace(/\/$/, '');
+            if (base) return `${base}${endpoint}`;
         }
-        return `${base}${endpoint}`;
+        return `${window.location.origin}${endpoint}`;
     }
 
     init() {

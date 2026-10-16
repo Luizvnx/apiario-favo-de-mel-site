@@ -14,6 +14,11 @@ class CatalogoApp {
         this.tipoEntrega = 'entrega';
         this.formaPagamento = 'pix';
         
+        this.modalProduto = null;
+        this.modalQtd = 1;
+        this.metaFreteGratis = 150.00; // Meta de Frete Grátis estilo Trem Delivery
+        this.audioCtx = null;
+
         this.config = {
             nome_loja: 'Apiário Favo de Mel',
             whatsapp: '557988125726',
@@ -61,6 +66,82 @@ class CatalogoApp {
         this.salvarCarrinho();
         this.atualizarInterfaceCarrinho();
         this.renderizarProdutos();
+    }
+
+    // =========================================================================
+    // FEEDBACK SONORO SUAVE (Web Audio API - Estilo Trem Delivery)
+    // =========================================================================
+    tocarFeedbackSonoro() {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            if (!this.audioCtx) {
+                this.audioCtx = new AudioContextClass();
+            }
+            if (this.audioCtx.state === 'suspended') {
+                this.audioCtx.resume();
+            }
+
+            const now = this.audioCtx.currentTime;
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+
+            // Tom harmônico suave e elegante
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(1320, now + 0.1);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.exponentialRampToValueAtTime(0.06, now + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.22);
+        } catch (_) {}
+    }
+
+    // =========================================================================
+    // MEMÓRIA INTELIGENTE DO CLIENTE (Estilo @tremdelivery:profile)
+    // =========================================================================
+    salvarPerfilCliente(dados) {
+        try {
+            const anterior = this.carregarPerfilCliente() || {};
+            const atualizado = { ...anterior, ...dados, atualizado_em: new Date().toISOString() };
+            localStorage.setItem('@favodemel:customer_profile', JSON.stringify(atualizado));
+        } catch (_) {}
+    }
+
+    carregarPerfilCliente() {
+        try {
+            const salvo = localStorage.getItem('@favodemel:customer_profile');
+            return salvo ? JSON.parse(salvo) : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    preencherDadosPerfil() {
+        const perfil = this.carregarPerfilCliente();
+        if (!perfil) return;
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val && !el.value) {
+                el.value = val;
+            }
+        };
+
+        setVal('checkoutNome', perfil.nome);
+        setVal('checkoutTelefone', perfil.telefone);
+        setVal('checkoutCep', perfil.cep);
+        setVal('checkoutRua', perfil.rua);
+        setVal('checkoutNumero', perfil.numero);
+        setVal('checkoutBairro', perfil.bairro);
+        setVal('checkoutCidade', perfil.cidade);
+        setVal('checkoutComplemento', perfil.complemento);
     }
 
     // =========================================================================
@@ -270,12 +351,12 @@ class CatalogoApp {
 
             return `
                 <div class="catalog-card" data-id="${prod.id}">
-                    <div class="card-img-area" onclick="catalogoApp.adicionarItem(${prod.id})">
+                    <div class="card-img-area" onclick="catalogoApp.abrirModalProduto('${prod.id}')" style="cursor: pointer;" title="Clique para ver detalhes do produto">
                         <img src="${fotoUrl}" alt="${prod.nome}" loading="lazy" onerror="this.onerror=null; this.src='/assets/products/Mel-in-Natura-500g.png'">
                     </div>
                     <div class="card-content">
                         <span class="card-category-label">${catNomeLimpo}</span>
-                        <h3 class="card-title">${prod.nome}</h3>
+                        <h3 class="card-title" onclick="catalogoApp.abrirModalProduto('${prod.id}')" style="cursor: pointer;" title="Clique para ver detalhes do produto">${prod.nome}</h3>
                         <p class="card-desc">${prod.descricao || 'Produto natural de altíssima qualidade direto do apiário.'}</p>
                         
                         <div class="card-bottom-row">
@@ -283,12 +364,12 @@ class CatalogoApp {
                             
                             ${qtdNoCarrinho > 0 ? `
                                 <div class="qty-stepper">
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade(${prod.id}, -1)">−</button>
+                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${prod.id}', -1)">−</button>
                                     <span class="qty-value">${qtdNoCarrinho}</span>
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade(${prod.id}, 1)">+</button>
+                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${prod.id}', 1)">+</button>
                                 </div>
                             ` : `
-                                <button class="btn-add-cart" onclick="catalogoApp.adicionarItem(${prod.id})">
+                                <button class="btn-add-cart" onclick="catalogoApp.abrirModalProduto('${prod.id}')">
                                     <span>+</span> Adicionar
                                 </button>
                             `}
@@ -300,32 +381,150 @@ class CatalogoApp {
     }
 
     // =========================================================================
-    // OPERAÇÕES DO CARRINHO
+    // MODAL DE DETALHES E PERSONALIZAÇÃO DO PRODUTO (Estilo Trem Delivery)
     // =========================================================================
-    adicionarItem(id) {
+    abrirModalProduto(id) {
         const prod = this.produtos.find(p => String(p.id) === String(id));
         if (!prod) return;
 
-        const existente = this.carrinho.find(i => String(i.id) === String(id));
+        this.modalProduto = prod;
+        this.modalQtd = 1;
+
+        const overlay = document.getElementById('productModalOverlay');
+        const imgEl = document.getElementById('productModalImg');
+        const titleEl = document.getElementById('productModalTitle');
+        const catEl = document.getElementById('productModalCategory');
+        const priceEl = document.getElementById('productModalPrice');
+        const descEl = document.getElementById('productModalDesc');
+        const obsEl = document.getElementById('productModalObs');
+        const qtyEl = document.getElementById('productModalQty');
+        const totalEl = document.getElementById('productModalTotalPrice');
+        const badgeEl = document.getElementById('productModalBadge');
+
+        const preco = parseFloat(prod.preco || 0);
+        const precoFormatado = preco.toFixed(2).replace('.', ',');
+        const fotoUrl = this.resolverFoto(prod);
+        const catNomeLimpo = (prod.categoria_nome || 'Apiário Favo de Mel')
+            .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
+            .trim();
+
+        if (imgEl) {
+            imgEl.src = fotoUrl;
+            imgEl.alt = prod.nome;
+        }
+        if (titleEl) titleEl.innerText = prod.nome;
+        if (catEl) catEl.innerText = catNomeLimpo;
+        if (priceEl) priceEl.innerText = `R$ ${precoFormatado}`;
+        if (descEl) descEl.innerText = prod.descricao || 'Produto nobre e puro do Apiário Favo de Mel, colhido de forma sustentável e artesanal.';
+        if (obsEl) obsEl.value = '';
+        if (qtyEl) qtyEl.innerText = '1';
+        if (totalEl) totalEl.innerText = `R$ ${precoFormatado}`;
+
+        if (badgeEl) {
+            if (prod.badge || prod.destaque) {
+                badgeEl.innerText = prod.badge || 'Puro & Orgânico';
+                badgeEl.style.display = 'inline-block';
+            } else {
+                badgeEl.style.display = 'none';
+            }
+        }
+
+        if (overlay) {
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    fecharModalProduto() {
+        const overlay = document.getElementById('productModalOverlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        this.modalProduto = null;
+        this.modalQtd = 1;
+    }
+
+    alterarQtdModal(delta) {
+        if (!this.modalProduto) return;
+        const novaQtd = this.modalQtd + delta;
+        if (novaQtd < 1) return;
+
+        this.modalQtd = novaQtd;
+        const qtyEl = document.getElementById('productModalQty');
+        const totalEl = document.getElementById('productModalTotalPrice');
+
+        if (qtyEl) qtyEl.innerText = this.modalQtd;
+        if (totalEl) {
+            const subtotal = (this.modalQtd * parseFloat(this.modalProduto.preco || 0)).toFixed(2).replace('.', ',');
+            totalEl.innerText = `R$ ${subtotal}`;
+        }
+    }
+
+    adicionarItemDoModal() {
+        if (!this.modalProduto) return;
+
+        const obs = document.getElementById('productModalObs')?.value.trim() || '';
+        const prod = this.modalProduto;
+        const qtd = this.modalQtd;
+
+        // Se já existe no carrinho exatamente o mesmo produto com a mesma observação, incrementa
+        const existente = this.carrinho.find(i => String(i.id) === String(prod.id) && (i.obs || '') === obs);
         if (existente) {
-            existente.quantidade++;
+            existente.quantidade += qtd;
         } else {
             this.carrinho.push({
+                cartId: `cart_${prod.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`,
                 id: prod.id,
                 nome: prod.nome,
                 preco: parseFloat(prod.preco),
-                foto: prod.foto,
-                quantidade: 1
+                foto: this.resolverFoto(prod),
+                quantidade: qtd,
+                obs: obs
             });
         }
 
         this.salvarCarrinho();
         this.atualizarInterfaceCarrinho();
         this.renderizarProdutos();
+        this.tocarFeedbackSonoro();
+        this.fecharModalProduto();
+
+        // Abre automaticamente o drawer do carrinho para dar visibilidade ao usuário
+        document.getElementById('cartDrawerOverlay')?.classList.add('active');
+        document.getElementById('cartDrawer')?.classList.add('active');
     }
 
-    alterarQuantidade(id, delta) {
-        const index = this.carrinho.findIndex(i => String(i.id) === String(id));
+    // =========================================================================
+    // OPERAÇÕES DO CARRINHO
+    // =========================================================================
+    adicionarItem(id) {
+        const prod = this.produtos.find(p => String(p.id) === String(id));
+        if (!prod) return;
+
+        const existente = this.carrinho.find(i => String(i.id) === String(id) && !i.obs);
+        if (existente) {
+            existente.quantidade++;
+        } else {
+            this.carrinho.push({
+                cartId: `cart_${prod.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+                id: prod.id,
+                nome: prod.nome,
+                preco: parseFloat(prod.preco),
+                foto: this.resolverFoto(prod),
+                quantidade: 1,
+                obs: ''
+            });
+        }
+
+        this.salvarCarrinho();
+        this.atualizarInterfaceCarrinho();
+        this.renderizarProdutos();
+        this.tocarFeedbackSonoro();
+    }
+
+    alterarQuantidade(idOuCartId, delta) {
+        const index = this.carrinho.findIndex(i => String(i.cartId) === String(idOuCartId) || String(i.id) === String(idOuCartId));
         if (index === -1) return;
 
         this.carrinho[index].quantidade += delta;
@@ -339,8 +538,8 @@ class CatalogoApp {
         this.renderizarProdutos();
     }
 
-    removerItem(id) {
-        this.carrinho = this.carrinho.filter(i => String(i.id) !== String(id));
+    removerItem(idOuCartId) {
+        this.carrinho = this.carrinho.filter(i => String(i.cartId) !== String(idOuCartId) && String(i.id) !== String(idOuCartId));
         this.salvarCarrinho();
         this.atualizarInterfaceCarrinho();
         this.renderizarProdutos();
@@ -384,6 +583,29 @@ class CatalogoApp {
 
         // 3. Drawer do carrinho
         this.renderizarDrawerCarrinho();
+        this.atualizarMetaFreteGratis();
+    }
+
+    atualizarMetaFreteGratis() {
+        const widget = document.getElementById('freeDeliveryWidget');
+        const fillBar = document.getElementById('freeDeliveryBarFill');
+        const msgEl = document.getElementById('freeDeliveryMsg');
+        if (!widget || !fillBar || !msgEl) return;
+
+        const subtotal = this.calcularTotal();
+        const meta = this.metaFreteGratis || 150.00;
+
+        if (subtotal >= meta) {
+            fillBar.style.width = '100%';
+            fillBar.style.background = '#15803D';
+            msgEl.innerHTML = `<span class="free-delivery-achieved">Parabéns! Você ganhou <strong>Frete Grátis</strong>!</span>`;
+        } else {
+            const percentual = Math.min(100, Math.max(0, Math.round((subtotal / meta) * 100)));
+            const restante = (meta - subtotal).toFixed(2).replace('.', ',');
+            fillBar.style.width = `${percentual}%`;
+            fillBar.style.background = 'linear-gradient(90deg, #D98200 0%, #15803D 100%)';
+            msgEl.innerHTML = `Faltam <strong>R$ ${restante}</strong> para <strong>Frete Grátis</strong>!`;
+        }
     }
 
     renderizarDrawerCarrinho() {
@@ -410,24 +632,26 @@ class CatalogoApp {
                 const sub = (item.quantidade * item.preco).toFixed(2).replace('.', ',');
                 const unit = item.preco.toFixed(2).replace('.', ',');
                 const fotoUrl = item.foto || '/site-assets/avatar-favo-de-mel.png';
+                const obsHtml = item.obs ? `<div class="cart-item-obs" style="font-size: 0.78rem; color: #786C5E; font-style: italic; margin-top: 0.2rem;">Obs: ${item.obs}</div>` : '';
 
                 return `
                     <div class="cart-item-row">
                         <img src="${fotoUrl}" alt="${item.nome}" class="cart-item-img">
                         <div class="cart-item-info">
                             <div class="cart-item-name">${item.nome}</div>
+                            ${obsHtml}
                             <div class="cart-item-unit-price">R$ ${unit} un</div>
                             <div style="margin-top: 0.4rem;">
                                 <div class="qty-stepper">
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade(${item.id}, -1)">−</button>
+                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${item.cartId || item.id}', -1)">−</button>
                                     <span class="qty-value">${item.quantidade}</span>
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade(${item.id}, 1)">+</button>
+                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${item.cartId || item.id}', 1)">+</button>
                                 </div>
                             </div>
                         </div>
                         <div class="cart-item-subtotal">
                             <div>R$ ${sub}</div>
-                            <button class="cart-item-remove" onclick="catalogoApp.removerItem(${item.id})" title="Remover item" aria-label="Remover item">
+                            <button class="cart-item-remove" onclick="catalogoApp.removerItem('${item.cartId || item.id}')" title="Remover item" aria-label="Remover item">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
@@ -605,6 +829,39 @@ class CatalogoApp {
         if (formCheckout) {
             formCheckout.addEventListener('submit', (e) => this.processarPedido(e));
         }
+
+        // Eventos do Modal de Detalhes do Produto (Estilo Trem Delivery)
+        document.getElementById('btnCloseProductModal')?.addEventListener('click', () => {
+            this.fecharModalProduto();
+        });
+        document.getElementById('productModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'productModalOverlay') {
+                this.fecharModalProduto();
+            }
+        });
+        document.getElementById('btnModalQtyMinus')?.addEventListener('click', () => {
+            this.alterarQtdModal(-1);
+        });
+        document.getElementById('btnModalQtyPlus')?.addEventListener('click', () => {
+            this.alterarQtdModal(1);
+        });
+        document.getElementById('btnModalAddToCart')?.addEventListener('click', () => {
+            this.adicionarItemDoModal();
+        });
+
+        // Alternância do Acordeão de Itens no Checkout (Estilo Trem Delivery)
+        document.getElementById('checkoutPreviewHeader')?.addEventListener('click', () => {
+            this.togglePreviewItens();
+        });
+
+        // Fechamento de modais com a tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.fecharModalProduto();
+                this.fecharModalCheckout();
+                fecharDrawer();
+            }
+        });
     }
 
     atualizarPixCheckout() {
@@ -719,6 +976,8 @@ class CatalogoApp {
         const checkoutTotalDisplay = document.getElementById('checkoutTotalDisplay');
         if (checkoutTotalDisplay) checkoutTotalDisplay.innerText = `R$ ${totalFormatado}`;
 
+        this.preencherDadosPerfil();
+        this.atualizarPreviewItensCheckout();
         this.atualizarPixCheckout();
 
         document.getElementById('checkoutModalOverlay')?.classList.add('active');
@@ -728,6 +987,48 @@ class CatalogoApp {
 
     fecharModalCheckout() {
         document.getElementById('checkoutModalOverlay')?.classList.remove('active');
+    }
+
+    atualizarPreviewItensCheckout() {
+        const countEl = document.getElementById('checkoutPreviewCount');
+        const listEl = document.getElementById('checkoutPreviewList');
+        if (!countEl || !listEl) return;
+
+        countEl.innerText = this.calcularQtdTotal();
+
+        if (this.carrinho.length === 0) {
+            listEl.innerHTML = '<div style="font-size: 0.825rem; color: #6E6359;">Nenhum item selecionado.</div>';
+            return;
+        }
+
+        listEl.innerHTML = this.carrinho.map(item => {
+            const sub = (item.quantidade * item.preco).toFixed(2).replace('.', ',');
+            const obsHtml = item.obs ? `<div style="font-size: 0.75rem; color: #786C5E; font-style: italic;">Obs: ${item.obs}</div>` : '';
+            return `
+                <div class="checkout-preview-item">
+                    <div class="checkout-preview-item-name">
+                        <span>${item.quantidade}x ${item.nome}</span>
+                        ${obsHtml}
+                    </div>
+                    <div class="checkout-preview-item-price">R$ ${sub}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    togglePreviewItens() {
+        const listEl = document.getElementById('checkoutPreviewList');
+        const chevron = document.getElementById('checkoutPreviewChevron');
+        if (!listEl) return;
+
+        const isOpen = listEl.style.display !== 'none';
+        if (isOpen) {
+            listEl.style.display = 'none';
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+            listEl.style.display = 'flex';
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+        }
     }
 
     // =========================================================================
@@ -757,6 +1058,18 @@ class CatalogoApp {
                 complemento: document.getElementById('checkoutComplemento')?.value.trim() || ''
             };
         }
+
+        // Salva dados no perfil do cliente (@favodemel:customer_profile estilo Trem Delivery)
+        this.salvarPerfilCliente({
+            nome,
+            telefone,
+            cep: endereco.cep || '',
+            rua: endereco.rua || '',
+            numero: endereco.numero || '',
+            bairro: endereco.bairro || '',
+            cidade: endereco.cidade || '',
+            complemento: endereco.complemento || ''
+        });
 
         const trocoPara = document.getElementById('checkoutTroco')?.value.trim() || '';
         const total = this.calcularTotal();
@@ -810,7 +1123,8 @@ class CatalogoApp {
 
             const linhasItens = this.carrinho.map(i => {
                 const sub = ((i.quantidade || 1) * parseFloat(i.preco || 0)).toFixed(2).replace('.', ',');
-                return `• ${i.quantidade}x *${i.nome}* = R$ ${sub}`;
+                const obsTxt = i.obs ? ` _(Obs: ${i.obs})_` : '';
+                return `• ${i.quantidade}x *${i.nome}*${obsTxt} = R$ ${sub}`;
             }).join('\n');
 
             const cepTxt = endereco.cep ? ` (CEP: ${endereco.cep})` : '';
