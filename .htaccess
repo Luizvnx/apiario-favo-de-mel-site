@@ -1,0 +1,30 @@
+# Apiário Favo de Mel - Configuração Apache Hostinger
+RewriteEngine On
+RewriteBase /
+
+# Permite acesso direto a arquivos e pastas existentes
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Rota /catalogo abre catalogo.html sem mostrar extensão
+RewriteRule ^catalogo/?$ catalogo.html [L]
+
+# Rota raiz abre index.html
+RewriteRule ^$ index.html [L]
+
+# Compressão Gzip para carregamento instantâneo
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache de ativos estáticos
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
