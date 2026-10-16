@@ -17,18 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Mobile Menu Toggle
     const mobileBtn = document.querySelector('.mobile-toggle');
     const navLinks = document.querySelector('.nav-links');
+    const iconMenu = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
+    const iconClose = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
     if (mobileBtn && navLinks) {
         mobileBtn.addEventListener('click', () => {
             navLinks.classList.toggle('active');
             const isOpen = navLinks.classList.contains('active');
-            mobileBtn.innerHTML = isOpen ? '✕' : '☰';
+            mobileBtn.innerHTML = isOpen ? iconClose : iconMenu;
         });
 
         // Fecha ao clicar em um link
         navLinks.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
                 navLinks.classList.remove('active');
-                mobileBtn.innerHTML = '☰';
+                mobileBtn.innerHTML = iconMenu;
             });
         });
     }
@@ -83,11 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const mensagem = document.getElementById('cfMensagem').value.trim();
 
             const textoMsg = 
-`🍯 *CONTATO VIA SITE - APIÁRIO FAVO DE MEL* 🐝
-👤 *Nome:* ${nome}
-📱 *Telefone:* ${tel}
-📌 *Assunto:* ${assunto}
-💬 *Mensagem:* ${mensagem}`;
+`*CONTATO VIA SITE - APIÁRIO FAVO DE MEL*
+*Nome:* ${nome}
+*Telefone:* ${tel}
+*Assunto:* ${assunto}
+*Mensagem:* ${mensagem}`;
 
             const numeroLoja = '557988125726';
             const url = `https://wa.me/${numeroLoja}?text=${encodeURIComponent(textoMsg)}`;

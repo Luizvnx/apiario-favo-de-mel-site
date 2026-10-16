@@ -154,7 +154,9 @@ class CatalogoApp {
         if (filtrados.length === 0) {
             gridEl.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                    <div style="margin-bottom: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-primary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
                     <h3 style="margin-bottom: 0.5rem; color: #2C231C;">Nenhum produto encontrado</h3>
                     <p>Tente buscar por outro termo ou selecione outra categoria.</p>
                 </div>
@@ -330,7 +332,9 @@ class CatalogoApp {
                         </div>
                         <div class="cart-item-subtotal">
                             <div>R$ ${sub}</div>
-                            <button class="cart-item-remove" onclick="catalogoApp.removerItem(${item.id})" title="Remover item">🗑️</button>
+                            <button class="cart-item-remove" onclick="catalogoApp.removerItem(${item.id})" title="Remover item" aria-label="Remover item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -422,7 +426,7 @@ class CatalogoApp {
             navigator.clipboard.writeText(key).then(() => {
                 const btn = document.getElementById('btnCopyPix');
                 const orig = btn.innerText;
-                btn.innerText = '✅ Copiado!';
+                btn.innerText = 'Copiado!';
                 btn.style.background = '#15803D';
                 setTimeout(() => {
                     btn.innerText = orig;
@@ -478,7 +482,7 @@ class CatalogoApp {
         const submitBtn = document.getElementById('btnSubmitOrder');
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span>⏳</span> Processando Pedido...`;
+            submitBtn.innerHTML = `Processando Pedido...`;
         }
 
         const nome = document.getElementById('checkoutNome').value.trim();
@@ -534,7 +538,7 @@ class CatalogoApp {
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>🍯</span> Confirmar Pedido no WhatsApp`;
+                submitBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 6px;"><path d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z"/></svg> <span>Confirmar Pedido no WhatsApp</span>`;
             }
         }
     }
