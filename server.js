@@ -619,6 +619,13 @@ const server = http.createServer(async (req, res) => {
             return serveFile(htmlFallback);
         }
 
+        // Fallback inteligente para fotos de produtos que possam ser requisitadas diretamente pelo nome do arquivo
+        const baseFileName = path.basename(safePath);
+        const productFallback = path.join(PRODUCTS_ASSETS_DIR, baseFileName);
+        if (fs.existsSync(productFallback) && fs.statSync(productFallback).isFile()) {
+            return serveFile(productFallback);
+        }
+
         res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(render404(safePath));
     });

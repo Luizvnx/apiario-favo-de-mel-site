@@ -397,11 +397,14 @@ class AdminApp {
     }
 
     resolverCaminhoFoto(foto) {
-        if (!foto) return 'assets/products/Mel-in-Natura-500g.png';
+        if (!foto) return '/assets/products/Mel-in-Natura-500g.png';
         if (foto.startsWith('http://') || foto.startsWith('https://') || foto.startsWith('/assets/')) {
             return foto;
         }
-        return `assets/products/${foto}`;
+        if (foto.startsWith('assets/')) {
+            return `/${foto}`;
+        }
+        return `/assets/products/${foto}`;
     }
 
     // =========================================================================

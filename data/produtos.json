@@ -2,16 +2,93 @@
   {
     "id": 1,
     "categoria_id": 1,
-    "nome": "Mel de Uruçú (Nativa)",
-    "preco": 85.00,
-    "peso": "280g",
-    "descricao": "Mel nobre e medicinal de abelha nativa sem ferrão Uruçu. Acidez equilibrada e propriedades bioativas excepcionais colhido na reserva.",
-    "estoque": 15,
-    "foto": "Mel-in-Natura-500g.png",
+    "nome": "Mel com Favo 500g",
+    "preco": 65.00,
+    "peso": "500g",
+    "descricao": "Pedaço genuíno de favo de mel imerso no mel puro. Experiência sensorial inigualável.",
+    "estoque": 20,
+    "foto": "Mel-com-Favo-500g.png",
     "ativo": true
   },
   {
     "id": 2,
+    "categoria_id": 1,
+    "nome": "Mel de Uruçú (Nativa)",
+    "preco": 85.00,
+    "peso": "280g",
+    "descricao": "Mel puro de abelha nativa sem ferrão. Acidez nobre, textura fluida e alto valor medicinal.",
+    "estoque": 15,
+    "foto": "Mel-in-natura-280g.jpeg",
+    "ativo": true
+  },
+  {
+    "id": 3,
+    "categoria_id": 2,
+    "nome": "Própolis Verde 20ml",
+    "preco": 38.00,
+    "peso": "20ml",
+    "descricao": "Extrato puro concentrado com Artepillin-C. Ação bactericida e fortalecedor do sistema imune.",
+    "estoque": 40,
+    "foto": "Propolis-Verde-20ml.png",
+    "ativo": true
+  },
+  {
+    "id": 4,
+    "categoria_id": 2,
+    "nome": "Própolis Vermelha 20ml",
+    "preco": 50.00,
+    "peso": "20ml",
+    "descricao": "Considerada a mais nobre do mundo, riquíssima em flavonoides antioxidantes e antivirais.",
+    "estoque": 30,
+    "foto": "Propolis-Vermelha-20ml.png",
+    "ativo": true
+  },
+  {
+    "id": 5,
+    "categoria_id": 3,
+    "nome": "Kit Presente Favo de Mel",
+    "preco": 120.00,
+    "peso": "Kit",
+    "descricao": "Caixa rústica de madeira artesanal com mel nobre, vela aromática, própolis e doce da colmeia.",
+    "estoque": 10,
+    "foto": "kit-presente.png",
+    "ativo": true
+  },
+  {
+    "id": 6,
+    "categoria_id": 2,
+    "nome": "Kit Sabonete Terapêutico",
+    "preco": 35.00,
+    "peso": "Kit",
+    "descricao": "Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.",
+    "estoque": 25,
+    "foto": "Kit-de-sabinete-terapeutico.jpeg",
+    "ativo": true
+  },
+  {
+    "id": 7,
+    "categoria_id": 3,
+    "nome": "Licor de Mel Nobre 250ml",
+    "preco": 35.00,
+    "peso": "250ml",
+    "descricao": "Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.",
+    "estoque": 18,
+    "foto": "Licor-de-Mel-250ml.png",
+    "ativo": true
+  },
+  {
+    "id": 8,
+    "categoria_id": 1,
+    "nome": "Mel in Natura 500g",
+    "preco": 35.00,
+    "peso": "500g",
+    "descricao": "Mel puro de floradas silvestres brasileiras. Embalagem prática com bico dosador corta-pingos.",
+    "estoque": 50,
+    "foto": "Mel-in-Natura-500g.png",
+    "ativo": true
+  },
+  {
+    "id": 9,
     "categoria_id": 1,
     "nome": "Meleira com Mel Nobre",
     "preco": 60.00,
@@ -22,29 +99,7 @@
     "ativo": true
   },
   {
-    "id": 3,
-    "categoria_id": 2,
-    "nome": "Extrato de Própolis Verde (20ml)",
-    "preco": 35.00,
-    "peso": "20ml",
-    "descricao": "Extrato concentrado de própolis verde de alta pureza. Rico em Artepillin-C com forte ação imunoestimulante.",
-    "estoque": 45,
-    "foto": "Propolis-Verde-20ml.png",
-    "ativo": true
-  },
-  {
-    "id": 4,
-    "categoria_id": 2,
-    "nome": "Extrato de Própolis Vermelha (20ml)",
-    "preco": 48.00,
-    "peso": "20ml",
-    "descricao": "A raríssima e premiada própolis vermelha dos manguezais de Sergipe. Máxima concentração antioxidante e regenerativa.",
-    "estoque": 30,
-    "foto": "Propolis-Vermelha-20ml.png",
-    "ativo": true
-  },
-  {
-    "id": 5,
+    "id": 10,
     "categoria_id": 2,
     "nome": "Pólen Apícola Desidratado (140g)",
     "preco": 42.00,
@@ -55,29 +110,7 @@
     "ativo": true
   },
   {
-    "id": 6,
-    "categoria_id": 1,
-    "nome": "Favo de Mel em Pote (500g)",
-    "preco": 55.00,
-    "peso": "500g",
-    "descricao": "O mel em seu estado mais puro e sagrado direto do favo rústico. Experiência gastronômica ímpar de mastigar a pura cera virgem.",
-    "estoque": 18,
-    "foto": "Mel-com-Favo-500g.png",
-    "ativo": true
-  },
-  {
-    "id": 7,
-    "categoria_id": 3,
-    "nome": "Licor Nobre de Mel (250ml)",
-    "preco": 38.00,
-    "peso": "250ml",
-    "descricao": "Elixir artesanal elaborado a partir da lenta infusão de mel cru silvestre e especiarias aromáticas nobres.",
-    "estoque": 16,
-    "foto": "Licor-de-Mel-250ml.png",
-    "ativo": true
-  },
-  {
-    "id": 8,
+    "id": 11,
     "categoria_id": 3,
     "nome": "Vinagre Nobre de Mel (315ml)",
     "preco": 28.00,
@@ -88,7 +121,7 @@
     "ativo": true
   },
   {
-    "id": 9,
+    "id": 12,
     "categoria_id": 3,
     "nome": "Vela Artesanal de Cera Pura de Abelha",
     "preco": 18.00,
@@ -99,7 +132,7 @@
     "ativo": true
   },
   {
-    "id": 10,
+    "id": 13,
     "categoria_id": 3,
     "nome": "Cera Bruta de Apis (1kg)",
     "preco": 95.00,
@@ -110,7 +143,7 @@
     "ativo": true
   },
   {
-    "id": 11,
+    "id": 14,
     "categoria_id": 1,
     "nome": "Mel In Natura Garrafa (1400g)",
     "preco": 65.00,
@@ -118,17 +151,6 @@
     "descricao": "Embalagem família econômica com 1,4kg de mel cru silvestre colhido nas matas nativas. Pureza garantida.",
     "estoque": 28,
     "foto": "Mel-in-Natura-1400g.jpg",
-    "ativo": true
-  },
-  {
-    "id": 12,
-    "categoria_id": 3,
-    "nome": "Kit Presente Especial Apiário",
-    "preco": 135.00,
-    "peso": "Kit",
-    "descricao": "Caixa rústica de madeira artesanal com mel nobre, vela de cera de abelha, sabonete fitoterápico e geleia real.",
-    "estoque": 8,
-    "foto": "kit-presente.png",
     "ativo": true
   }
 ]
