@@ -1,6 +1,34 @@
+# Dependências e Builds
+node_modules/
+package-lock.json.bak
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store
+
+# Variáveis de Ambiente e Segredos
+.env
+.env.*
+!.env.example
+data/admin_credentials.json
+*.pem
+*.key
+*.ppk
+
+# Dados dinâmicos de runtime e logs
+*.log
+logs/
+.system_generated/
+scratch/
+caddy_data/
+caddy_config/
+
+# Sistema Operacional e Editores
 .DS_Store
 Thumbs.db
-node_modules/
-*.log
-.env
-data/admin_credentials.json
+desktop.ini
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
