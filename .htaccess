@@ -1,4 +1,6 @@
 # Apiário Favo de Mel - Configuração Apache Hostinger
+DirectoryIndex index.html
+Options -Indexes
 RewriteEngine On
 RewriteBase /
 
