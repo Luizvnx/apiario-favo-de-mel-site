@@ -95,25 +95,31 @@ const MIME_TYPES = {
     '.otf': 'font/otf',
     '.mp3': 'audio/mpeg',
     '.mp4': 'video/mp4',
-    '.pdf': 'application/pdf'
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain; charset=utf-8',
+    '.xml': 'application/xml; charset=utf-8'
 };
 
 function sendJson(res, statusCode, data) {
     res.writeHead(statusCode, { 
         'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store, no-cache, must-revalidate'
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'X-Robots-Tag': 'noindex, nofollow'
     });
     res.end(JSON.stringify(data));
 }
 
 function getCacheControl(ext, safePath) {
-    if (safePath.startsWith('/api/')) {
+    if (safePath.startsWith('/api/') || safePath.startsWith('/admin')) {
         return 'no-store, no-cache, must-revalidate';
     }
     if (['.webp', '.png', '.jpg', '.jpeg', '.svg', '.gif', '.ico', '.woff', '.woff2', '.ttf'].includes(ext)) {
         return 'public, max-age=31536000, immutable';
     }
     if (['.css', '.js'].includes(ext)) {
+        return 'public, max-age=86400, stale-while-revalidate=604800';
+    }
+    if (['.xml', '.txt'].includes(ext)) {
         return 'public, max-age=86400, stale-while-revalidate=604800';
     }
     if (['.html'].includes(ext) || safePath === '/' || safePath === '/catalogo') {
@@ -232,8 +238,12 @@ const server = http.createServer(async (req, res) => {
                 'Vary': 'Accept-Encoding, Accept'
             };
 
+            if (safePath.includes('admin') || safePath.includes('pedido') || safePath.startsWith('/data')) {
+                headers['X-Robots-Tag'] = 'noindex, nofollow';
+            }
+
             const acceptEncoding = req.headers['accept-encoding'] || '';
-            const isCompressible = /^(text\/|application\/javascript|application\/json|image\/svg\+xml)/.test(contentType);
+            const isCompressible = /^(text\/|application\/javascript|application\/json|application\/xml|image\/svg\+xml)/.test(contentType);
 
             if (isCompressible && acceptEncoding.includes('gzip')) {
                 headers['Content-Encoding'] = 'gzip';

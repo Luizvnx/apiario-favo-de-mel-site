@@ -1,0 +1,46 @@
+# =========================================================================
+# Apiário Favo de Mel - robots.txt
+# Estrutura Profissional de SEO Técnico & Segurança de Rastejamento
+# =========================================================================
+
+User-agent: *
+# Páginas Públicas Indexáveis
+Allow: /
+Allow: /index.html
+Allow: /catalogo
+Allow: /catalogo.html
+
+# Recursos e Mídias Públicas
+Allow: /css/
+Allow: /js/
+Allow: /assets/
+Allow: /assets/images/
+Allow: /assets/products/
+
+# Bloqueio de Áreas Privadas, Administrativas e Transacionais
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin/favodemel
+Disallow: /favodemel/admin
+Disallow: /admin.html
+Disallow: /pedido
+Disallow: /pedido.html
+Disallow: /api/
+Disallow: /data/
+Disallow: /*.json$
+
+# Regras Específicas para o Rastreador de Imagens do Google (Googlebot-Image)
+User-agent: Googlebot-Image
+Allow: /assets/images/
+Allow: /assets/products/
+Disallow: /data/
+
+# Proteção contra bots de scraping agressivo sem valor de tráfego de busca
+User-agent: Bytespider
+Disallow: /
+
+User-agent: MegaIndex
+Disallow: /
+
+# Sitemap Canônico Oficial
+Sitemap: https://favodemel.137.131.164.202.sslip.io/sitemap.xml
