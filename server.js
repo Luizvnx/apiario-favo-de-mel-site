@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const db = require('./db');
 const whatsappService = require('./services/whatsappNotificationService');
 
@@ -98,8 +99,27 @@ const MIME_TYPES = {
 };
 
 function sendJson(res, statusCode, data) {
-    res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.writeHead(statusCode, { 
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+    });
     res.end(JSON.stringify(data));
+}
+
+function getCacheControl(ext, safePath) {
+    if (safePath.startsWith('/api/')) {
+        return 'no-store, no-cache, must-revalidate';
+    }
+    if (['.webp', '.png', '.jpg', '.jpeg', '.svg', '.gif', '.ico', '.woff', '.woff2', '.ttf'].includes(ext)) {
+        return 'public, max-age=31536000, immutable';
+    }
+    if (['.css', '.js'].includes(ext)) {
+        return 'public, max-age=86400, stale-while-revalidate=604800';
+    }
+    if (['.html'].includes(ext) || safePath === '/' || safePath === '/catalogo') {
+        return 'public, max-age=3600, must-revalidate';
+    }
+    return 'public, max-age=3600';
 }
 
 function parseBody(req) {
@@ -149,7 +169,6 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -166,27 +185,69 @@ const server = http.createServer(async (req, res) => {
 
     // Endpoint dinâmico de configuração para frontend
     if (safePath === '/config.js') {
-        res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
+        res.writeHead(200, { 
+            'Content-Type': 'text/javascript; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400'
+        });
         return res.end(`window.FAVODEMEL_API_URL = "";\nconsole.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
     }
 
     const serveFile = (targetFile) => {
-        fs.readFile(targetFile, (err, data) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-                return res.end(`500 - Erro interno ao ler arquivo: ${err.message}`);
+        let finalPath = targetFile;
+        let ext = path.extname(finalPath).toLowerCase();
+
+        // Negociação transparente para WebP se o cliente suporta e o arquivo WebP existe
+        if (['.png', '.jpg', '.jpeg'].includes(ext)) {
+            const acceptHeader = req.headers['accept'] || '';
+            const webpCandidate = `${finalPath.slice(0, -ext.length)}.webp`;
+            if (acceptHeader.includes('image/webp') && fs.existsSync(webpCandidate)) {
+                finalPath = webpCandidate;
+                ext = '.webp';
+            }
+        }
+
+        fs.stat(finalPath, (err, stats) => {
+            if (err || !stats.isFile()) {
+                res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+                return res.end(render404(safePath));
             }
 
-            const ext = path.extname(targetFile).toLowerCase();
             const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+            const etag = `W/"${stats.size.toString(16)}-${stats.mtime.getTime().toString(16)}"`;
+            const cacheControl = getCacheControl(ext, safePath);
 
-            res.writeHead(200, { 
+            // Resposta 304 (Not Modified) para requisições em cache válido
+            if (req.headers['if-none-match'] === etag) {
+                res.writeHead(304, {
+                    'ETag': etag,
+                    'Cache-Control': cacheControl
+                });
+                return res.end();
+            }
+
+            const headers = {
                 'Content-Type': contentType,
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            });
-            res.end(data);
+                'ETag': etag,
+                'Cache-Control': cacheControl,
+                'Vary': 'Accept-Encoding, Accept'
+            };
+
+            const acceptEncoding = req.headers['accept-encoding'] || '';
+            const isCompressible = /^(text\/|application\/javascript|application\/json|image\/svg\+xml)/.test(contentType);
+
+            if (isCompressible && acceptEncoding.includes('gzip')) {
+                headers['Content-Encoding'] = 'gzip';
+                res.writeHead(200, headers);
+                fs.createReadStream(finalPath).pipe(zlib.createGzip()).pipe(res);
+            } else if (isCompressible && acceptEncoding.includes('deflate')) {
+                headers['Content-Encoding'] = 'deflate';
+                res.writeHead(200, headers);
+                fs.createReadStream(finalPath).pipe(zlib.createDeflate()).pipe(res);
+            } else {
+                headers['Content-Length'] = stats.size;
+                res.writeHead(200, headers);
+                fs.createReadStream(finalPath).pipe(res);
+            }
         });
     };
 

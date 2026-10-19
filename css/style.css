@@ -2,8 +2,7 @@
    APIÁRIO FAVO DE MEL - DESIGN SYSTEM & ESTILOS GERAIS
    Versão: 2.0 (Zero WordPress / High Performance / Vanilla CSS)
    ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+/* Google Fonts são carregados via link rel=stylesheet com preconnect para máxima performance */
 
 :root {
     --color-primary: #D98200;

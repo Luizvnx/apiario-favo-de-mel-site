@@ -9,17 +9,21 @@
         content="Apiário Favo de Mel: Méis nobres, mel de abelhas nativas sem ferrão, própolis verde e vermelha, cosméticos terapêuticos e serviços apícolas sustentáveis. Peça online!">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/assets/images/logo-favo-de-mel.png">
+    <link rel="icon" type="image/webp" href="/assets/images/logo-favo-de-mel.webp">
 
-    <!-- Google Fonts -->
+    <!-- Preload Hero LCP Image -->
+    <link rel="preload" as="image" href="/assets/images/kit-presente-1024x790.webp" fetchpriority="high">
+
+    <!-- Google Fonts com Preconnect Otimizado -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
         rel="stylesheet">
 
     <!-- CSS Institucional -->
-    <link rel="stylesheet" href="/css/style.css?v=5.0">
+    <link rel="stylesheet" href="/css/style.css?v=5.1">
 </head>
 
 <body>
@@ -30,7 +34,7 @@
     <header class="site-header">
         <div class="container navbar">
             <a href="/" class="brand-logo" aria-label="Apiário Favo de Mel">
-                <img src="/assets/images/logo-favo-de-mel.png" alt="Apiário Favo de Mel" width="180" height="52">
+                <img src="/assets/images/logo-favo-de-mel.webp" alt="Apiário Favo de Mel" width="180" height="52">
             </a>
 
             <nav>
@@ -130,7 +134,7 @@
             </div>
 
             <div class="hero-image-wrap">
-                <img src="/assets/images/kit-presente-1024x790.png" alt="Produtos Favo de Mel" width="520" height="400">
+                <img src="/assets/images/kit-presente-1024x790.webp" alt="Produtos Favo de Mel" width="520" height="400" fetchpriority="high" decoding="async">
                 <div class="hero-float-card">
                     <div class="hero-float-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -178,8 +182,8 @@
     <section id="quem-somos" class="about-section">
         <div class="container about-wrapper">
             <div class="about-image-wrap">
-                <img src="/assets/images/WhatsApp-Image-2026-05-06-at-11.10.07-768x1024.jpeg"
-                    alt="Apicultor Apiário Favo de Mel" width="480" height="640">
+                <img src="/assets/images/WhatsApp-Image-2026-05-06-at-11.10.07-768x1024.webp"
+                    alt="Apicultor Apiário Favo de Mel" width="480" height="640" loading="lazy" decoding="async">
                 <div class="about-badge-exp">
                     <strong>+10</strong>
                     <span>Anos no Campo</span>
@@ -252,7 +256,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Destaque</span>
-                        <img src="/assets/products/Mel-com-Favo-500g.png" alt="Mel com Favo 500g">
+                        <img src="/assets/products/Mel-com-Favo-500g.webp" alt="Mel com Favo 500g" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Méis Nobres</span>
@@ -270,7 +274,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Raro / Medicinal</span>
-                        <img src="/assets/products/Mel-in-natura-280g.jpeg" alt="Mel de Uruçú">
+                        <img src="/assets/products/Mel-in-natura-280g.webp" alt="Mel de Uruçú" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Abelha Nativa</span>
@@ -288,7 +292,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Imunidade</span>
-                        <img src="/assets/products/Propolis-Verde-20ml.png" alt="Própolis Verde 20ml">
+                        <img src="/assets/products/Propolis-Verde-20ml.webp" alt="Própolis Verde 20ml" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Cuidados Naturais</span>
@@ -306,7 +310,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Potência Máxima</span>
-                        <img src="/assets/products/Propolis-Vermelha-20ml.png" alt="Própolis Vermelha 20ml">
+                        <img src="/assets/products/Propolis-Vermelha-20ml.webp" alt="Própolis Vermelha 20ml" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Cuidados Naturais</span>
@@ -324,7 +328,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Especial</span>
-                        <img src="/assets/products/kit-presente.png" alt="Kit Presente Apiário Favo de Mel">
+                        <img src="/assets/products/kit-presente.webp" alt="Kit Presente Apiário Favo de Mel" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Artesanais & Kits</span>
@@ -342,7 +346,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Terapêutico</span>
-                        <img src="/assets/products/Kit-de-sabinete-terapeutico.jpeg" alt="Kit Sabonete Terapêutico">
+                        <img src="/assets/products/Kit-de-sabinete-terapeutico.webp" alt="Kit Sabonete Terapêutico" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Cosméticos Naturais</span>
@@ -360,7 +364,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Artesanal</span>
-                        <img src="/assets/products/Licor-de-Mel-250ml.png" alt="Licor de Mel 250ml">
+                        <img src="/assets/products/Licor-de-Mel-250ml.webp" alt="Licor de Mel 250ml" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Bebidas Artesanais</span>
@@ -378,7 +382,7 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">O Mais Vendido</span>
-                        <img src="/assets/products/Mel-in-Natura-500g.png" alt="Mel in Natura 500g">
+                        <img src="/assets/products/Mel-in-Natura-500g.webp" alt="Mel in Natura 500g" width="300" height="300" loading="lazy" decoding="async">
                     </div>
                     <div class="product-info">
                         <span class="product-category">Méis Nobres</span>
@@ -428,8 +432,8 @@
                 <!-- Serviço 1 -->
                 <div class="service-card">
                     <div class="service-img-wrap">
-                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.02.51.png"
-                            alt="Resgate e Captura de Abelhas">
+                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.02.51.webp"
+                            alt="Resgate e Captura de Abelhas" width="400" height="260" loading="lazy" decoding="async">
                     </div>
                     <div class="service-body">
                         <h3>Resgate e Captura de Abelhas</h3>
@@ -451,8 +455,8 @@
                 <!-- Serviço 2 -->
                 <div class="service-card">
                     <div class="service-img-wrap">
-                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.02.58.png"
-                            alt="Consultoria para Iniciação de Apiário">
+                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.02.58.webp"
+                            alt="Consultoria para Iniciação de Apiário" width="400" height="260" loading="lazy" decoding="async">
                     </div>
                     <div class="service-body">
                         <h3>Consultoria para Iniciação de Apiário</h3>
@@ -474,7 +478,7 @@
                 <!-- Serviço 3 -->
                 <div class="service-card">
                     <div class="service-img-wrap">
-                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.03.06.png" alt="Manejo Apícola">
+                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.03.06.webp" alt="Manejo Apícola" width="400" height="260" loading="lazy" decoding="async">
                     </div>
                     <div class="service-body">
                         <h3>Manejo Apícola Profissional</h3>
@@ -496,8 +500,8 @@
                 <!-- Serviço 4 -->
                 <div class="service-card">
                     <div class="service-img-wrap">
-                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.03.23.png"
-                            alt="Transferência de Abelhas">
+                        <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.03.23.webp"
+                            alt="Transferência de Abelhas" width="400" height="260" loading="lazy" decoding="async">
                     </div>
                     <div class="service-body">
                         <h3>Transferência de Abelhas</h3>
@@ -675,7 +679,7 @@
     <footer class="site-footer">
         <div class="container footer-grid">
             <div class="footer-brand">
-                <img src="/assets/images/logo-favo-de-mel.png" alt="Apiário Favo de Mel">
+                <img src="/assets/images/logo-favo-de-mel.webp" alt="Apiário Favo de Mel" width="160" height="46" loading="lazy" decoding="async">
                 <p>
                     Compromisso com a pureza, saúde e preservação da vida. Méis nobres e produtos apícolas colhidos com
                     amor e respeito ao meio ambiente.
@@ -732,7 +736,7 @@
     </a>
 
     <!-- Scripts -->
-    <script src="/js/main.js"></script>
+    <script src="/js/main.js" defer></script>
 </body>
 
 </html>

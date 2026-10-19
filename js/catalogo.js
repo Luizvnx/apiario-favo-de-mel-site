@@ -201,20 +201,20 @@ class CatalogoApp {
             ];
 
             this.produtos = [
-                { id: 1, categoria_id: 1, nome: "Mel com Favo 500g", preco: 65.00, peso: "500g", descricao: "Pedaço genuíno de favo de mel imerso no mel puro. Experiência sensorial inigualável.", estoque: 20, foto: "Mel-com-Favo-500g.png" },
-                { id: 2, categoria_id: 1, nome: "Mel de Uruçú (Nativa)", preco: 85.00, peso: "280g", descricao: "Mel puro de abelha nativa sem ferrão. Acidez nobre, textura fluida e alto valor medicinal.", estoque: 15, foto: "Mel-in-natura-280g.jpeg" },
-                { id: 3, categoria_id: 2, nome: "Própolis Verde 20ml", preco: 38.00, peso: "20ml", descricao: "Extrato puro concentrado com Artepillin-C. Ação bactericida e fortalecedor do sistema imune.", estoque: 40, foto: "Propolis-Verde-20ml.png" },
-                { id: 4, categoria_id: 2, nome: "Própolis Vermelha 20ml", preco: 50.00, peso: "20ml", descricao: "Considerada a mais nobre do mundo, riquíssima em flavonoides antioxidantes e antivirais.", estoque: 30, foto: "Propolis-Vermelha-20ml.png" },
-                { id: 5, categoria_id: 3, nome: "Kit Presente Favo de Mel", preco: 120.00, peso: "Kit", descricao: "Caixa rústica de madeira artesanal com mel nobre, vela aromática, própolis e doce da colmeia.", estoque: 10, foto: "kit-presente.png" },
-                { id: 6, categoria_id: 2, nome: "Kit Sabonete Terapêutico", preco: 35.00, peso: "Kit", descricao: "Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.", estoque: 25, foto: "Kit-de-sabinete-terapeutico.jpeg" },
-                { id: 7, categoria_id: 3, nome: "Licor de Mel Nobre 250ml", preco: 35.00, peso: "250ml", descricao: "Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.", estoque: 18, foto: "Licor-de-Mel-250ml.png" },
-                { id: 8, categoria_id: 1, nome: "Mel in Natura 500g", preco: 35.00, peso: "500g", descricao: "Mel puro de floradas silvestres brasileiras. Embalagem prática com bico dosador corta-pingos.", estoque: 50, foto: "Mel-in-Natura-500g.png" },
-                { id: 9, categoria_id: 1, nome: "Meleira com Mel Nobre", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro de florada silvestre e pegador dosador.", estoque: 20, foto: "Meleira-com-mel-280g.jpeg" },
-                { id: 10, categoria_id: 2, nome: "Pólen Apícola Desidratado (140g)", preco: 42.00, peso: "140g", descricao: "Superalimento natural das abelhas repleto de aminoácidos essenciais, vitaminas do complexo B e minerais energizantes.", estoque: 25, foto: "Polen-Apicola-140g.png" },
-                { id: 11, categoria_id: 3, nome: "Vinagre Nobre de Mel (315ml)", preco: 28.00, peso: "315ml", descricao: "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado para saladas e pratos nobres.", estoque: 22, foto: "Vinagre-de-Mel-315ml.png" },
-                { id: 12, categoria_id: 3, nome: "Vela Artesanal de Cera Pura de Abelha", preco: 18.00, peso: "Unidade", descricao: "Vela aromática 100% natural sem derivados de petróleo. Aroma suave e adocicado de favo com queima limpa e duradoura.", estoque: 35, foto: "Velas-artesanais-de-cera-de-abelha.png" },
-                { id: 13, categoria_id: 3, nome: "Cera Bruta de Apis (1kg)", preco: 95.00, peso: "1kg", descricao: "Bloco maciço de cera virgem de opérculo purificada. Ideal para cosmética, pomadas medicinais, marcenaria nobre e apicultura.", estoque: 12, foto: "Cera-Bruta-de-Apis.png" },
-                { id: 14, categoria_id: 1, nome: "Mel In Natura Garrafa (1400g)", preco: 65.00, peso: "1400g", descricao: "Embalagem família econômica com 1,4kg de mel cru silvestre colhido nas matas nativas. Pureza garantida.", estoque: 28, foto: "Mel-in-Natura-1400g.jpg" }
+                { id: 1, categoria_id: 1, nome: "Mel com Favo 500g", preco: 65.00, peso: "500g", descricao: "Pedaço genuíno de favo de mel imerso no mel puro. Experiência sensorial inigualável.", estoque: 20, foto: "Mel-com-Favo-500g.webp" },
+                { id: 2, categoria_id: 1, nome: "Mel de Uruçú (Nativa)", preco: 85.00, peso: "280g", descricao: "Mel puro de abelha nativa sem ferrão. Acidez nobre, textura fluida e alto valor medicinal.", estoque: 15, foto: "Mel-in-natura-280g.webp" },
+                { id: 3, categoria_id: 2, nome: "Própolis Verde 20ml", preco: 38.00, peso: "20ml", descricao: "Extrato puro concentrado com Artepillin-C. Ação bactericida e fortalecedor do sistema imune.", estoque: 40, foto: "Propolis-Verde-20ml.webp" },
+                { id: 4, categoria_id: 2, nome: "Própolis Vermelha 20ml", preco: 50.00, peso: "20ml", descricao: "Considerada a mais nobre do mundo, riquíssima em flavonoides antioxidantes e antivirais.", estoque: 30, foto: "Propolis-Vermelha-20ml.webp" },
+                { id: 5, categoria_id: 3, nome: "Kit Presente Favo de Mel", preco: 120.00, peso: "Kit", descricao: "Caixa rústica de madeira artesanal com mel nobre, vela aromática, própolis e doce da colmeia.", estoque: 10, foto: "kit-presente.webp" },
+                { id: 6, categoria_id: 2, nome: "Kit Sabonete Terapêutico", preco: 35.00, peso: "Kit", descricao: "Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.", estoque: 25, foto: "Kit-de-sabinete-terapeutico.webp" },
+                { id: 7, categoria_id: 3, nome: "Licor de Mel Nobre 250ml", preco: 35.00, peso: "250ml", descricao: "Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.", estoque: 18, foto: "Licor-de-Mel-250ml.webp" },
+                { id: 8, categoria_id: 1, nome: "Mel in Natura 500g", preco: 35.00, peso: "500g", descricao: "Mel puro de floradas silvestres brasileiras. Embalagem prática com bico dosador corta-pingos.", estoque: 50, foto: "Mel-in-Natura-500g.webp" },
+                { id: 9, categoria_id: 1, nome: "Meleira com Mel Nobre", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro de florada silvestre e pegador dosador.", estoque: 20, foto: "Meleira-com-mel-280g.webp" },
+                { id: 10, categoria_id: 2, nome: "Pólen Apícola Desidratado (140g)", preco: 42.00, peso: "140g", descricao: "Superalimento natural das abelhas repleto de aminoácidos essenciais, vitaminas do complexo B e minerais energizantes.", estoque: 25, foto: "Polen-Apicola-140g.webp" },
+                { id: 11, categoria_id: 3, nome: "Vinagre Nobre de Mel (315ml)", preco: 28.00, peso: "315ml", descricao: "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado para saladas e pratos nobres.", estoque: 22, foto: "Vinagre-de-Mel-315ml.webp" },
+                { id: 12, categoria_id: 3, nome: "Vela Artesanal de Cera Pura de Abelha", preco: 18.00, peso: "Unidade", descricao: "Vela aromática 100% natural sem derivados de petróleo. Aroma suave e adocicado de favo com queima limpa e duradoura.", estoque: 35, foto: "Velas-artesanais-de-cera-de-abelha.webp" },
+                { id: 13, categoria_id: 3, nome: "Cera Bruta de Apis (1kg)", preco: 95.00, peso: "1kg", descricao: "Bloco maciço de cera virgem de opérculo purificada. Ideal para cosmética, pomadas medicinais, marcenaria nobre e apicultura.", estoque: 12, foto: "Cera-Bruta-de-Apis.webp" },
+                { id: 14, categoria_id: 1, nome: "Mel In Natura Garrafa (1400g)", preco: 65.00, peso: "1400g", descricao: "Embalagem família econômica com 1,4kg de mel cru silvestre colhido nas matas nativas. Pureza garantida.", estoque: 28, foto: "Mel-in-Natura-1400g.webp" }
             ];
         }
     }
@@ -276,25 +276,29 @@ class CatalogoApp {
         // Se foto for nula, vazia, genérica ou avatar, mapeia pelo nome exato do produto (idêntico à vitrine #produtos)
         if (!foto || foto === 'null' || foto === 'undefined' || foto.includes('site-assets') || foto.includes('avatar-favo-de-mel')) {
             const nomeNorm = (prod && prod.nome ? prod.nome : '').toLowerCase();
-            if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu')) return '/assets/products/Mel-in-natura-280g.jpeg';
-            if (nomeNorm.includes('favo')) return '/assets/products/Mel-com-Favo-500g.png';
-            if (nomeNorm.includes('verde')) return '/assets/products/Propolis-Verde-20ml.png';
-            if (nomeNorm.includes('vermelha')) return '/assets/products/Propolis-Vermelha-20ml.png';
-            if (nomeNorm.includes('sabonete') || nomeNorm.includes('labial') || nomeNorm.includes('hidratante')) return '/assets/products/Kit-de-sabinete-terapeutico.jpeg';
-            if (nomeNorm.includes('licor') || nomeNorm.includes('hidromel')) return '/assets/products/Licor-de-Mel-250ml.png';
-            if (nomeNorm.includes('meleira')) return '/assets/products/Meleira-com-mel-280g.jpeg';
-            if (nomeNorm.includes('presente')) return '/assets/products/kit-presente.png';
-            if (nomeNorm.includes('polen') || nomeNorm.includes('pólen')) return '/assets/products/Polen-Apicola-140g.png';
-            if (nomeNorm.includes('vinagre')) return '/assets/products/Vinagre-de-Mel-315ml.png';
-            if (nomeNorm.includes('vela')) return '/assets/products/Velas-artesanais-de-cera-de-abelha.png';
-            if (nomeNorm.includes('alveolada')) return '/assets/products/Cera-alveolada.jpeg';
-            if (nomeNorm.includes('cera') || nomeNorm.includes('pasta')) return '/assets/products/Cera-Bruta-de-Apis.png';
-            if (nomeNorm.includes('desmoldante')) return '/assets/products/Desmoldante-de-forma.jpeg';
-            if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) return '/assets/products/Formao.jpeg';
-            if (nomeNorm.includes('fumigador')) return '/assets/products/Fumigador.jpeg';
-            if (nomeNorm.includes('pomada')) return '/assets/products/Propolis-Verde-20ml.png';
-            if (nomeNorm.includes('1400g')) return '/assets/products/Mel-in-Natura-1400g.jpg';
-            return '/assets/products/Mel-in-Natura-500g.png';
+            if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu')) return '/assets/products/Mel-in-natura-280g.webp';
+            if (nomeNorm.includes('favo')) return '/assets/products/Mel-com-Favo-500g.webp';
+            if (nomeNorm.includes('verde')) return '/assets/products/Propolis-Verde-20ml.webp';
+            if (nomeNorm.includes('vermelha')) return '/assets/products/Propolis-Vermelha-20ml.webp';
+            if (nomeNorm.includes('sabonete') || nomeNorm.includes('labial') || nomeNorm.includes('hidratante')) return '/assets/products/Kit-de-sabinete-terapeutico.webp';
+            if (nomeNorm.includes('licor') || nomeNorm.includes('hidromel')) return '/assets/products/Licor-de-Mel-250ml.webp';
+            if (nomeNorm.includes('meleira')) return '/assets/products/Meleira-com-mel-280g.webp';
+            if (nomeNorm.includes('presente')) return '/assets/products/kit-presente.webp';
+            if (nomeNorm.includes('polen') || nomeNorm.includes('pólen')) return '/assets/products/Polen-Apicola-140g.webp';
+            if (nomeNorm.includes('vinagre')) return '/assets/products/Vinagre-de-Mel-315ml.webp';
+            if (nomeNorm.includes('vela')) return '/assets/products/Velas-artesanais-de-cera-de-abelha.webp';
+            if (nomeNorm.includes('alveolada')) return '/assets/products/Cera-alveolada.webp';
+            if (nomeNorm.includes('cera') || nomeNorm.includes('pasta')) return '/assets/products/Cera-Bruta-de-Apis.webp';
+            if (nomeNorm.includes('desmoldante')) return '/assets/products/Desmoldante-de-forma.webp';
+            if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) return '/assets/products/Formao.webp';
+            if (nomeNorm.includes('fumigador')) return '/assets/products/Fumigador.webp';
+            if (nomeNorm.includes('pomada')) return '/assets/products/Propolis-Verde-20ml.webp';
+            if (nomeNorm.includes('1400g')) return '/assets/products/Mel-in-Natura-1400g.webp';
+            return '/assets/products/Mel-in-Natura-500g.webp';
+        }
+
+        if (foto.endsWith('.png') || foto.endsWith('.jpg') || foto.endsWith('.jpeg')) {
+            foto = foto.replace(/\.(png|jpg|jpeg)$/i, '.webp');
         }
 
         if (foto.startsWith('http://') || foto.startsWith('https://') || foto.startsWith('/assets/')) {
@@ -352,7 +356,7 @@ class CatalogoApp {
             return `
                 <div class="catalog-card" data-id="${prod.id}">
                     <div class="card-img-area" onclick="catalogoApp.abrirModalProduto('${prod.id}')" style="cursor: pointer;" title="Clique para ver detalhes do produto">
-                        <img src="${fotoUrl}" alt="${prod.nome}" loading="lazy" onerror="this.onerror=null; this.src='/assets/products/Mel-in-Natura-500g.png'">
+                        <img src="${fotoUrl}" alt="${prod.nome}" width="260" height="260" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/assets/products/Mel-in-Natura-500g.webp'">
                     </div>
                     <div class="card-content">
                         <span class="card-category-label">${catNomeLimpo}</span>

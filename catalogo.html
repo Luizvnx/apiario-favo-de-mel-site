@@ -7,16 +7,17 @@
     <meta name="description" content="Catálogo Digital do Apiário Favo de Mel: Méis nobres, própolis verde e vermelha, favos, cosméticos e derivados apícolas. Monte seu pedido e receba pelo WhatsApp!">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/site-assets/logo-favo-de-mel.png">
+    <link rel="icon" type="image/webp" href="/assets/images/logo-favo-de-mel.webp">
     
-    <!-- Google Fonts -->
+    <!-- Google Fonts com Preconnect Otimizado -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="/css/style.css?v=5.0">
-    <link rel="stylesheet" href="/css/catalogo.css?v=5.0">
+    <link rel="stylesheet" href="/css/style.css?v=5.1">
+    <link rel="stylesheet" href="/css/catalogo.css?v=5.1">
 </head>
 <body class="catalogo-body">
 
@@ -31,7 +32,7 @@
                     <span>Início</span>
                 </a>
                 <a href="/catalogo">
-                    <img src="/assets/images/logo-favo-de-mel.png" alt="Apiário Favo de Mel" height="44">
+                    <img src="/assets/images/logo-favo-de-mel.webp" alt="Apiário Favo de Mel" width="150" height="44">
                 </a>
                 <span class="store-status-pill">
                     <span class="dot"></span>
@@ -466,9 +467,9 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="/config.js?v=5.1"></script>
-    <script src="/js/pix-util.js?v=5.1"></script>
-    <script src="/js/catalogo.js?v=5.1"></script>
+    <!-- Scripts com Defer para Não Bloquear Renderização -->
+    <script src="/config.js?v=5.1" defer></script>
+    <script src="/js/pix-util.js?v=5.1" defer></script>
+    <script src="/js/catalogo.js?v=5.1" defer></script>
 </body>
 </html>

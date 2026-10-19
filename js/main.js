@@ -4,15 +4,17 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Navbar Scroll State
+    // 1. Navbar Scroll State (Passive listener para rolagem fluida a 60fps)
     const header = document.querySelector('.site-header');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 40) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
-        }
-    });
+    if (header) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 40) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        }, { passive: true });
+    }
 
     // 2. Mobile Menu Toggle
     const mobileBtn = document.querySelector('.mobile-toggle');
@@ -36,18 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Contadores Numéricos Animados
+    // 3. Contadores Numéricos Animados via IntersectionObserver (Zero CPU overhead no scroll)
     const statNumbers = document.querySelectorAll('.stat-number');
-    let animated = false;
+    const statsSection = document.querySelector('.stats-section');
 
-    const animateStats = () => {
-        if (animated) return;
-        const statsSection = document.querySelector('.stats-section');
-        if (!statsSection) return;
-
-        const rect = statsSection.getBoundingClientRect();
-        if (rect.top <= window.innerHeight * 0.85) {
-            animated = true;
+    if (statsSection && statNumbers.length > 0) {
+        const startCounterAnimation = () => {
             statNumbers.forEach(el => {
                 const targetText = el.getAttribute('data-target') || el.innerText;
                 const targetNum = parseInt(targetText.replace(/\D/g, ''), 10);
@@ -55,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const suffix = targetText.endsWith('%') ? '%' : '';
 
                 let current = 0;
-                const duration = 1600;
+                const duration = 1400;
                 const stepTime = 25;
                 const totalSteps = duration / stepTime;
                 const increment = Math.ceil(targetNum / totalSteps);
@@ -69,11 +65,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     el.innerText = `${prefix}${current.toLocaleString('pt-BR')}${suffix}`;
                 }, stepTime);
             });
-        }
-    };
+        };
 
-    window.addEventListener('scroll', animateStats);
-    animateStats(); // Testa na carga inicial
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        startCounterAnimation();
+                        obs.disconnect();
+                    }
+                });
+            }, { threshold: 0.25 });
+            observer.observe(statsSection);
+        } else {
+            startCounterAnimation();
+        }
+    }
 
     // 4. Formulário de Contato Direto para WhatsApp
     const contactForm = document.getElementById('contactForm');
