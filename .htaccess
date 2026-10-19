@@ -9,8 +9,11 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Rota /catalogo abre catalogo.html sem mostrar extensão
+# Rotas amigáveis de produtos e catálogo sem mostrar extensão
 RewriteRule ^catalogo/?$ catalogo.html [L]
+RewriteRule ^mel-com-favo/?$ mel-com-favo.html [L]
+RewriteRule ^propolis-vermelha/?$ propolis-vermelha.html [L]
+RewriteRule ^pedido/?$ pedido.html [L]
 
 # Rota raiz abre index.html
 RewriteRule ^$ index.html [L]

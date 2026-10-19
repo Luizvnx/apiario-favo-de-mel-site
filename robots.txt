@@ -9,6 +9,8 @@ Allow: /
 Allow: /index.html
 Allow: /catalogo
 Allow: /catalogo.html
+Allow: /mel-com-favo
+Allow: /propolis-vermelha
 
 # Recursos e Mídias Públicas
 Allow: /css/

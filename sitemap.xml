@@ -19,6 +19,36 @@
         </image:image>
     </url>
 
+    <!-- Landing Page Especialista: Mel com Favo 500g -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/mel-com-favo</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-com-favo-500g.webp</image:loc>
+            <image:title>Mel com Favo 500g Nobre Silvestre</image:title>
+            <image:caption>Mel silvestre cru não pasteurizado com favo de mel genuíno</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Favo-de-mel-em-quadro.webp</image:loc>
+            <image:title>Favo de Mel Colhido no Apiário</image:title>
+        </image:image>
+    </url>
+
+    <!-- Landing Page Especialista: Própolis Vermelha 20ml -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/propolis-vermelha</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Propolis-vermelha-20ml.webp</image:loc>
+            <image:title>Própolis Vermelha Nobre 20ml</image:title>
+            <image:caption>Extrato alcoólico concentrado de própolis vermelha de manguezal</image:caption>
+        </image:image>
+    </url>
+
     <!-- Catálogo de Produtos Online -->
     <url>
         <loc>https://www.apiariofavodemel.com.br/catalogo</loc>
