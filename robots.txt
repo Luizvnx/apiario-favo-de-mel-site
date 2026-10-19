@@ -43,4 +43,4 @@ User-agent: MegaIndex
 Disallow: /
 
 # Sitemap Canônico Oficial
-Sitemap: https://favodemel.137.131.164.202.sslip.io/sitemap.xml
+Sitemap: https://www.apiariofavodemel.com.br/sitemap.xml

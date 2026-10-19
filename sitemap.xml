@@ -4,59 +4,59 @@
     
     <!-- Página Inicial Institucional & Loja -->
     <url>
-        <loc>https://favodemel.137.131.164.202.sslip.io/</loc>
+        <loc>https://www.apiariofavodemel.com.br/</loc>
         <lastmod>2026-10-19</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/images/kit-presente-1024x790.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/images/kit-presente-1024x790.webp</image:loc>
             <image:title>Kit Especial Apiário Favo de Mel</image:title>
             <image:caption>Kit rústico com méis nobres, própolis e favo de mel artesanal</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/images/logo-favo-de-mel.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/images/logo-favo-de-mel.webp</image:loc>
             <image:title>Logo Apiário Favo de Mel</image:title>
         </image:image>
     </url>
 
     <!-- Catálogo de Produtos Online -->
     <url>
-        <loc>https://favodemel.137.131.164.202.sslip.io/catalogo</loc>
+        <loc>https://www.apiariofavodemel.com.br/catalogo</loc>
         <lastmod>2026-10-19</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Mel-com-favo-500g.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-com-favo-500g.webp</image:loc>
             <image:title>Mel com Favo 500g Puro</image:title>
             <image:caption>Favo genuíno de mel imerso em mel puro silvestre</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Propolis-verde-20ml.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Propolis-verde-20ml.webp</image:loc>
             <image:title>Própolis Verde Concentrada 20ml</image:title>
             <image:caption>Extrato alcoólico com alto teor de Artepillin-C</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Propolis-vermelha-20ml.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Propolis-vermelha-20ml.webp</image:loc>
             <image:title>Própolis Vermelha Nobre 20ml</image:title>
             <image:caption>Riquíssima em flavonoides e antioxidantes bioativos</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Mel-in-natura-280g.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-in-natura-280g.webp</image:loc>
             <image:title>Mel de Abelha Nativa Uruçú</image:title>
             <image:caption>Mel de meliponicultura, acidez única e propriedades medicinais</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Kit-presente.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Kit-presente.webp</image:loc>
             <image:title>Kit Presente em Caixa de Madeira Artesanal</image:title>
             <image:caption>Kit rústico com mel nobre, vela de cera de abelha e própolis</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Polen-apicola-140g.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Polen-apicola-140g.webp</image:loc>
             <image:title>Pólen Apícola Desidratado 140g</image:title>
             <image:caption>Superalimento natural rico em proteínas vegetais e vitaminas</image:caption>
         </image:image>
         <image:image>
-            <image:loc>https://favodemel.137.131.164.202.sslip.io/assets/products/Kit-de-sabinete-terapeutico.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Kit-de-sabinete-terapeutico.webp</image:loc>
             <image:title>Kit Sabonetes Terapêuticos de Própolis e Mel</image:title>
             <image:caption>Cosmética natural apícola cicatrizante e regeneradora</image:caption>
         </image:image>
