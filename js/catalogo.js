@@ -32,6 +32,7 @@ class CatalogoApp {
             pix_cidade: 'Aracaju'
         };
 
+        this.pendingOrderPayload = null;
         this.init();
     }
 
@@ -41,6 +42,7 @@ class CatalogoApp {
         this.renderizarCategorias();
         this.renderizarProdutos();
         this.atualizarInterfaceCarrinho();
+        this.verificarParametroAutoAdd();
     }
 
     // =========================================================================
@@ -849,11 +851,21 @@ class CatalogoApp {
             });
         }
 
-        // Submissão do Formulário de Checkout
+        // Submissão do Formulário de Checkout (Avança para Revisão)
         const formCheckout = document.getElementById('formCheckout');
         if (formCheckout) {
             formCheckout.addEventListener('submit', (e) => this.processarPedido(e));
         }
+
+        // Botões da Etapa 2 de Revisão:
+        document.getElementById('btnBackToCheckoutForm')?.addEventListener('click', () => {
+            document.getElementById('checkoutReviewView')?.style.setProperty('display', 'none');
+            document.getElementById('checkoutFormView')?.style.setProperty('display', 'block');
+        });
+
+        document.getElementById('btnFinalConfirmOrder')?.addEventListener('click', () => {
+            this.confirmarEFinalizarPedido();
+        });
 
         // Eventos do Modal de Detalhes do Produto (Estilo Trem Delivery)
         document.getElementById('btnCloseProductModal')?.addEventListener('click', () => {
@@ -1007,6 +1019,7 @@ class CatalogoApp {
 
         document.getElementById('checkoutModalOverlay')?.classList.add('active');
         document.getElementById('checkoutFormView')?.style.setProperty('display', 'block');
+        document.getElementById('checkoutReviewView')?.style.setProperty('display', 'none');
         document.getElementById('checkoutSuccessView')?.style.setProperty('display', 'none');
     }
 
@@ -1059,32 +1072,51 @@ class CatalogoApp {
     // =========================================================================
     // PROCESSAMENTO DO PEDIDO (POST /api/catalogo/pedidos)
     // =========================================================================
-    async processarPedido(e) {
+    // =========================================================================
+    // 1. ETAPA DE REVISÃO DO PEDIDO (Valida campos e abre tela de confirmação)
+    // =========================================================================
+    processarPedido(e) {
         e.preventDefault();
 
-        const submitBtn = document.getElementById('btnSubmitOrder');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `Processando Pedido...`;
+        const nome = document.getElementById('checkoutNome')?.value.trim();
+        const telefone = document.getElementById('checkoutTelefone')?.value.trim();
+        const obs = document.getElementById('checkoutObs')?.value.trim() || '';
+
+        if (!nome) {
+            alert('Por favor, informe seu nome.');
+            document.getElementById('checkoutNome')?.focus();
+            return;
         }
 
-        const nome = document.getElementById('checkoutNome').value.trim();
-        const telefone = document.getElementById('checkoutTelefone').value.trim();
-        const obs = document.getElementById('checkoutObs').value.trim();
+        const telDigitos = telefone ? telefone.replace(/\D/g, '') : '';
+        if (telDigitos.length < 8) {
+            alert('Por favor, informe um número de WhatsApp válido para contato e acompanhamento.');
+            document.getElementById('checkoutTelefone')?.focus();
+            return;
+        }
 
         let endereco = {};
         if (this.tipoEntrega === 'entrega') {
+            const rua = document.getElementById('checkoutRua')?.value.trim() || '';
+            const numero = document.getElementById('checkoutNumero')?.value.trim() || '';
+            if (!rua || !numero) {
+                alert('Por favor, informe a Rua e o Número da sua residência para a entrega.');
+                if (!rua) document.getElementById('checkoutRua')?.focus();
+                else document.getElementById('checkoutNumero')?.focus();
+                return;
+            }
+
             endereco = {
                 cep: document.getElementById('checkoutCep')?.value.trim() || '',
-                rua: document.getElementById('checkoutRua')?.value.trim() || '',
-                numero: document.getElementById('checkoutNumero')?.value.trim() || '',
+                rua: rua,
+                numero: numero,
                 bairro: document.getElementById('checkoutBairro')?.value.trim() || '',
                 cidade: document.getElementById('checkoutCidade')?.value.trim() || '',
                 complemento: document.getElementById('checkoutComplemento')?.value.trim() || ''
             };
         }
 
-        // Salva dados no perfil do cliente (@favodemel:customer_profile estilo Trem Delivery)
+        // Salva dados no perfil do cliente para agilizar futuros pedidos
         this.salvarPerfilCliente({
             nome,
             telefone,
@@ -1099,7 +1131,7 @@ class CatalogoApp {
         const trocoPara = document.getElementById('checkoutTroco')?.value.trim() || '';
         const total = this.calcularTotal();
 
-        const payload = {
+        this.pendingOrderPayload = {
             cliente_nome: nome,
             cliente_telefone: telefone,
             tipo_entrega: this.tipoEntrega,
@@ -1107,11 +1139,88 @@ class CatalogoApp {
             forma_pagamento: this.formaPagamento,
             troco_para: trocoPara,
             observacoes: obs,
-            itens: this.carrinho,
+            itens: [...this.carrinho],
             subtotal: total,
             taxa_entrega: 0,
             total: total
         };
+
+        // Preenche o resumo da etapa de revisão
+        const revNome = document.getElementById('reviewClienteNome');
+        const revTel = document.getElementById('reviewClienteTelefone');
+        const revEnd = document.getElementById('reviewEndereco');
+        const revPag = document.getElementById('reviewPagamento');
+        const revList = document.getElementById('reviewItensList');
+        const revTotal = document.getElementById('reviewTotalDisplay');
+
+        if (revNome) revNome.innerText = nome;
+        if (revTel) revTel.innerText = telefone;
+
+        if (revEnd) {
+            if (this.tipoEntrega === 'entrega') {
+                const comp = endereco.complemento ? ` (${endereco.complemento})` : '';
+                const bairro = endereco.bairro ? ` - ${endereco.bairro}` : '';
+                const cid = endereco.cidade ? `, ${endereco.cidade}` : '';
+                revEnd.innerText = `Entrega em: ${endereco.rua}, nº ${endereco.numero}${comp}${bairro}${cid}`;
+            } else {
+                revEnd.innerText = 'Retirada no Apiário Favo de Mel (Aracaju/SE)';
+            }
+        }
+
+        if (revPag) {
+            if (this.formaPagamento === 'pix') {
+                revPag.innerText = 'PIX (Chave Celular / Copia e Cola)';
+            } else if (this.formaPagamento === 'cartao') {
+                revPag.innerText = 'Cartão de Débito / Crédito na Entrega';
+            } else {
+                revPag.innerText = trocoPara ? `Dinheiro (Troco para R$ ${trocoPara})` : 'Dinheiro (Sem troco)';
+            }
+        }
+
+        if (revList) {
+            revList.innerHTML = this.carrinho.map(item => {
+                const sub = (item.quantidade * item.preco).toFixed(2).replace('.', ',');
+                const obsStr = item.obs ? `<div style="font-size: 0.72rem; color: #786C5E; font-style: italic;">Obs: ${item.obs}</div>` : '';
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 0.35rem 0; border-bottom: 1px dashed #EDE5DA;">
+                        <div>
+                            <span style="font-weight: 600; color: var(--color-dark);">${item.quantidade}x ${item.nome}</span>
+                            ${obsStr}
+                        </div>
+                        <span style="font-weight: 600; color: var(--color-dark); white-space: nowrap; margin-left: 0.5rem;">R$ ${sub}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        if (revTotal) {
+            revTotal.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+        }
+
+        // Alterna para a tela de revisão
+        document.getElementById('checkoutFormView')?.style.setProperty('display', 'none');
+        document.getElementById('checkoutReviewView')?.style.setProperty('display', 'block');
+    }
+
+    // =========================================================================
+    // 2. CONFIRMAÇÃO FINAL DO PEDIDO (Salva, notifica WhatsApp em segundo plano e redireciona para o RASTREIO)
+    // =========================================================================
+    async confirmarEFinalizarPedido() {
+        if (!this.pendingOrderPayload || this.carrinho.length === 0) return;
+
+        const btnFinal = document.getElementById('btnFinalConfirmOrder');
+        if (btnFinal) {
+            btnFinal.disabled = true;
+            btnFinal.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 14 14"></polyline>
+                </svg>
+                <span>Finalizando seu Pedido...</span>
+            `;
+        }
+
+        const payload = this.pendingOrderPayload;
 
         try {
             const res = await fetch(this.getApiUrl('/api/catalogo/pedidos'), {
@@ -1122,7 +1231,7 @@ class CatalogoApp {
 
             const data = await res.json();
 
-            if (data.sucesso) {
+            if (data.sucesso && data.codigo_pedido) {
                 try {
                     localStorage.setItem('favodemel_ultimo_pedido', JSON.stringify({
                         codigo_pedido: data.codigo_pedido,
@@ -1133,43 +1242,26 @@ class CatalogoApp {
                     }));
                 } catch (_) {}
 
-                this.exibirSucessoPedido(data);
                 this.limparCarrinho();
+
+                // Redireciona DIRETAMENTE para a página de rastreio no próprio site!
+                const urlToken = data.token_acesso ? `&token=${encodeURIComponent(data.token_acesso)}` : '';
+                window.location.href = `/pedido.html?codigo=${encodeURIComponent(data.codigo_pedido)}${urlToken}`;
                 return;
             } else {
                 throw new Error(data.erro || 'Erro ao registrar pedido.');
             }
         } catch (err) {
-            console.warn('Backend indisponível, gerando pedido com despacho direto via WhatsApp:', err.message);
-            // Fallback Resiliente Direto para WhatsApp do Vendedor
+            console.warn('Backend indisponível ou offline, gerando pedido resiliente com rastreio local:', err.message);
+
             const codigoPedido = `FD-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
             const tokenAcesso = Array.from(crypto.getRandomValues(new Uint8Array(16)))
                 .map(b => b.toString(16).padStart(2, '0')).join('');
-
-            const linhasItens = this.carrinho.map(i => {
-                const sub = ((i.quantidade || 1) * parseFloat(i.preco || 0)).toFixed(2).replace('.', ',');
-                const obsTxt = i.obs ? ` _(Obs: ${i.obs})_` : '';
-                return `• ${i.quantidade}x *${i.nome}*${obsTxt} = R$ ${sub}`;
-            }).join('\n');
-
-            const cepTxt = endereco.cep ? ` (CEP: ${endereco.cep})` : '';
-            const compTxt = endereco.complemento ? ` [${endereco.complemento}]` : '';
-            let txtEnd = this.tipoEntrega === 'entrega' 
-                ? `*Endereço de Entrega:* ${endereco.rua || ''}, ${endereco.numero || ''} - ${endereco.bairro || ''}, ${endereco.cidade || ''}${compTxt}${cepTxt}`
-                : `*Modalidade:* Retirada no Apiário`;
-
-            let txtPag = this.formaPagamento === 'pix' ? 'PIX (Chave: 79988125726)' : (this.formaPagamento === 'cartao' ? 'Cartão' : `Dinheiro (Troco: ${trocoPara || 'Não'})`);
-
-            const msgWa = `*NOVO PEDIDO DO SITE - APIÁRIO FAVO DE MEL*\n*Pedido:* #${codigoPedido}\n*Cliente:* ${nome}\n*WhatsApp:* ${telefone}\n\n${txtEnd}\n*Pagamento:* ${txtPag}\n\n*Itens:*\n${linhasItens}\n\n*TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}`;
-
-            const numeroVendedor = '557988125726';
-            const waUrl = `https://wa.me/${numeroVendedor}?text=${encodeURIComponent(msgWa)}`;
 
             const fallbackData = {
                 sucesso: true,
                 codigo_pedido: codigoPedido,
                 token_acesso: tokenAcesso,
-                whatsapp_url: waUrl,
                 pedido: {
                     ...payload,
                     codigo_pedido: codigoPedido,
@@ -1183,70 +1275,65 @@ class CatalogoApp {
                 localStorage.setItem('favodemel_ultimo_pedido', JSON.stringify(fallbackData));
             } catch (_) {}
 
-            this.exibirSucessoPedido(fallbackData);
             this.limparCarrinho();
-        } finally {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 6px;"><path d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z"/></svg> <span>Confirmar Pedido no WhatsApp</span>`;
-            }
+            window.location.href = `/pedido.html?codigo=${encodeURIComponent(codigoPedido)}&token=${encodeURIComponent(tokenAcesso)}`;
         }
     }
 
-    exibirSucessoPedido(dados) {
-        document.getElementById('checkoutFormView')?.style.setProperty('display', 'none');
-        const successView = document.getElementById('checkoutSuccessView');
-        if (successView) {
-            successView.style.setProperty('display', 'block');
-            document.getElementById('successOrderCode').innerText = `#${dados.codigo_pedido}`;
-            
-            // Exibe PIX Copia e Cola na tela de confirmação se o pagamento for PIX
-            const successPixBox = document.getElementById('successPixBox');
-            if (successPixBox) {
-                if (this.formaPagamento === 'pix') {
-                    successPixBox.style.display = 'block';
-                    const chave = this.config.pix_chave || '79988125726';
-                    const tipo = this.config.pix_tipo || 'telefone';
-                    const titular = this.config.pix_titular || 'Apiario Favo de Mel';
-                    const cidade = this.config.pix_cidade || 'Aracaju';
-                    const valTotal = dados.pedido ? dados.pedido.total : this.calcularTotal();
+    // =========================================================================
+    // 3. PARAMETRO URL AUTO-ADD (Ex: /catalogo?add=mel-com-favo)
+    // =========================================================================
+    verificarParametroAutoAdd() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const addParam = params.get('add');
+            if (!addParam) return;
 
-                    let payload = '';
-                    if (typeof PixUtil !== 'undefined') {
-                        payload = PixUtil.gerarCopiaECola({
-                            chave,
-                            tipo,
-                            nome: titular,
-                            cidade: cidade,
-                            valor: valTotal,
-                            txid: (dados.codigo_pedido || 'FAVODEMEL').replace(/[^a-zA-Z0-9]/g, '')
-                        });
-                    }
+            const slugMap = {
+                'mel-com-favo': 1,
+                'mel-de-urucu': 2,
+                'propolis-verde': 3,
+                'propolis-vermelha': 4,
+                'kit-presente': 5,
+                'sabonete': 6,
+                'licor-de-mel': 7,
+                'mel-silvestre': 8,
+                'polen-apicola': 10
+            };
 
-                    const inputPix = document.getElementById('successPixPayloadInput');
-                    if (inputPix) inputPix.value = payload;
-                } else {
-                    successPixBox.style.display = 'none';
-                }
+            const targetId = slugMap[addParam.toLowerCase()] || parseInt(addParam, 10);
+            if (!targetId) return;
+
+            const prod = this.produtos.find(p => p.id === targetId);
+            if (!prod) return;
+
+            // Se ainda não está no carrinho, adiciona
+            const existente = this.carrinho.find(i => i.id === prod.id);
+            if (!existente) {
+                this.carrinho.push({
+                    cartId: `cart_${prod.id}_${Date.now()}`,
+                    id: prod.id,
+                    nome: prod.nome,
+                    preco: parseFloat(prod.preco),
+                    foto: this.resolverFoto(prod),
+                    quantidade: 1,
+                    obs: ''
+                });
+                this.salvarCarrinho();
+                this.atualizarInterfaceCarrinho();
+                this.renderizarProdutos();
             }
 
-            const btnWa = document.getElementById('btnOpenWhatsAppOrder');
-            if (btnWa && dados.whatsapp_url) {
-                btnWa.href = dados.whatsapp_url;
-            }
+            // Abre o Drawer do Carrinho suavemente para o cliente
+            setTimeout(() => {
+                document.getElementById('cartDrawerOverlay')?.classList.add('active');
+                document.getElementById('cartDrawer')?.classList.add('active');
+            }, 300);
 
-            const btnTrack = document.getElementById('btnTrackOrder');
-            if (btnTrack) {
-                const urlToken = dados.token_acesso ? `&token=${encodeURIComponent(dados.token_acesso)}` : '';
-                btnTrack.href = `/pedido.html?codigo=${encodeURIComponent(dados.codigo_pedido)}${urlToken}`;
-            }
-
-            // Abre o WhatsApp automaticamente após 1.2 segundos
-            if (dados.whatsapp_url) {
-                setTimeout(() => {
-                    window.open(dados.whatsapp_url, '_blank');
-                }, 1200);
-            }
+            // Limpa o parâmetro da URL sem recarregar a página
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {
+            console.warn('Erro ao processar parâmetro auto add:', e.message);
         }
     }
 }

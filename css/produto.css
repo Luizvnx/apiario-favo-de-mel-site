@@ -62,7 +62,7 @@
     background: #FDF9F2;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 2.5rem;
+    padding: 3rem 2.5rem 2.5rem 2.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -75,17 +75,21 @@
     max-width: 100%;
     max-height: 480px;
     object-fit: contain;
+    position: relative;
+    z-index: 1;
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .product-main-image-wrap:hover img {
-    transform: scale(1.05);
+    transform: scale(1.04);
 }
 
 .product-badge-overlay {
     position: absolute;
     top: 18px;
     left: 18px;
+    z-index: 10;
+    pointer-events: none;
     background: #D98200;
     color: #FFFFFF;
     font-size: 0.75rem;
@@ -226,34 +230,37 @@
     margin-bottom: 2.25rem;
 }
 
-.btn-buy-whatsapp {
-    background: #1EA952;
+/* 1. Botão Principal do Site: Adicionar ao Carrinho & Comprar pelo Site (Destaque Dourado/Mel de Alta Conversão) */
+.btn-buy-catalog {
+    background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
     color: #FFFFFF;
-    font-size: 1.15rem;
+    font-size: 1.12rem;
     font-weight: 700;
-    padding: 1.1rem 2rem;
+    padding: 1.15rem 2rem;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    box-shadow: 0 4px 16px rgba(30, 169, 82, 0.35);
+    box-shadow: 0 4px 18px rgba(217, 119, 6, 0.35);
     transition: var(--transition);
+    text-decoration: none;
     border: none;
     cursor: pointer;
-    text-decoration: none;
 }
 
-.btn-buy-whatsapp:hover {
-    background: #17833F;
+.btn-buy-catalog:hover {
+    background: linear-gradient(135deg, #B45309 0%, #92400E 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(30, 169, 82, 0.45);
+    box-shadow: 0 8px 24px rgba(217, 119, 6, 0.45);
     color: #FFFFFF;
 }
 
-.btn-buy-catalog {
-    background: var(--color-dark);
-    color: #FFFFFF;
+/* 2. Botão Secundário: WhatsApp (Tirar Dúvidas / Suporte) */
+.btn-buy-whatsapp {
+    background: #F0FDF4;
+    border: 1.5px solid #22C55E;
+    color: #15803D;
     font-size: 1rem;
     font-weight: 600;
     padding: 0.95rem 1.75rem;
@@ -261,15 +268,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
+    box-shadow: none;
     transition: var(--transition);
+    cursor: pointer;
     text-decoration: none;
 }
 
-.btn-buy-catalog:hover {
-    background: var(--color-primary);
+.btn-buy-whatsapp:hover {
+    background: #DCFCE7;
+    border-color: #16A34A;
+    color: #166534;
     transform: translateY(-2px);
-    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
 }
 
 /* Selos de Confiança */
