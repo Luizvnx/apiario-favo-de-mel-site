@@ -20,7 +20,12 @@ class WhatsAppNotificationService {
         if (clean.startsWith('0')) {
             clean = clean.substring(1);
         }
-        if (clean.length === 10 || clean.length === 11) {
+        // Fallback resiliente para números informados sem DDD (padrão Sergipe 79)
+        if (clean.length === 8) {
+            clean = `55799${clean}`;
+        } else if (clean.length === 9) {
+            clean = `5579${clean}`;
+        } else if (clean.length === 10 || clean.length === 11) {
             clean = `55${clean}`;
         }
         return clean;
@@ -71,7 +76,11 @@ class WhatsAppNotificationService {
      * Monta o link do rastreador do pedido
      */
     buildTrackingUrl(order, originUrl) {
-        let base = originUrl || 'http://localhost:3300';
+        let base = originUrl || 'https://favodemel.137.131.164.202.sslip.io';
+        // Sempre força HTTPS em produção/domínios públicos para evitar conflito com portas HTTP
+        if (base.includes('sslip.io') || base.includes('apiariofavodemel') || (!base.includes('localhost') && !base.includes('127.0.0.1'))) {
+            base = base.replace(/^http:\/\//i, 'https://');
+        }
         base = base.replace(/\/$/, '');
         const codigo = encodeURIComponent(order.codigo_pedido || order.id || '');
         const token = order.token_acesso ? `&token=${encodeURIComponent(order.token_acesso)}` : '';
@@ -118,7 +127,11 @@ class WhatsAppNotificationService {
 
         const itensFormatados = this.formatItemsList(order.itens);
         const agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        const painelUrl = `${(originUrl || 'http://localhost:3300').replace(/\/$/, '')}/admin.html`;
+        let baseAdmin = originUrl || 'https://favodemel.137.131.164.202.sslip.io';
+        if (baseAdmin.includes('sslip.io') || baseAdmin.includes('apiariofavodemel') || (!baseAdmin.includes('localhost') && !baseAdmin.includes('127.0.0.1'))) {
+            baseAdmin = baseAdmin.replace(/^http:\/\//i, 'https://');
+        }
+        const painelUrl = `${baseAdmin.replace(/\/$/, '')}/admin.html`;
         const rastreioUrl = this.buildTrackingUrl(order, originUrl);
 
         const mensagem = 

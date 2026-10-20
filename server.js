@@ -109,6 +109,17 @@ function sendJson(res, statusCode, data) {
     res.end(JSON.stringify(data));
 }
 
+function getPublicBaseUrl(req) {
+    if (req.headers.origin && !req.headers.origin.includes('localhost') && !req.headers.origin.includes('127.0.0.1')) {
+        return req.headers.origin.replace(/^http:\/\//i, 'https://');
+    }
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        return `https://${host}`;
+    }
+    return req.headers.origin || (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3300');
+}
+
 function getCacheControl(ext, safePath) {
     if (safePath.startsWith('/api/') || safePath.startsWith('/admin')) {
         return 'no-store, no-cache, must-revalidate';
@@ -483,7 +494,7 @@ const server = http.createServer(async (req, res) => {
             const waUrl = `https://wa.me/${numeroVendedor}?text=${encodeURIComponent(msgWa)}`;
 
             // Disparo assíncrono das notificações via Evolution API (Estilo Trem Delivery)
-            const originUrl = req.headers.origin || (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3300');
+            const originUrl = getPublicBaseUrl(req);
             whatsappService.notifyStoreNewOrder(novoPedido, originUrl).catch(err => {
                 console.error('[WhatsApp Loja] Erro assíncrono ao notificar vendedor:', err.message);
             });
@@ -541,7 +552,7 @@ const server = http.createServer(async (req, res) => {
                 // Dispara notificação de mudança de status para o cliente via WhatsApp (Estilo Trem Delivery)
                 const pedidoCompleto = await db.obterPedidoPorCodigo(pedidoCodigo);
                 if (pedidoCompleto) {
-                    const originUrl = req.headers.origin || (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3300');
+                    const originUrl = getPublicBaseUrl(req);
                     whatsappService.notifyCustomerStatusUpdate(pedidoCompleto, body.status, originUrl).catch(err => {
                         console.error('[WhatsApp Status] Erro assíncrono ao notificar cliente:', err.message);
                     });
