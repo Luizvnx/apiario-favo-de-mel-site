@@ -875,6 +875,17 @@ const server = http.createServer(async (req, res) => {
         safePath = '/index.html';
     }
 
+    // Redirecionamento 301 Canônico de URLs com .html para URLs limpas (SEO & UX)
+    if (safePath.endsWith('.html') && safePath !== '/index.html') {
+        const cleanPath = safePath.replace(/\.html$/, '');
+        const queryStr = parsedUrl.search || '';
+        res.writeHead(301, {
+            'Location': cleanPath + queryStr,
+            'Cache-Control': 'public, max-age=3600'
+        });
+        return res.end();
+    }
+
     let filePath = path.join(BASE_DIR, safePath);
 
     if (!filePath.startsWith(BASE_DIR)) {

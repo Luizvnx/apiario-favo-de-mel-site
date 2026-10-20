@@ -37,12 +37,20 @@ class CatalogoApp {
     }
 
     async init() {
+        this.limparExtensaoUrl();
         this.configurarEventosGlobais();
         await this.carregarDadosDoServidor();
         this.renderizarCategorias();
         this.renderizarProdutos();
         this.atualizarInterfaceCarrinho();
         this.verificarParametroAutoAdd();
+    }
+
+    limparExtensaoUrl() {
+        if (window.location.pathname.endsWith('.html')) {
+            const clean = window.location.pathname.replace(/\.html$/i, '');
+            window.history.replaceState(null, '', clean + window.location.search + window.location.hash);
+        }
     }
 
     // =========================================================================
@@ -1275,7 +1283,7 @@ class CatalogoApp {
 
                 // Redireciona DIRETAMENTE para a página de rastreio no próprio site!
                 const urlToken = data.token_acesso ? `&token=${encodeURIComponent(data.token_acesso)}` : '';
-                window.location.href = `/pedido.html?codigo=${encodeURIComponent(data.codigo_pedido)}${urlToken}`;
+                window.location.href = `/pedido?codigo=${encodeURIComponent(data.codigo_pedido)}${urlToken}`;
                 return;
             } else {
                 throw new Error(data.erro || 'Erro ao registrar pedido.');
@@ -1305,7 +1313,7 @@ class CatalogoApp {
             } catch (_) {}
 
             this.limparCarrinho();
-            window.location.href = `/pedido.html?codigo=${encodeURIComponent(codigoPedido)}&token=${encodeURIComponent(tokenAcesso)}`;
+            window.location.href = `/pedido?codigo=${encodeURIComponent(codigoPedido)}&token=${encodeURIComponent(tokenAcesso)}`;
         }
     }
 

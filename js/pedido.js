@@ -22,6 +22,11 @@ class PedidoTrackingApp {
     }
 
     init() {
+        if (window.location.pathname.endsWith('.html')) {
+            const clean = window.location.pathname.replace(/\.html$/i, '');
+            window.history.replaceState(null, '', clean + window.location.search + window.location.hash);
+        }
+
         const params = new URLSearchParams(window.location.search);
         this.codigo = (params.get('codigo') || params.get('id') || '').trim();
         this.token = (params.get('token') || '').trim();

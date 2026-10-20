@@ -4,14 +4,23 @@ Options -Indexes
 RewriteEngine On
 RewriteBase /
 
-# Permite acesso direto a arquivos e pastas existentes
-RewriteCond %{REQUEST_FILENAME} -f [OR]
+# 1. Redirecionamento Canônico 301 de URLs terminadas em .html para URLs limpas (sem .html)
+RewriteCond %{THE_REQUEST} \s/+(.+?)\.html[\s?] [NC]
+RewriteCond %{REQUEST_URI} !^/index\.html
+RewriteRule ^ /%1 [R=301,L]
+
+# 2. Permite acesso direto a arquivos estáticos existentes (exceto .html que já foram tratados)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_URI} !\.(html|htm)$ [NC]
+RewriteRule ^ - [L]
+
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Rotas amigáveis explícitas de produtos, serviços e catálogo
+# 3. Rotas amigáveis explícitas de produtos, serviços e catálogo
 RewriteRule ^catalogo/?$ catalogo.html [L]
 RewriteRule ^pedido/?$ pedido.html [L]
+RewriteRule ^admin/?$ admin.html [L]
 RewriteRule ^mel-com-favo/?$ mel-com-favo.html [L]
 RewriteRule ^propolis-vermelha/?$ propolis-vermelha.html [L]
 RewriteRule ^propolis-verde/?$ propolis-verde.html [L]
@@ -22,11 +31,11 @@ RewriteRule ^kit-presente/?$ kit-presente.html [L]
 RewriteRule ^resgate-de-abelhas/?$ resgate-de-abelhas.html [L]
 RewriteRule ^consultoria-apicola/?$ consultoria-apicola.html [L]
 
-# Fallback genérico para qualquer página .html sem extensão
+# 4. Fallback genérico para qualquer página .html sem extensão
 RewriteCond %{DOCUMENT_ROOT}/$1.html -f
 RewriteRule ^([^/]+)/?$ $1.html [L]
 
-# Rota raiz abre index.html
+# 5. Rota raiz abre index.html
 RewriteRule ^$ index.html [L]
 
 # Compressão Gzip para carregamento instantâneo
