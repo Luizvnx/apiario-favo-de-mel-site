@@ -101,25 +101,35 @@ body {
    ========================================================================== */
 .admin-layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
 }
 
 .admin-sidebar {
     width: 270px;
+    height: 100vh;
+    max-height: 100vh;
     background: var(--color-dark-surface);
     color: #FFFFFF;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     flex-shrink: 0;
     border-right: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    overflow: hidden;
+    z-index: 100;
 }
 
 .admin-sidebar-header {
-    padding: 1.75rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     gap: 0.9rem;
+    flex-shrink: 0;
 }
 
 .admin-sidebar-logo {
@@ -148,22 +158,25 @@ body {
 }
 
 .admin-nav {
-    padding: 1.25rem 0.85rem;
+    padding: 0.85rem 0.85rem;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.25rem;
     flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .admin-nav-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 0.95rem;
     border-radius: var(--radius-sm);
     color: #D1C7BD;
     text-decoration: none;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     font-weight: 500;
     transition: all 0.2s ease;
     border: none;
@@ -190,11 +203,13 @@ body {
 }
 
 .admin-sidebar-footer {
-    padding: 1.25rem;
+    padding: 1.1rem 1.25rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    background: var(--color-dark-surface);
 }
 
 .admin-link-store {
@@ -241,6 +256,8 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    height: 100vh;
+    max-height: 100vh;
     overflow-y: auto;
 }
 
@@ -252,6 +269,10 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
 .admin-topbar-title h1 {
@@ -729,10 +750,27 @@ textarea.form-control {
 @media (max-width: 900px) {
     .admin-layout {
         flex-direction: column;
+        height: auto;
+        max-height: none;
+        overflow: visible;
     }
 
     .admin-sidebar {
         width: 100%;
+        height: auto;
+        max-height: none;
+        position: static;
+        overflow: visible;
+    }
+
+    .admin-main {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .admin-topbar {
+        position: static;
     }
 
     .admin-nav {
