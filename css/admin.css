@@ -787,3 +787,63 @@ textarea.form-control {
     color: #991B1B;
 }
 
+/* ==========================================================================
+   SELETOR DE IMAGENS E CARDS DE LANDING PAGES
+   ========================================================================== */
+.image-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 0.75rem;
+    padding: 0.5rem 0.25rem;
+}
+
+.gallery-item {
+    background: #FFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.gallery-item:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.gallery-item.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    outline: 2px solid var(--color-primary);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 0.35rem;
+    background: #FAF7F2;
+}
+
+.gallery-item span {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    line-height: 1.2;
+}
+
+.landing-page-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: #D98200;
+}
+

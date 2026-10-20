@@ -11,6 +11,8 @@ class AdminApp {
         this.categorias = [];
         this.pedidos = [];
         this.imagensDisponiveis = [];
+        this.landingPages = [];
+        this.landingTargetPicker = 'Principal';
         this.config = {
             nome_loja: 'Apiário Favo de Mel',
             whatsapp: '557988125726',
@@ -35,6 +37,7 @@ class AdminApp {
         this.configurarEventosPix();
         this.configurarEventosLoja();
         this.configurarEventosPedidos();
+        this.configurarEventosLandingPages();
         this.configurarEventosSeguranca();
 
         if (this.token) {
@@ -114,6 +117,7 @@ class AdminApp {
         await this.carregarImagensGaleria();
         await this.carregarProdutos();
         await this.carregarPedidos();
+        await this.carregarLandingPages();
         this.atualizarSimuladorPix();
     }
 
@@ -167,6 +171,7 @@ class AdminApp {
             tabPix: { titulo: 'Chave PIX & Pagamentos', subtitulo: 'Configure sua chave oficial e teste o código Copia e Cola' },
             tabLoja: { titulo: 'Configurações da Loja', subtitulo: 'Horários, telefone WhatsApp de vendas e taxas de entrega' },
             tabPedidos: { titulo: 'Pedidos & Vendas', subtitulo: 'Histórico de pedidos recebidos pelo site e atualizações de entrega' },
+            tabLandingPages: { titulo: 'Fotos das Landing Pages', subtitulo: 'Altere as fotos do hero e galerias das páginas individuais de cada produto' },
             tabSeguranca: { titulo: 'Segurança & Credenciais', subtitulo: 'Altere o e-mail e a senha de acesso administrativo' }
         };
 
@@ -187,6 +192,10 @@ class AdminApp {
                 const btnNovoProd = document.getElementById('btnOpenNewProductModal');
                 if (btnNovoProd) {
                     btnNovoProd.style.display = targetTab === 'tabProdutos' ? 'inline-flex' : 'none';
+                }
+
+                if (targetTab === 'tabLandingPages') {
+                    this.carregarLandingPages();
                 }
             });
         });
@@ -1058,6 +1067,323 @@ class AdminApp {
                 btnSalvar.innerHTML = btnOriginal;
             }
         });
+    }
+
+    // =========================================================================
+    // 10. GESTÃO DE FOTOS DAS LANDING PAGES DOS PRODUTOS
+    // =========================================================================
+    configurarEventosLandingPages() {
+        // Filtro de busca de páginas
+        document.getElementById('filtroLandingInput')?.addEventListener('input', (e) => {
+            this.renderizarCardsLandingPages(e.target.value);
+        });
+
+        // Fechar modal de landing page
+        const fecharModal = () => {
+            document.getElementById('modalLandingPageOverlay')?.classList.remove('active');
+            this.fecharSeletorFotoLanding();
+        };
+        document.getElementById('btnCloseModalLanding')?.addEventListener('click', fecharModal);
+        document.getElementById('btnCancelModalLanding')?.addEventListener('click', fecharModal);
+
+        // Botões para escolher foto
+        document.querySelectorAll('.btn-pick-landing-img').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-target'); // 'Principal', 'Thumb1', 'Thumb2', 'Thumb3'
+                this.abrirSeletorFotoLanding(target);
+            });
+        });
+
+        // Fechar seletor embutido
+        document.getElementById('btnCloseLandingPicker')?.addEventListener('click', () => {
+            this.fecharSeletorFotoLanding();
+        });
+
+        // Filtro de fotos no seletor
+        document.getElementById('filtroLandingPickerInput')?.addEventListener('input', (e) => {
+            this.renderizarGaleriaPickerLanding(e.target.value);
+        });
+
+        // Salvar fotos da landing page
+        document.getElementById('btnSaveModalLanding')?.addEventListener('click', () => {
+            this.salvarFotosLandingPageForm();
+        });
+    }
+
+    async carregarLandingPages() {
+        try {
+            const res = await fetch(this.getApiUrl('/api/admin/landing-pages'));
+            const data = await res.json();
+            if (data.sucesso && Array.isArray(data.paginas)) {
+                this.landingPages = data.paginas;
+            } else {
+                this.landingPages = [];
+            }
+        } catch (err) {
+            console.warn('Erro ao carregar landing pages:', err.message);
+            this.landingPages = [];
+        }
+
+        const countEl = document.getElementById('totalLandingPagesCount');
+        if (countEl) countEl.innerText = this.landingPages.length;
+
+        this.renderizarCardsLandingPages();
+    }
+
+    renderizarCardsLandingPages(filtro = '') {
+        const grid = document.getElementById('gridLandingPages');
+        if (!grid) return;
+
+        const termo = (filtro || '').toLowerCase().trim();
+        const filtradas = this.landingPages.filter(p => {
+            return !termo || p.titulo.toLowerCase().includes(termo) || p.slug.toLowerCase().includes(termo) || (p.categoria && p.categoria.toLowerCase().includes(termo));
+        });
+
+        if (filtradas.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--color-text-muted);">
+                    Nenhuma página encontrada para a busca informada.
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = filtradas.map(p => {
+            const fotoPrinc = this.resolverCaminhoFoto(p.foto_principal);
+            const thumb1 = this.resolverCaminhoFoto(p.foto_thumb1 || p.foto_principal);
+            const thumb2 = this.resolverCaminhoFoto(p.foto_thumb2 || p.foto_principal);
+            const thumb3 = this.resolverCaminhoFoto(p.foto_thumb3 || p.foto_principal);
+
+            return `
+                <div class="landing-page-card" style="background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;">
+                    <!-- Foto Principal Hero com Badge -->
+                    <div style="position: relative; width: 100%; height: 160px; background: #FAF7F2; overflow: hidden; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--color-border);">
+                        <img src="${fotoPrinc}" alt="${p.titulo}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <span style="position: absolute; top: 10px; left: 10px; background: rgba(44, 35, 28, 0.85); color: #FFF; font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 4px; backdrop-filter: blur(4px);">
+                            ${p.categoria || 'Produto'}
+                        </span>
+                        <a href="${p.url}" target="_blank" style="position: absolute; top: 10px; right: 10px; background: #FFF; color: var(--color-primary); font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 4px; box-shadow: var(--shadow-sm); text-decoration: none;" title="Abrir página ao vivo">
+                            ${p.url} ↗
+                        </a>
+                    </div>
+
+                    <!-- Conteúdo do Card -->
+                    <div style="padding: 1.25rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <h4 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--color-dark); margin-bottom: 0.5rem; line-height: 1.3;">
+                                ${p.titulo}
+                            </h4>
+                            <div style="font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+                                Arquivo: <code>${p.arquivo_html}</code>
+                            </div>
+
+                            <!-- Miniaturas Atuais -->
+                            <div style="margin-bottom: 1.25rem;">
+                                <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.03em;">
+                                    Galeria Atual da Página:
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <div style="width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--color-border); overflow: hidden; background: #FFF;" title="Miniatura 1">
+                                        <img src="${thumb1}" alt="Thumb 1" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    <div style="width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--color-border); overflow: hidden; background: #FFF;" title="Miniatura 2">
+                                        <img src="${thumb2}" alt="Thumb 2" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    <div style="width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--color-border); overflow: hidden; background: #FFF;" title="Miniatura 3">
+                                        <img src="${thumb3}" alt="Thumb 3" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botão de Ação -->
+                        <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--color-border); padding-top: 1rem; margin-top: auto;">
+                            <button type="button" class="btn-admin btn-admin-primary btn-admin-sm btn-editar-landing" data-slug="${p.slug}" style="flex: 1; justify-content: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                <span>Editar Fotos</span>
+                            </button>
+                            <a href="${p.url}" target="_blank" class="btn-admin btn-admin-secondary btn-admin-sm" style="padding: 0.4rem 0.6rem;" title="Visualizar página ao vivo">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Eventos nos botões de editar
+        grid.querySelectorAll('.btn-editar-landing').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const slug = btn.getAttribute('data-slug');
+                this.abrirModalLandingPage(slug);
+            });
+        });
+    }
+
+    abrirModalLandingPage(slug) {
+        const p = this.landingPages.find(item => item.slug === slug);
+        if (!p) return;
+
+        document.getElementById('landingEditSlug').value = p.slug;
+        document.getElementById('modalLandingTitle').innerText = `Editar Fotos: ${p.titulo}`;
+        
+        const urlLink = document.getElementById('modalLandingUrlLink');
+        if (urlLink) {
+            urlLink.href = p.url;
+            urlLink.innerText = `${p.url} ↗`;
+        }
+
+        const btnAoVivo = document.getElementById('btnVerPaginaAoVivo');
+        if (btnAoVivo) btnAoVivo.href = p.url;
+
+        // Limpa alerta de sucesso
+        const alertSuccess = document.getElementById('msgLandingSucesso');
+        if (alertSuccess) alertSuccess.style.display = 'none';
+
+        // Preenche Foto Principal
+        const fotoPrinc = p.foto_principal || '';
+        document.getElementById('landingInputPrincipal').value = fotoPrinc;
+        document.getElementById('landingPreviewPrincipal').src = this.resolverCaminhoFoto(fotoPrinc);
+
+        // Preenche Thumbs
+        const t1 = p.foto_thumb1 || fotoPrinc;
+        document.getElementById('landingInputThumb1').value = t1;
+        document.getElementById('landingPreviewThumb1').src = this.resolverCaminhoFoto(t1);
+
+        const t2 = p.foto_thumb2 || fotoPrinc;
+        document.getElementById('landingInputThumb2').value = t2;
+        document.getElementById('landingPreviewThumb2').src = this.resolverCaminhoFoto(t2);
+
+        const t3 = p.foto_thumb3 || fotoPrinc;
+        document.getElementById('landingInputThumb3').value = t3;
+        document.getElementById('landingPreviewThumb3').src = this.resolverCaminhoFoto(t3);
+
+        this.fecharSeletorFotoLanding();
+
+        document.getElementById('modalLandingPageOverlay')?.classList.add('active');
+    }
+
+    abrirSeletorFotoLanding(target) {
+        this.landingTargetPicker = target; // 'Principal', 'Thumb1', 'Thumb2', 'Thumb3'
+        const targetNameMap = {
+            'Principal': 'Foto Principal do Hero',
+            'Thumb1': 'Miniatura 1 (Galeria)',
+            'Thumb2': 'Miniatura 2 (Galeria)',
+            'Thumb3': 'Miniatura 3 (Galeria)'
+        };
+
+        const targetEl = document.getElementById('landingPickerTargetName');
+        if (targetEl) targetEl.innerText = targetNameMap[target] || target;
+
+        const container = document.getElementById('landingPickerContainer');
+        if (container) {
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        const inputFiltro = document.getElementById('filtroLandingPickerInput');
+        if (inputFiltro) inputFiltro.value = '';
+
+        this.renderizarGaleriaPickerLanding();
+    }
+
+    fecharSeletorFotoLanding() {
+        const container = document.getElementById('landingPickerContainer');
+        if (container) container.style.display = 'none';
+    }
+
+    renderizarGaleriaPickerLanding(filtro = '') {
+        const grid = document.getElementById('landingPickerGallery');
+        if (!grid) return;
+
+        const termo = (filtro || '').toLowerCase().trim();
+        const filtradas = this.imagensDisponiveis.filter(img => !termo || img.toLowerCase().includes(termo));
+
+        if (filtradas.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1 / -1; padding: 1.5rem; text-align: center; color: var(--color-text-muted);">Nenhuma imagem encontrada.</div>`;
+            return;
+        }
+
+        const currentVal = document.getElementById(`landingInput${this.landingTargetPicker}`)?.value || '';
+
+        grid.innerHTML = filtradas.map(imgName => {
+            const isSel = currentVal.includes(imgName);
+
+            return `
+                <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}" style="cursor: pointer;">
+                    <img src="/assets/products/${imgName}" alt="${imgName}" loading="lazy">
+                    <span>${imgName.replace(/\.[^/.]+$/, "")}</span>
+                </div>
+            `;
+        }).join('');
+
+        grid.querySelectorAll('.gallery-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const fileName = item.getAttribute('data-file');
+                const fullPath = `/assets/products/${fileName}`;
+
+                const inputEl = document.getElementById(`landingInput${this.landingTargetPicker}`);
+                const previewEl = document.getElementById(`landingPreview${this.landingTargetPicker}`);
+
+                if (inputEl) inputEl.value = fullPath;
+                if (previewEl) previewEl.src = fullPath;
+
+                this.fecharSeletorFotoLanding();
+            });
+        });
+    }
+
+    async salvarFotosLandingPageForm() {
+        const slug = document.getElementById('landingEditSlug').value;
+        if (!slug) return;
+
+        const btnSave = document.getElementById('btnSaveModalLanding');
+        const btnOriginal = btnSave ? btnSave.innerHTML : '';
+        if (btnSave) {
+            btnSave.disabled = true;
+            btnSave.innerText = 'Salvando e atualizando HTML...';
+        }
+
+        const payload = {
+            foto_principal: document.getElementById('landingInputPrincipal').value.trim(),
+            foto_thumb1: document.getElementById('landingInputThumb1').value.trim(),
+            foto_thumb2: document.getElementById('landingInputThumb2').value.trim(),
+            foto_thumb3: document.getElementById('landingInputThumb3').value.trim()
+        };
+
+        try {
+            const res = await fetch(this.getApiUrl(`/api/admin/landing-pages/${slug}`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.sucesso) {
+                // Atualiza na memória
+                const idx = this.landingPages.findIndex(p => p.slug === slug);
+                if (idx !== -1) {
+                    this.landingPages[idx] = { ...this.landingPages[idx], ...payload };
+                }
+
+                this.renderizarCardsLandingPages();
+
+                const alertSuccess = document.getElementById('msgLandingSucesso');
+                if (alertSuccess) {
+                    alertSuccess.style.display = 'flex';
+                    alertSuccess.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            } else {
+                alert('Erro ao salvar fotos da página: ' + (data.erro || 'Erro desconhecido'));
+            }
+        } catch (err) {
+            alert('Falha de rede ao salvar fotos: ' + err.message);
+        } finally {
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.innerHTML = btnOriginal;
+            }
+        }
     }
 }
 

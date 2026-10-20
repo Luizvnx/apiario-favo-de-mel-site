@@ -831,6 +831,145 @@ class DatabaseAdapter {
         }
     }
 
+    // 5. Landing Pages dos Produtos
+    async listarLandingPages() {
+        const defaultList = [
+            {
+                slug: "mel-com-favo",
+                titulo: "Mel com Favo Nobre 500g",
+                categoria: "Méis Nobres",
+                arquivo_html: "mel-com-favo.html",
+                url: "/mel-com-favo",
+                foto_principal: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb1: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb2: "/assets/products/Favo-de-mel-em-quadro.webp",
+                foto_thumb3: "/assets/images/kit-presente-500w.webp"
+            },
+            {
+                slug: "propolis-vermelha",
+                titulo: "Própolis Vermelha Nobre 20ml",
+                categoria: "Própolis & Saúde",
+                arquivo_html: "propolis-vermelha.html",
+                url: "/propolis-vermelha",
+                foto_principal: "/assets/products/Propolis-vermelha-20ml.webp",
+                foto_thumb1: "/assets/products/Propolis-vermelha-20ml.webp",
+                foto_thumb2: "/assets/products/Propolis-verde-20ml.webp",
+                foto_thumb3: "/assets/images/kit-presente-500w.webp"
+            },
+            {
+                slug: "propolis-verde",
+                titulo: "Própolis Verde Pura 20ml",
+                categoria: "Própolis & Saúde",
+                arquivo_html: "propolis-verde.html",
+                url: "/propolis-verde",
+                foto_principal: "/assets/products/Propolis-verde-20ml.webp",
+                foto_thumb1: "/assets/products/Propolis-verde-20ml.webp",
+                foto_thumb2: "/assets/products/Propolis-vermelha-20ml.webp",
+                foto_thumb3: "/assets/products/Mel-in-Natura-500g.webp"
+            },
+            {
+                slug: "mel-de-urucu",
+                titulo: "Mel de Abelha Uruçu 280g (Nativa)",
+                categoria: "Méis Nobres",
+                arquivo_html: "mel-de-urucu.html",
+                url: "/mel-de-urucu",
+                foto_principal: "/assets/products/Mel-in-natura-280g.webp",
+                foto_thumb1: "/assets/products/Mel-in-natura-280g.webp",
+                foto_thumb2: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb3: "/assets/products/Polen-apicola-140g.webp"
+            },
+            {
+                slug: "mel-silvestre",
+                titulo: "Mel Silvestre in Natura 500g",
+                categoria: "Méis Nobres",
+                arquivo_html: "mel-silvestre.html",
+                url: "/mel-silvestre",
+                foto_principal: "/assets/products/Mel-in-Natura-500g.webp",
+                foto_thumb1: "/assets/products/Mel-in-Natura-500g.webp",
+                foto_thumb2: "/assets/products/Mel-in-Natura-1400g.webp",
+                foto_thumb3: "/assets/products/Mel-cristalizado.webp"
+            },
+            {
+                slug: "polen-apicola",
+                titulo: "Pólen Apícola Desidratado 140g",
+                categoria: "Superalimentos",
+                arquivo_html: "polen-apicola.html",
+                url: "/polen-apicola",
+                foto_principal: "/assets/products/Polen-apicola-140g.webp",
+                foto_thumb1: "/assets/products/Polen-apicola-140g.webp",
+                foto_thumb2: "/assets/products/Mel-in-Natura-500g.webp",
+                foto_thumb3: "/assets/products/Mel-com-favo-500g.webp"
+            },
+            {
+                slug: "kit-presente",
+                titulo: "Kit Presente Degustação & Madeira Artesanal",
+                categoria: "Kits & Especiais",
+                arquivo_html: "kit-presente.html",
+                url: "/kit-presente",
+                foto_principal: "/assets/products/Kit-presente.webp",
+                foto_thumb1: "/assets/products/Kit-presente.webp",
+                foto_thumb2: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb3: "/assets/products/Kit-de-sabinete-terapeutico.webp"
+            },
+            {
+                slug: "resgate-de-abelhas",
+                titulo: "Resgate e Captura Ecológica de Abelhas",
+                categoria: "Serviços Especializados",
+                arquivo_html: "resgate-de-abelhas.html",
+                url: "/resgate-de-abelhas",
+                foto_principal: "/assets/products/Foto-no-apiario-1.webp",
+                foto_thumb1: "/assets/products/Foto-no-apiario-1.webp",
+                foto_thumb2: "/assets/products/Fumigador.webp",
+                foto_thumb3: "/assets/products/Caixa-de-abelha-nativa-urucu.webp"
+            },
+            {
+                slug: "consultoria-apicola",
+                titulo: "Consultoria Apícola & Implantação de Apiários",
+                categoria: "Serviços Especializados",
+                arquivo_html: "consultoria-apicola.html",
+                url: "/consultoria-apicola",
+                foto_principal: "/assets/products/Foto-no-apiario.webp",
+                foto_thumb1: "/assets/products/Foto-no-apiario.webp",
+                foto_thumb2: "/assets/products/Caixa-de-abelha-nativa-urucu.webp",
+                foto_thumb3: "/assets/products/Fumigador.webp"
+            }
+        ];
+
+        let pages = this.readJson('landing_pages.json', null);
+        if (!pages || !Array.isArray(pages) || pages.length === 0) {
+            this.writeJson('landing_pages.json', defaultList);
+            pages = defaultList;
+        }
+        return { paginas: pages, fonte: 'local_json' };
+    }
+
+    async obterLandingPage(slug) {
+        const { paginas } = await this.listarLandingPages();
+        return paginas.find(p => p.slug === slug) || null;
+    }
+
+    async salvarLandingPage(slug, novosDados) {
+        const { paginas } = await this.listarLandingPages();
+        const idx = paginas.findIndex(p => p.slug === slug);
+        if (idx === -1) {
+            throw new Error(`Página com slug "${slug}" não encontrada.`);
+        }
+
+        const atual = paginas[idx];
+        const atualizado = {
+            ...atual,
+            ...novosDados,
+            slug: atual.slug,
+            arquivo_html: atual.arquivo_html,
+            url: atual.url,
+            atualizado_em: new Date().toISOString()
+        };
+
+        paginas[idx] = atualizado;
+        this.writeJson('landing_pages.json', paginas);
+        return { pagina: atualizado, fonte: 'local_json' };
+    }
+
     getStatus() {
         return {
             conectado: this.isConnected,

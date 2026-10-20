@@ -139,6 +139,68 @@ function getCacheControl(ext, safePath) {
     return 'public, max-age=3600';
 }
 
+function normalizarCaminhoFoto(foto) {
+    if (!foto) return '';
+    foto = String(foto).trim();
+    if (foto.startsWith('http://') || foto.startsWith('https://')) return foto;
+    if (foto.startsWith('/assets/')) return foto;
+    if (foto.startsWith('assets/')) return `/${foto}`;
+    return `/assets/products/${foto}`;
+}
+
+function atualizarHtmlLandingPage(arquivoHtml, novosDados) {
+    const filePath = path.join(BASE_DIR, arquivoHtml);
+    if (!fs.existsSync(filePath)) {
+        console.warn(`[LandingPages] Arquivo HTML não encontrado para atualização: ${arquivoHtml}`);
+        return false;
+    }
+
+    try {
+        let content = fs.readFileSync(filePath, 'utf8');
+
+        const fotoPrincipal = normalizarCaminhoFoto(novosDados.foto_principal);
+        const fotoThumb1 = normalizarCaminhoFoto(novosDados.foto_thumb1 || novosDados.foto_principal);
+        const fotoThumb2 = normalizarCaminhoFoto(novosDados.foto_thumb2 || novosDados.foto_principal);
+        const fotoThumb3 = normalizarCaminhoFoto(novosDados.foto_thumb3 || novosDados.foto_principal);
+
+        // 1. Atualiza imagem principal do hero: <img id="mainProductImg" src="..."
+        content = content.replace(/(<img\s+id=["']mainProductImg["'][^>]*\ssrc=["'])[^"']+(["'])/i, `$1${fotoPrincipal}$2`);
+
+        // 2. Atualiza miniaturas da galeria dentro de .product-thumbs
+        const thumbsRegex = /<div class="product-thumbs">([\s\S]*?)<\/div>\s*<\/div>/i;
+        const match = content.match(thumbsRegex);
+        if (match) {
+            const newThumbsHtml = 
+`<div class="product-thumbs">
+                        <div class="product-thumb-item active" onclick="changeThumb('${fotoThumb1}', this)">
+                            <img src="${fotoThumb1}" alt="Visualização 1">
+                        </div>
+                        <div class="product-thumb-item" onclick="changeThumb('${fotoThumb2}', this)">
+                            <img src="${fotoThumb2}" alt="Visualização 2">
+                        </div>
+                        <div class="product-thumb-item" onclick="changeThumb('${fotoThumb3}', this)">
+                            <img src="${fotoThumb3}" alt="Visualização 3">
+                        </div>
+                    </div>
+                </div>`;
+            content = content.replace(thumbsRegex, newThumbsHtml);
+        }
+
+        // 3. Atualiza Schema.org JSON-LD image se existir
+        const schemaImgRegex = /"image":\s*\[\s*"[^"]*",\s*"[^"]*"\s*\]/i;
+        if (schemaImgRegex.test(content)) {
+            content = content.replace(schemaImgRegex, `"image": [\n            "${fotoPrincipal}",\n            "${fotoThumb2}"\n          ]`);
+        }
+
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log(`[LandingPages] ✓ HTML ${arquivoHtml} atualizado com novas fotos com sucesso!`);
+        return true;
+    } catch (err) {
+        console.error(`[LandingPages] Erro ao atualizar HTML ${arquivoHtml}:`, err.message);
+        return false;
+    }
+}
+
 function parseBody(req) {
     return new Promise((resolve, reject) => {
         let body = '';
@@ -272,21 +334,17 @@ const server = http.createServer(async (req, res) => {
         });
     };
 
-    // 🔒 SEGURANÇA: ROTA SECRETA EXCLUSIVA DO PAINEL ADMINISTRATIVO
-    // Apenas /admin/favodemel ou /favodemel/admin dão acesso à tela administrativa.
-    const isSecretAdminRoute = safePath === '/admin/favodemel' || 
-                               safePath === '/admin/favodemel/' || 
-                               safePath === '/favodemel/admin' || 
-                               safePath === '/favodemel/admin/';
+    // ROTA DO PAINEL ADMINISTRATIVO (Suporta /admin.html, /admin e a rota segura /admin/favodemel)
+    const isAdminRoute = safePath === '/admin' || 
+                         safePath === '/admin/' || 
+                         safePath === '/admin.html' || 
+                         safePath === '/admin/favodemel' || 
+                         safePath === '/admin/favodemel/' || 
+                         safePath === '/favodemel/admin' || 
+                         safePath === '/favodemel/admin/';
 
-    if (isSecretAdminRoute) {
+    if (isAdminRoute) {
         return serveFile(path.join(BASE_DIR, 'admin.html'));
-    }
-
-    // 🔒 Bloqueia varreduras diretas em /admin ou /admin.html respondendo como 404
-    if (safePath === '/admin' || safePath === '/admin/' || safePath === '/admin.html') {
-        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
-        return res.end(render404(safePath));
     }
 
     // =========================================================================
@@ -440,6 +498,50 @@ const server = http.createServer(async (req, res) => {
             return sendJson(res, 200, { sucesso: true, imagens: [] });
         } catch (err) {
             return sendJson(res, 500, { sucesso: false, erro: 'Falha ao listar imagens: ' + err.message });
+        }
+    }
+
+    // 5.1. Gestão das Fotos das Landing Pages dos Produtos
+    if (safePath === '/api/admin/landing-pages' && req.method === 'GET') {
+        try {
+            const { paginas, fonte } = await db.listarLandingPages();
+            return sendJson(res, 200, { sucesso: true, paginas, fonte });
+        } catch (err) {
+            return sendJson(res, 500, { sucesso: false, erro: err.message });
+        }
+    }
+
+    if (safePath.startsWith('/api/admin/landing-pages/')) {
+        const slug = safePath.replace('/api/admin/landing-pages/', '').trim();
+
+        if (req.method === 'GET' && slug) {
+            try {
+                const pagina = await db.obterLandingPage(slug);
+                if (!pagina) {
+                    return sendJson(res, 404, { sucesso: false, erro: 'Página não encontrada' });
+                }
+                return sendJson(res, 200, { sucesso: true, pagina });
+            } catch (err) {
+                return sendJson(res, 500, { sucesso: false, erro: err.message });
+            }
+        }
+
+        if (req.method === 'POST' && slug) {
+            try {
+                const body = await parseBody(req);
+                const { pagina, fonte } = await db.salvarLandingPage(slug, body);
+                if (pagina && pagina.arquivo_html) {
+                    atualizarHtmlLandingPage(pagina.arquivo_html, pagina);
+                }
+                return sendJson(res, 200, { 
+                    sucesso: true, 
+                    mensagem: 'Fotos da página atualizadas com sucesso!',
+                    pagina, 
+                    fonte 
+                });
+            } catch (err) {
+                return sendJson(res, 400, { sucesso: false, erro: err.message });
+            }
         }
     }
 
