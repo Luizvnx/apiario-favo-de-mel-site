@@ -121,7 +121,7 @@
                 <div class="admin-topbar-actions">
                     <div class="status-indicator">
                         <span class="status-dot green"></span>
-                        <span id="serverStatusText">Servidor Local Conectado</span>
+                        <span id="serverStatusText">Catálogo Online & Sincronizado</span>
                     </div>
                     <button id="btnOpenNewProductModal" class="btn-admin btn-admin-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -620,7 +620,7 @@
                     
                     <div style="display: flex; gap: 1.25rem; align-items: center;">
                         <div style="width: 110px; height: 110px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; background: #FFF; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                            <img id="landingPreviewPrincipal" src="" alt="Foto Principal" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img id="landingPreviewPrincipal" src="" alt="Foto Principal" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <div style="flex: 1;">
                             <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-dark); margin-bottom: 0.35rem;">Caminho / Arquivo Selecionado:</div>
@@ -646,7 +646,7 @@
                     <div style="background: #FAF7F2; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
                         <span style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.5rem;">Miniatura 1 (Padrão)</span>
                         <div style="width: 100%; height: 90px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; background: #FFF; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center;">
-                            <img id="landingPreviewThumb1" src="" alt="Thumb 1" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img id="landingPreviewThumb1" src="" alt="Thumb 1" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <input type="text" id="landingInputThumb1" class="form-control" style="font-size: 0.75rem; margin-bottom: 0.5rem; padding: 0.35rem;" readonly>
                         <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb1" style="width: 100%; font-size: 0.78rem;">
@@ -658,7 +658,7 @@
                     <div style="background: #FAF7F2; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
                         <span style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.5rem;">Miniatura 2 (Detalhe)</span>
                         <div style="width: 100%; height: 90px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; background: #FFF; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center;">
-                            <img id="landingPreviewThumb2" src="" alt="Thumb 2" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img id="landingPreviewThumb2" src="" alt="Thumb 2" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <input type="text" id="landingInputThumb2" class="form-control" style="font-size: 0.75rem; margin-bottom: 0.5rem; padding: 0.35rem;" readonly>
                         <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb2" style="width: 100%; font-size: 0.78rem;">
@@ -670,7 +670,7 @@
                     <div style="background: #FAF7F2; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
                         <span style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.5rem;">Miniatura 3 (Contexto)</span>
                         <div style="width: 100%; height: 90px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; background: #FFF; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center;">
-                            <img id="landingPreviewThumb3" src="" alt="Thumb 3" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img id="landingPreviewThumb3" src="" alt="Thumb 3" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <input type="text" id="landingInputThumb3" class="form-control" style="font-size: 0.75rem; margin-bottom: 0.5rem; padding: 0.35rem;" readonly>
                         <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb3" style="width: 100%; font-size: 0.78rem;">
@@ -718,6 +718,6 @@
     <!-- Scripts do Sistema -->
     <script src="/config.js"></script>
     <script src="/js/pix-util.js"></script>
-    <script src="/js/admin.js"></script>
+    <script src="/js/admin.js?v=20261020-2"></script>
 </body>
 </html>

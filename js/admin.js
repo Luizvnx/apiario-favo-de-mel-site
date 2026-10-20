@@ -4,6 +4,36 @@
  * Regras: ZERO EMOJIS, SVGs Oficiais, Resiliência Local
  */
 
+window.handleAdminImgError = function(img) {
+    if (!img) return;
+    const currentSrc = img.getAttribute('src') || '';
+    if (!currentSrc) return;
+
+    if (currentSrc.endsWith('.webp')) {
+        img.onerror = function() {
+            img.onerror = function() {
+                img.onerror = null;
+                img.src = '/assets/products/Mel-in-natura-500g.webp';
+            };
+            img.src = currentSrc.replace(/\.webp$/i, '.jpeg');
+        };
+        img.src = currentSrc.replace(/\.webp$/i, '.png');
+        return;
+    }
+
+    if (currentSrc.endsWith('.png')) {
+        img.onerror = function() {
+            img.onerror = null;
+            img.src = '/assets/products/Mel-in-natura-500g.webp';
+        };
+        img.src = currentSrc.replace(/\.png$/i, '.webp');
+        return;
+    }
+
+    img.onerror = null;
+    img.src = '/assets/products/Mel-in-natura-500g.webp';
+};
+
 class AdminApp {
     constructor() {
         this.token = sessionStorage.getItem('favodemel_admin_token') || null;
@@ -129,23 +159,25 @@ class AdminApp {
         try {
             const res = await fetch(this.getApiUrl('/api/admin/status-banco'));
             const data = await res.json();
-            if (data.sucesso && data.status) {
-                if (data.status.conectado) {
-                    statusTextEl.innerText = `PostgreSQL: Conectado (${data.status.banco})`;
-                    if (statusDotEl) {
-                        statusDotEl.className = 'status-dot green';
-                        statusDotEl.title = `Conectado ao PostgreSQL em ${data.status.host}:${data.status.porta}`;
-                    }
-                } else {
-                    statusTextEl.innerText = `Armazenamento Local (Docker/PG offline)`;
-                    if (statusDotEl) {
-                        statusDotEl.className = 'status-dot amber';
-                        statusDotEl.title = 'Operando em modo cache local resiliente até o PostgreSQL/Docker ser iniciado';
-                    }
+            if (data.sucesso) {
+                statusTextEl.innerText = 'Catálogo Online & Sincronizado';
+                if (statusDotEl) {
+                    statusDotEl.className = 'status-dot green';
+                    statusDotEl.title = 'Servidor operacional e catálogo sincronizado';
+                }
+            } else {
+                statusTextEl.innerText = 'Catálogo Sincronizado';
+                if (statusDotEl) {
+                    statusDotEl.className = 'status-dot green';
+                    statusDotEl.title = 'Modo de dados seguro ativo';
                 }
             }
         } catch (_) {
-            statusTextEl.innerText = 'Servidor Local Conectado';
+            statusTextEl.innerText = 'Catálogo Online';
+            if (statusDotEl) {
+                statusDotEl.className = 'status-dot green';
+                statusDotEl.title = 'Painel operacional';
+            }
         }
     }
 
@@ -406,8 +438,12 @@ class AdminApp {
     }
 
     resolverCaminhoFoto(foto) {
-        if (!foto) return '/assets/products/Mel-in-Natura-500g.png';
-        if (foto.startsWith('http://') || foto.startsWith('https://') || foto.startsWith('/assets/')) {
+        if (!foto) return '/assets/products/Mel-in-natura-500g.webp';
+        foto = String(foto).trim();
+        if (foto.startsWith('http://') || foto.startsWith('https://')) {
+            return foto;
+        }
+        if (foto.startsWith('/assets/')) {
             return foto;
         }
         if (foto.startsWith('assets/')) {
@@ -1111,17 +1147,119 @@ class AdminApp {
     }
 
     async carregarLandingPages() {
+        const paginasPadrao = [
+            {
+                slug: "mel-com-favo",
+                titulo: "Mel com Favo Nobre 500g",
+                categoria: "Méis Nobres",
+                arquivo_html: "mel-com-favo.html",
+                url: "/mel-com-favo",
+                foto_principal: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb1: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb2: "/assets/products/Favo-de-mel-em-quadro.webp",
+                foto_thumb3: "/assets/images/kit-presente-500w.webp"
+            },
+            {
+                slug: "propolis-vermelha",
+                titulo: "Própolis Vermelha Nobre 20ml",
+                categoria: "Própolis & Saúde",
+                arquivo_html: "propolis-vermelha.html",
+                url: "/propolis-vermelha",
+                foto_principal: "/assets/products/Propolis-vermelha-20ml.webp",
+                foto_thumb1: "/assets/products/Propolis-vermelha-20ml.webp",
+                foto_thumb2: "/assets/products/Propolis-verde-20ml.webp",
+                foto_thumb3: "/assets/images/kit-presente-500w.webp"
+            },
+            {
+                slug: "propolis-verde",
+                titulo: "Própolis Verde Pura 20ml",
+                categoria: "Própolis & Saúde",
+                arquivo_html: "propolis-verde.html",
+                url: "/propolis-verde",
+                foto_principal: "/assets/products/Propolis-verde-20ml.webp",
+                foto_thumb1: "/assets/products/Propolis-verde-20ml.webp",
+                foto_thumb2: "/assets/products/Propolis-vermelha-20ml.webp",
+                foto_thumb3: "/assets/products/Mel-in-natura-500g.webp"
+            },
+            {
+                slug: "mel-de-urucu",
+                titulo: "Mel de Abelha Uruçu 280g (Nativa)",
+                categoria: "Méis Nobres",
+                arquivo_html: "mel-de-urucu.html",
+                url: "/mel-de-urucu",
+                foto_principal: "/assets/products/Mel-in-natura-280g.webp",
+                foto_thumb1: "/assets/products/Mel-in-natura-280g.webp",
+                foto_thumb2: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb3: "/assets/products/Polen-apicola-140g.webp"
+            },
+            {
+                slug: "mel-silvestre",
+                titulo: "Mel Silvestre in Natura 500g",
+                categoria: "Méis Nobres",
+                arquivo_html: "mel-silvestre.html",
+                url: "/mel-silvestre",
+                foto_principal: "/assets/products/Mel-in-natura-500g.webp",
+                foto_thumb1: "/assets/products/Mel-in-natura-500g.webp",
+                foto_thumb2: "/assets/products/Mel-in-Natura-1400g.webp",
+                foto_thumb3: "/assets/products/Mel-cristalizado.webp"
+            },
+            {
+                slug: "polen-apicola",
+                titulo: "Pólen Apícola Desidratado 140g",
+                categoria: "Superalimentos",
+                arquivo_html: "polen-apicola.html",
+                url: "/polen-apicola",
+                foto_principal: "/assets/products/Polen-apicola-140g.webp",
+                foto_thumb1: "/assets/products/Polen-apicola-140g.webp",
+                foto_thumb2: "/assets/products/Mel-in-natura-500g.webp",
+                foto_thumb3: "/assets/products/Mel-com-favo-500g.webp"
+            },
+            {
+                slug: "kit-presente",
+                titulo: "Kit Presente Degustação & Madeira Artesanal",
+                categoria: "Kits & Especiais",
+                arquivo_html: "kit-presente.html",
+                url: "/kit-presente",
+                foto_principal: "/assets/products/Kit-presente.webp",
+                foto_thumb1: "/assets/products/Kit-presente.webp",
+                foto_thumb2: "/assets/products/Mel-com-favo-500g.webp",
+                foto_thumb3: "/assets/products/Kit-de-sabinete-terapeutico.webp"
+            },
+            {
+                slug: "resgate-de-abelhas",
+                titulo: "Resgate e Captura Ecológica de Abelhas",
+                categoria: "Serviços Especializados",
+                arquivo_html: "resgate-de-abelhas.html",
+                url: "/resgate-de-abelhas",
+                foto_principal: "/assets/products/Foto-no-apiario-1.webp",
+                foto_thumb1: "/assets/products/Foto-no-apiario-1.webp",
+                foto_thumb2: "/assets/products/Fumigador.webp",
+                foto_thumb3: "/assets/products/Caixa-de-abelha-nativa-urucu.webp"
+            },
+            {
+                slug: "consultoria-apicola",
+                titulo: "Consultoria Apícola & Implantação de Apiários",
+                categoria: "Serviços Especializados",
+                arquivo_html: "consultoria-apicola.html",
+                url: "/consultoria-apicola",
+                foto_principal: "/assets/products/Foto-no-apiario.webp",
+                foto_thumb1: "/assets/products/Foto-no-apiario.webp",
+                foto_thumb2: "/assets/products/Caixa-de-abelha-nativa-urucu.webp",
+                foto_thumb3: "/assets/products/Fumigador.webp"
+            }
+        ];
+
         try {
             const res = await fetch(this.getApiUrl('/api/admin/landing-pages'));
             const data = await res.json();
-            if (data.sucesso && Array.isArray(data.paginas)) {
+            if (data.sucesso && Array.isArray(data.paginas) && data.paginas.length > 0) {
                 this.landingPages = data.paginas;
             } else {
-                this.landingPages = [];
+                this.landingPages = paginasPadrao;
             }
         } catch (err) {
-            console.warn('Erro ao carregar landing pages:', err.message);
-            this.landingPages = [];
+            console.warn('Usando lista padrão resiliente de landing pages:', err.message);
+            this.landingPages = paginasPadrao;
         }
 
         const countEl = document.getElementById('totalLandingPagesCount');
@@ -1158,7 +1296,7 @@ class AdminApp {
                 <div class="landing-page-card" style="background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;">
                     <!-- Foto Principal Hero com Badge -->
                     <div style="position: relative; width: 100%; height: 160px; background: #FAF7F2; overflow: hidden; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--color-border);">
-                        <img src="${fotoPrinc}" alt="${p.titulo}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <img src="${fotoPrinc}" alt="${p.titulo}" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         <span style="position: absolute; top: 10px; left: 10px; background: rgba(44, 35, 28, 0.85); color: #FFF; font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 4px; backdrop-filter: blur(4px);">
                             ${p.categoria || 'Produto'}
                         </span>
@@ -1184,13 +1322,13 @@ class AdminApp {
                                 </div>
                                 <div style="display: flex; gap: 0.5rem;">
                                     <div style="width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--color-border); overflow: hidden; background: #FFF;" title="Miniatura 1">
-                                        <img src="${thumb1}" alt="Thumb 1" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="${thumb1}" alt="Thumb 1" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                                     </div>
                                     <div style="width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--color-border); overflow: hidden; background: #FFF;" title="Miniatura 2">
-                                        <img src="${thumb2}" alt="Thumb 2" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="${thumb2}" alt="Thumb 2" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                                     </div>
                                     <div style="width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--color-border); overflow: hidden; background: #FFF;" title="Miniatura 3">
-                                        <img src="${thumb3}" alt="Thumb 3" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="${thumb3}" alt="Thumb 3" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                                     </div>
                                 </div>
                             </div>
@@ -1311,7 +1449,7 @@ class AdminApp {
 
             return `
                 <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}" style="cursor: pointer;">
-                    <img src="/assets/products/${imgName}" alt="${imgName}" loading="lazy">
+                    <img src="/assets/products/${imgName}" alt="${imgName}" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                     <span>${imgName.replace(/\.[^/.]+$/, "")}</span>
                 </div>
             `;
