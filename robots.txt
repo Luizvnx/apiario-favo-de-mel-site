@@ -11,6 +11,13 @@ Allow: /catalogo
 Allow: /catalogo.html
 Allow: /mel-com-favo
 Allow: /propolis-vermelha
+Allow: /propolis-verde
+Allow: /mel-de-urucu
+Allow: /polen-apicola
+Allow: /mel-silvestre
+Allow: /kit-presente
+Allow: /resgate-de-abelhas
+Allow: /consultoria-apicola
 
 # Recursos e Mídias Públicas
 Allow: /css/

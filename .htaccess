@@ -9,11 +9,22 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Rotas amigáveis de produtos e catálogo sem mostrar extensão
+# Rotas amigáveis explícitas de produtos, serviços e catálogo
 RewriteRule ^catalogo/?$ catalogo.html [L]
+RewriteRule ^pedido/?$ pedido.html [L]
 RewriteRule ^mel-com-favo/?$ mel-com-favo.html [L]
 RewriteRule ^propolis-vermelha/?$ propolis-vermelha.html [L]
-RewriteRule ^pedido/?$ pedido.html [L]
+RewriteRule ^propolis-verde/?$ propolis-verde.html [L]
+RewriteRule ^mel-de-urucu/?$ mel-de-urucu.html [L]
+RewriteRule ^polen-apicola/?$ polen-apicola.html [L]
+RewriteRule ^mel-silvestre/?$ mel-silvestre.html [L]
+RewriteRule ^kit-presente/?$ kit-presente.html [L]
+RewriteRule ^resgate-de-abelhas/?$ resgate-de-abelhas.html [L]
+RewriteRule ^consultoria-apicola/?$ consultoria-apicola.html [L]
+
+# Fallback genérico para qualquer página .html sem extensão
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^/]+)/?$ $1.html [L]
 
 # Rota raiz abre index.html
 RewriteRule ^$ index.html [L]

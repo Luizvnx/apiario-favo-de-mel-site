@@ -379,10 +379,53 @@
     transform: translateY(-3px);
 }
 
-.pairing-card .pairing-emoji {
-    font-size: 2.2rem;
-    margin-bottom: 0.75rem;
-    display: block;
+.pairing-card .pairing-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #FFF4E3;
+    color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    transition: var(--transition);
+}
+
+.pairing-card:hover .pairing-icon {
+    background: var(--color-primary);
+    color: #FFFFFF;
+    transform: scale(1.08);
+}
+
+.pairing-card .pairing-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.stars-gold svg {
+    width: 16px;
+    height: 16px;
+    fill: #F59E0B;
+    color: #F59E0B;
+}
+
+.comp-table .icon-check {
+    width: 18px;
+    height: 18px;
+    color: #199447;
+    stroke-width: 2.5;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.comp-table .icon-cross {
+    width: 18px;
+    height: 18px;
+    color: #C5221F;
+    stroke-width: 2.2;
+    vertical-align: middle;
+    margin-right: 6px;
 }
 
 .pairing-card h4 {
@@ -558,8 +601,108 @@
         grid-template-columns: 1fr;
     }
     
-    .comp-table th, .comp-table td {
-        padding: 0.85rem 1rem;
-        font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   COMPONENTES EXCLUSIVOS DE PÁGINAS DE SERVIÇO APÍCOLA
+   ========================================================================== */
+.service-step-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 3rem;
+}
+
+.service-step-card {
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 2rem 1.5rem;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.service-step-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: #FFF8EB;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+}
+
+.service-step-card h3 {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    color: var(--color-dark);
+    margin-bottom: 0.75rem;
+}
+
+.service-step-card p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.emergency-alert-box {
+    background: #FFFDF5;
+    border-left: 4px solid #D98200;
+    border-top: 1px solid #F0E6D8;
+    border-right: 1px solid #F0E6D8;
+    border-bottom: 1px solid #F0E6D8;
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.75rem;
+    margin: 2rem 0;
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+}
+
+.emergency-alert-icon {
+    color: #D98200;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.emergency-alert-content h4 {
+    font-size: 1.1rem;
+    color: var(--color-dark);
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+}
+
+.emergency-alert-content p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text);
+    margin: 0;
+}
+
+@media (max-width: 992px) {
+    .service-step-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .service-step-grid {
+        grid-template-columns: 1fr;
+    }
+    .emergency-alert-box {
+        flex-direction: column;
+        gap: 0.75rem;
     }
 }

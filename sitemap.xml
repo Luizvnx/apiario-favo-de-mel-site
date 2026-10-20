@@ -19,7 +19,19 @@
         </image:image>
     </url>
 
-    <!-- Landing Page Especialista: Mel com Favo 500g -->
+    <!-- Catálogo de Produtos Online -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/catalogo</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-com-favo-500g.webp</image:loc>
+            <image:title>Mel com Favo 500g Puro</image:title>
+        </image:image>
+    </url>
+
+    <!-- PRODUTO 1: Mel com Favo 500g -->
     <url>
         <loc>https://www.apiariofavodemel.com.br/mel-com-favo</loc>
         <lastmod>2026-10-19</lastmod>
@@ -36,7 +48,7 @@
         </image:image>
     </url>
 
-    <!-- Landing Page Especialista: Própolis Vermelha 20ml -->
+    <!-- PRODUTO 2: Própolis Vermelha 20ml -->
     <url>
         <loc>https://www.apiariofavodemel.com.br/propolis-vermelha</loc>
         <lastmod>2026-10-19</lastmod>
@@ -49,46 +61,94 @@
         </image:image>
     </url>
 
-    <!-- Catálogo de Produtos Online -->
+    <!-- PRODUTO 3: Própolis Verde com Artepillin-C 20ml -->
     <url>
-        <loc>https://www.apiariofavodemel.com.br/catalogo</loc>
+        <loc>https://www.apiariofavodemel.com.br/propolis-verde</loc>
         <lastmod>2026-10-19</lastmod>
-        <changefreq>daily</changefreq>
-        <priority>0.9</priority>
-        <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-com-favo-500g.webp</image:loc>
-            <image:title>Mel com Favo 500g Puro</image:title>
-            <image:caption>Favo genuíno de mel imerso em mel puro silvestre</image:caption>
-        </image:image>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
         <image:image>
             <image:loc>https://www.apiariofavodemel.com.br/assets/products/Propolis-verde-20ml.webp</image:loc>
-            <image:title>Própolis Verde Concentrada 20ml</image:title>
-            <image:caption>Extrato alcoólico com alto teor de Artepillin-C</image:caption>
+            <image:title>Própolis Verde com Artepillin-C 20ml</image:title>
+            <image:caption>Extrato concentrado com Artepillin-C para imunidade e proteção estomacal</image:caption>
         </image:image>
-        <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Propolis-vermelha-20ml.webp</image:loc>
-            <image:title>Própolis Vermelha Nobre 20ml</image:title>
-            <image:caption>Riquíssima em flavonoides e antioxidantes bioativos</image:caption>
-        </image:image>
+    </url>
+
+    <!-- PRODUTO 4: Mel de Abelha Nativa Uruçu 280g -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/mel-de-urucu</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
         <image:image>
             <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-in-natura-280g.webp</image:loc>
-            <image:title>Mel de Abelha Nativa Uruçú</image:title>
-            <image:caption>Mel de meliponicultura, acidez única e propriedades medicinais</image:caption>
+            <image:title>Mel de Abelha Uruçu Nativa 280g</image:title>
+            <image:caption>Mel probiótico puro de abelhas indígenas sem ferrão Melipona scutellaris</image:caption>
         </image:image>
-        <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Kit-presente.webp</image:loc>
-            <image:title>Kit Presente em Caixa de Madeira Artesanal</image:title>
-            <image:caption>Kit rústico com mel nobre, vela de cera de abelha e própolis</image:caption>
-        </image:image>
+    </url>
+
+    <!-- PRODUTO 5: Pólen Apícola Desidratado 140g -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/polen-apicola</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
         <image:image>
             <image:loc>https://www.apiariofavodemel.com.br/assets/products/Polen-apicola-140g.webp</image:loc>
             <image:title>Pólen Apícola Desidratado 140g</image:title>
-            <image:caption>Superalimento natural rico em proteínas vegetais e vitaminas</image:caption>
+            <image:caption>Superalimento floral com 20 aminoácidos essenciais e complexo B</image:caption>
         </image:image>
+    </url>
+
+    <!-- PRODUTO 6: Mel Silvestre in Natura -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/mel-silvestre</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
         <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Kit-de-sabinete-terapeutico.webp</image:loc>
-            <image:title>Kit Sabonetes Terapêuticos de Própolis e Mel</image:title>
-            <image:caption>Cosmética natural apícola cicatrizante e regeneradora</image:caption>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Mel-in-Natura-500g.webp</image:loc>
+            <image:title>Mel Silvestre Puro in Natura 500g</image:title>
+            <image:caption>Mel cru 100% puro com enzimas vivas da Mata Atlântica e Caatinga</image:caption>
+        </image:image>
+    </url>
+
+    <!-- PRODUTO 7: Kit Presente Favo de Mel -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/kit-presente</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Kit-presente.webp</image:loc>
+            <image:title>Kit Presente Favo de Mel em Madeira Artesanal</image:title>
+            <image:caption>Conjunto presenteável de luxo com mel com favo e vela de cera virgem</image:caption>
+        </image:image>
+    </url>
+
+    <!-- SERVIÇO 1: Resgate e Captura Ecológica de Abelhas -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/resgate-de-abelhas</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/images/Captura-de-Tela-2026-05-29-as-14.02.51.webp</image:loc>
+            <image:title>Resgate Ecológico de Abelhas em Sergipe</image:title>
+            <image:caption>Remoção técnica de enxames sem defensivos químicos e com segurança</image:caption>
+        </image:image>
+    </url>
+
+    <!-- SERVIÇO 2: Consultoria e Implantação de Apiários -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/consultoria-apicola</loc>
+        <lastmod>2026-10-19</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+        <image:image>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/images/Captura-de-Tela-2026-05-29-as-14.02.58.webp</image:loc>
+            <image:title>Consultoria Apícola e Meliponicultura em Sergipe</image:title>
+            <image:caption>Assessoria técnica zootécnica para instalação e manejo de apiários</image:caption>
         </image:image>
     </url>
 </urlset>

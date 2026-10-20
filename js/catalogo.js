@@ -433,6 +433,27 @@ class CatalogoApp {
             }
         }
 
+        const detailsLinkEl = document.getElementById('productModalDetailsLink');
+        if (detailsLinkEl) {
+            const slugMap = {
+                '1': '/mel-com-favo',
+                '2': '/mel-de-urucu',
+                '3': '/propolis-verde',
+                '4': '/propolis-vermelha',
+                '5': '/kit-presente',
+                '8': '/mel-silvestre',
+                '10': '/polen-apicola',
+                '14': '/mel-silvestre'
+            };
+            const slug = slugMap[String(prod.id)];
+            if (slug) {
+                detailsLinkEl.href = slug;
+                detailsLinkEl.style.display = 'inline-flex';
+            } else {
+                detailsLinkEl.style.display = 'none';
+            }
+        }
+
         if (overlay) {
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
