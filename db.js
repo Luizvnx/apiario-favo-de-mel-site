@@ -10,6 +10,29 @@ const path = require('path');
 
 const DATA_DIR = path.join(__dirname, 'data');
 
+const CANONICAL_PHOTOS = {
+    1: 'Mel-com-favo-500g.webp',
+    2: 'Mel-in-natura-280g.webp',
+    3: 'Propolis-verde-20ml.webp',
+    4: 'Propolis-vermelha-20ml.webp',
+    5: 'Kit-presente.webp',
+    6: 'Kit-de-sabinete-terapeutico.webp',
+    7: 'Licor-de-mel-250ml.webp',
+    8: 'Mel-in-natura-500g.webp',
+    9: 'Meleira-com-mel-280g.webp',
+    10: 'Polen-apicola-140g.webp',
+    11: 'Vinagre-de-mel-315ml.webp',
+    12: 'Velas-artesanais-de-cera-de-abelha.webp',
+    13: 'Cera-bruta-de-apis.webp',
+    14: 'Mel-in-Natura-1400g.webp'
+};
+
+function normalizarFotoProduto(id, foto) {
+    if (id && CANONICAL_PHOTOS[id]) return CANONICAL_PHOTOS[id];
+    if (!foto) return 'Mel-in-natura-500g.webp';
+    return String(foto).trim().replace(/\.(png|jpe?g)$/i, '.webp');
+}
+
 class DatabaseAdapter {
     constructor() {
         this.pool = null;
@@ -228,6 +251,15 @@ class DatabaseAdapter {
                     ]);
                 }
                 console.log(`🌱 [Banco de Dados] ${produtosIniciais.length} produtos migrados para o PostgreSQL.`);
+            }
+
+            // Sincronização automática contínua das fotos dos produtos para formato WebP canônico
+            try {
+                for (const [idStr, fotoWebp] of Object.entries(CANONICAL_PHOTOS)) {
+                    await client.query('UPDATE tb_produtos SET foto = $1 WHERE id = $2 AND (foto != $1 OR foto IS NULL)', [fotoWebp, parseInt(idStr, 10)]);
+                }
+            } catch (errFoto) {
+                console.warn('[DB] Aviso ao sincronizar fotos canônicas no PostgreSQL:', errFoto.message);
             }
 
             // Seed de Configurações da Loja se não existir
@@ -484,7 +516,10 @@ class DatabaseAdapter {
         const fallback = this.readJson('produtos.json', []);
 
         if (!this.isConnected) {
-            const list = apenasAtivos ? fallback.filter(p => p.ativo !== false) : fallback;
+            const list = (apenasAtivos ? fallback.filter(p => p.ativo !== false) : fallback).map(p => ({
+                ...p,
+                foto: normalizarFotoProduto(p.id, p.foto)
+            }));
             return { produtos: list, fonte: 'local_json' };
         }
 
@@ -507,7 +542,7 @@ class DatabaseAdapter {
                 nome: p.nome,
                 preco: parseFloat(p.preco),
                 descricao: p.descricao || '',
-                foto: p.foto || 'Mel-in-Natura-500g.png',
+                foto: normalizarFotoProduto(p.id, p.foto),
                 estoque: parseInt(p.estoque, 10),
                 ativo: p.ativo !== false,
                 criado_em: p.criado_em,
@@ -519,7 +554,10 @@ class DatabaseAdapter {
             return { produtos: produtosFormatados, fonte: 'postgresql' };
         } catch (err) {
             console.warn('[DB] Erro ao listar produtos no PostgreSQL:', err.message);
-            const list = apenasAtivos ? fallback.filter(p => p.ativo !== false) : fallback;
+            const list = (apenasAtivos ? fallback.filter(p => p.ativo !== false) : fallback).map(p => ({
+                ...p,
+                foto: normalizarFotoProduto(p.id, p.foto)
+            }));
             return { produtos: list, fonte: 'local_json' };
         }
     }
@@ -865,7 +903,7 @@ class DatabaseAdapter {
                 foto_principal: "/assets/products/Propolis-verde-20ml.webp",
                 foto_thumb1: "/assets/products/Propolis-verde-20ml.webp",
                 foto_thumb2: "/assets/products/Propolis-vermelha-20ml.webp",
-                foto_thumb3: "/assets/products/Mel-in-Natura-500g.webp"
+                foto_thumb3: "/assets/products/Mel-in-natura-500g.webp"
             },
             {
                 slug: "mel-de-urucu",
@@ -884,8 +922,8 @@ class DatabaseAdapter {
                 categoria: "Méis Nobres",
                 arquivo_html: "mel-silvestre.html",
                 url: "/mel-silvestre",
-                foto_principal: "/assets/products/Mel-in-Natura-500g.webp",
-                foto_thumb1: "/assets/products/Mel-in-Natura-500g.webp",
+                foto_principal: "/assets/products/Mel-in-natura-500g.webp",
+                foto_thumb1: "/assets/products/Mel-in-natura-500g.webp",
                 foto_thumb2: "/assets/products/Mel-in-Natura-1400g.webp",
                 foto_thumb3: "/assets/products/Mel-cristalizado.webp"
             },
@@ -897,7 +935,7 @@ class DatabaseAdapter {
                 url: "/polen-apicola",
                 foto_principal: "/assets/products/Polen-apicola-140g.webp",
                 foto_thumb1: "/assets/products/Polen-apicola-140g.webp",
-                foto_thumb2: "/assets/products/Mel-in-Natura-500g.webp",
+                foto_thumb2: "/assets/products/Mel-in-natura-500g.webp",
                 foto_thumb3: "/assets/products/Mel-com-favo-500g.webp"
             },
             {

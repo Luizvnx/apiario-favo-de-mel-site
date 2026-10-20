@@ -17,6 +17,75 @@ const whatsappService = require('./services/whatsappNotificationService');
 const BASE_DIR = __dirname;
 const DATA_DIR = path.join(BASE_DIR, 'data');
 const PRODUCTS_ASSETS_DIR = path.join(BASE_DIR, 'assets', 'products');
+const IMAGES_ASSETS_DIR = path.join(BASE_DIR, 'assets', 'images');
+
+// Cache em memória case-insensitive de arquivos em assets/products e assets/images (imune a case-sensitivity do Linux)
+let assetsLookupMap = new Map();
+
+function indexarArquivosAssets() {
+    try {
+        const newMap = new Map();
+        [PRODUCTS_ASSETS_DIR, IMAGES_ASSETS_DIR].forEach(dir => {
+            if (fs.existsSync(dir)) {
+                const files = fs.readdirSync(dir);
+                for (const f of files) {
+                    const full = path.join(dir, f);
+                    try {
+                        if (fs.statSync(full).isFile()) {
+                            // Prioridade para assets/products se o arquivo existir em ambos
+                            if (!newMap.has(f.toLowerCase()) || dir === PRODUCTS_ASSETS_DIR) {
+                                newMap.set(f.toLowerCase(), full);
+                            }
+                        }
+                    } catch (_) {}
+                }
+            }
+        });
+        assetsLookupMap = newMap;
+    } catch (err) {
+        console.error('[Assets] Erro ao indexar arquivos estáticos:', err.message);
+    }
+}
+indexarArquivosAssets();
+
+function resolverArquivoAsset(safePath) {
+    const baseFileName = path.basename(safePath);
+    const lowerName = baseFileName.toLowerCase();
+
+    // 1. Correspondência direta case-insensitive pelo nome do arquivo
+    if (assetsLookupMap.has(lowerName)) {
+        return assetsLookupMap.get(lowerName);
+    }
+
+    const ext = path.extname(baseFileName).toLowerCase();
+    const semExt = baseFileName.slice(0, -ext.length).toLowerCase();
+
+    // 2. Se requisitou .webp e não encontrou pelo nome exato, busca equivalentes .png, .jpeg ou .jpg
+    if (ext === '.webp') {
+        const altPng = `${semExt}.png`;
+        const altJpeg = `${semExt}.jpeg`;
+        const altJpg = `${semExt}.jpg`;
+        if (assetsLookupMap.has(altPng)) return assetsLookupMap.get(altPng);
+        if (assetsLookupMap.has(altJpeg)) return assetsLookupMap.get(altJpeg);
+        if (assetsLookupMap.has(altJpg)) return assetsLookupMap.get(altJpg);
+    }
+
+    // 3. Se requisitou .png, .jpg ou .jpeg, busca se existe versão .webp
+    if (['.png', '.jpg', '.jpeg'].includes(ext)) {
+        const altWebp = `${semExt}.webp`;
+        if (assetsLookupMap.has(altWebp)) return assetsLookupMap.get(altWebp);
+    }
+
+    // 4. Se a rota pertence a /assets/ ou a extensões de imagem, previne 404 entregando Mel-in-natura-500g.webp
+    if (safePath.includes('/assets/') || ['.webp', '.png', '.jpg', '.jpeg'].includes(ext)) {
+        const fallbackGuaranteed = assetsLookupMap.get('mel-in-natura-500g.webp') || path.join(PRODUCTS_ASSETS_DIR, 'Mel-in-natura-500g.webp');
+        if (fs.existsSync(fallbackGuaranteed)) {
+            return fallbackGuaranteed;
+        }
+    }
+
+    return null;
+}
 
 // Inicializa o adaptador do Banco de Dados PostgreSQL
 db.init();
@@ -830,11 +899,10 @@ const server = http.createServer(async (req, res) => {
             return serveFile(htmlFallback);
         }
 
-        // Fallback inteligente para fotos de produtos que possam ser requisitadas diretamente pelo nome do arquivo
-        const baseFileName = path.basename(safePath);
-        const productFallback = path.join(PRODUCTS_ASSETS_DIR, baseFileName);
-        if (fs.existsSync(productFallback) && fs.statSync(productFallback).isFile()) {
-            return serveFile(productFallback);
+        // Resolução inteligente e case-insensitive para assets e fotos de produtos (resolve diferenças Linux/ext4)
+        const resolvedAsset = resolverArquivoAsset(safePath);
+        if (resolvedAsset && fs.existsSync(resolvedAsset)) {
+            return serveFile(resolvedAsset);
         }
 
         res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });

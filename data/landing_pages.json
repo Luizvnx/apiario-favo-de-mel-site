@@ -30,7 +30,7 @@
     "foto_principal": "/assets/products/Propolis-verde-20ml.webp",
     "foto_thumb1": "/assets/products/Propolis-verde-20ml.webp",
     "foto_thumb2": "/assets/products/Propolis-vermelha-20ml.webp",
-    "foto_thumb3": "/assets/products/Mel-in-Natura-500g.webp"
+    "foto_thumb3": "/assets/products/Mel-in-natura-500g.webp"
   },
   {
     "slug": "mel-de-urucu",
@@ -49,8 +49,8 @@
     "categoria": "Méis Nobres",
     "arquivo_html": "mel-silvestre.html",
     "url": "/mel-silvestre",
-    "foto_principal": "/assets/products/Mel-in-Natura-500g.webp",
-    "foto_thumb1": "/assets/products/Mel-in-Natura-500g.webp",
+    "foto_principal": "/assets/products/Mel-in-natura-500g.webp",
+    "foto_thumb1": "/assets/products/Mel-in-natura-500g.webp",
     "foto_thumb2": "/assets/products/Mel-in-Natura-1400g.webp",
     "foto_thumb3": "/assets/products/Mel-cristalizado.webp"
   },
@@ -62,7 +62,7 @@
     "url": "/polen-apicola",
     "foto_principal": "/assets/products/Polen-apicola-140g.webp",
     "foto_thumb1": "/assets/products/Polen-apicola-140g.webp",
-    "foto_thumb2": "/assets/products/Mel-in-Natura-500g.webp",
+    "foto_thumb2": "/assets/products/Mel-in-natura-500g.webp",
     "foto_thumb3": "/assets/products/Mel-com-favo-500g.webp"
   },
   {
