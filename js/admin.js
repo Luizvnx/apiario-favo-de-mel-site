@@ -476,6 +476,17 @@ class AdminApp {
         document.getElementById('btnSaveModalProduto')?.addEventListener('click', () => {
             this.salvarProdutoFormulario();
         });
+
+        // Upload de Nova Foto do Produto
+        const inputUpload = document.getElementById('prodUploadInput');
+        if (inputUpload) {
+            inputUpload.addEventListener('change', async (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                await this.fazerUploadFoto(file, 'produto');
+                inputUpload.value = '';
+            });
+        }
     }
 
     atualizarSelectCategorias() {
@@ -540,9 +551,15 @@ class AdminApp {
         document.getElementById('prodDescricaoInput').value = '';
         document.getElementById('prodAtivoCheckbox').checked = true;
 
-        const defaultFoto = 'Mel-in-Natura-500g.png';
+        const defaultFoto = 'Mel-in-natura-500g.webp';
         document.getElementById('prodFotoInput').value = defaultFoto;
-        document.getElementById('imagePreviewImg').src = `assets/products/${defaultFoto}`;
+        document.getElementById('imagePreviewImg').src = this.resolverCaminhoFoto(defaultFoto);
+
+        const statusEl = document.getElementById('prodUploadStatusMsg');
+        if (statusEl) {
+            statusEl.style.display = 'none';
+            statusEl.innerText = '';
+        }
 
         this.renderizarGaleriaImagens();
         document.getElementById('modalProdutoOverlay')?.classList.add('active');
@@ -562,12 +579,102 @@ class AdminApp {
         document.getElementById('prodDescricaoInput').value = prod.descricao || '';
         document.getElementById('prodAtivoCheckbox').checked = prod.ativo !== false;
 
-        const fotoName = prod.foto || 'Mel-in-Natura-500g.png';
+        const fotoName = prod.foto || 'Mel-in-natura-500g.webp';
         document.getElementById('prodFotoInput').value = fotoName;
         document.getElementById('imagePreviewImg').src = this.resolverCaminhoFoto(fotoName);
 
+        const statusEl = document.getElementById('prodUploadStatusMsg');
+        if (statusEl) {
+            statusEl.style.display = 'none';
+            statusEl.innerText = '';
+        }
+
         this.renderizarGaleriaImagens();
         document.getElementById('modalProdutoOverlay')?.classList.add('active');
+    }
+
+    async fazerUploadFoto(file, contexto = 'produto') {
+        const isProduto = contexto === 'produto';
+        const statusEl = document.getElementById(isProduto ? 'prodUploadStatusMsg' : 'landingUploadStatusMsg');
+        const btnText = document.getElementById(isProduto ? 'btnUploadFotoText' : 'btnUploadLandingText');
+        const triggerBtn = document.getElementById(isProduto ? 'btnUploadFotoTrigger' : 'btnUploadLandingTrigger');
+
+        const showStatus = (msg, isError = false) => {
+            if (!statusEl) return;
+            statusEl.innerText = msg;
+            statusEl.style.display = 'block';
+            statusEl.style.background = isError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)';
+            statusEl.style.color = isError ? '#B91C1C' : '#047857';
+            statusEl.style.border = `1px solid ${isError ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`;
+        };
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+        if (!validTypes.includes(file.type)) {
+            showStatus('Formato inválido. Use imagens nos formatos WebP, PNG ou JPG.', true);
+            return;
+        }
+
+        if (file.size > 15 * 1024 * 1024) {
+            showStatus('O arquivo é muito grande (máximo 15MB).', true);
+            return;
+        }
+
+        if (btnText) btnText.innerText = 'Enviando...';
+        if (triggerBtn) triggerBtn.style.pointerEvents = 'none';
+        showStatus('Enviando nova foto...');
+
+        try {
+            const base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+                reader.readAsDataURL(file);
+            });
+
+            const res = await fetch(this.getApiUrl('/api/admin/upload-imagem'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome: file.name,
+                    base64: base64Data
+                })
+            });
+
+            const data = await res.json();
+            if (data.sucesso && data.arquivo) {
+                const nomeArquivo = data.arquivo;
+                const caminhoCompleto = data.caminho || this.resolverCaminhoFoto(nomeArquivo);
+
+                if (!this.imagensDisponiveis.includes(nomeArquivo)) {
+                    this.imagensDisponiveis.unshift(nomeArquivo);
+                }
+
+                if (isProduto) {
+                    const inputFoto = document.getElementById('prodFotoInput');
+                    const previewImg = document.getElementById('imagePreviewImg');
+                    if (inputFoto) inputFoto.value = nomeArquivo;
+                    if (previewImg) previewImg.src = caminhoCompleto;
+                    this.renderizarGaleriaImagens();
+                    showStatus(`Foto adicionada com sucesso: ${nomeArquivo}`);
+                } else {
+                    const target = this.landingTargetPicker;
+                    const inputAlvo = document.getElementById(`landingInput${target}`);
+                    const previewAlvo = document.getElementById(`landingPreview${target}`);
+                    if (inputAlvo) inputAlvo.value = caminhoCompleto;
+                    if (previewAlvo) previewAlvo.src = caminhoCompleto;
+                    this.renderizarGaleriaPickerLanding();
+                    showStatus(`Foto aplicada ao campo ${target}!`);
+                }
+            } else {
+                throw new Error(data.erro || 'Falha ao processar upload.');
+            }
+        } catch (err) {
+            console.error('[Upload] Erro:', err);
+            showStatus('Erro ao enviar imagem: ' + err.message, true);
+        } finally {
+            if (btnText) btnText.innerText = isProduto ? 'Enviar Foto' : 'Enviar Nova Foto';
+            if (triggerBtn) triggerBtn.style.pointerEvents = 'auto';
+        }
     }
 
     async salvarProdutoFormulario() {
@@ -1144,6 +1251,17 @@ class AdminApp {
         document.getElementById('btnSaveModalLanding')?.addEventListener('click', () => {
             this.salvarFotosLandingPageForm();
         });
+
+        // Upload de nova foto para landing page
+        const inputUploadLanding = document.getElementById('landingUploadInput');
+        if (inputUploadLanding) {
+            inputUploadLanding.addEventListener('change', async (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                await this.fazerUploadFoto(file, 'landing');
+                inputUploadLanding.value = '';
+            });
+        }
     }
 
     async carregarLandingPages() {
@@ -1421,6 +1539,12 @@ class AdminApp {
 
         const inputFiltro = document.getElementById('filtroLandingPickerInput');
         if (inputFiltro) inputFiltro.value = '';
+
+        const statusEl = document.getElementById('landingUploadStatusMsg');
+        if (statusEl) {
+            statusEl.style.display = 'none';
+            statusEl.innerText = '';
+        }
 
         this.renderizarGaleriaPickerLanding();
     }

@@ -570,7 +570,63 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // 5.1. Gestão das Fotos das Landing Pages dos Produtos
+    // 5.1. Upload de Nova Foto de Produto / Landing Pages
+    if (safePath === '/api/admin/upload-imagem' && req.method === 'POST') {
+        try {
+            const body = await parseBody(req);
+            if (!body || !body.base64) {
+                return sendJson(res, 400, { sucesso: false, erro: 'Nenhuma imagem enviada.' });
+            }
+
+            const rawName = body.nome || 'produto.jpg';
+            const ext = path.extname(rawName).toLowerCase() || '.jpg';
+            const allowedExts = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
+            if (!allowedExts.includes(ext)) {
+                return sendJson(res, 400, { sucesso: false, erro: 'Formato inválido. Use WebP, PNG, JPG ou SVG.' });
+            }
+
+            const base64Data = body.base64;
+            const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            const base64Content = matches ? matches[2] : base64Data;
+            const buffer = Buffer.from(base64Content, 'base64');
+
+            if (buffer.length > 15 * 1024 * 1024) {
+                return sendJson(res, 400, { sucesso: false, erro: 'A imagem deve ter no máximo 15MB.' });
+            }
+
+            let baseName = path.basename(rawName, ext)
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9_-]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+            if (!baseName) baseName = 'produto';
+
+            if (!fs.existsSync(PRODUCTS_ASSETS_DIR)) {
+                fs.mkdirSync(PRODUCTS_ASSETS_DIR, { recursive: true });
+            }
+
+            const fileName = `${baseName}-${Date.now()}${ext}`;
+            const targetPath = path.join(PRODUCTS_ASSETS_DIR, fileName);
+            fs.writeFileSync(targetPath, buffer);
+
+            // Reindexar mapa em memória
+            indexarArquivosAssets();
+
+            console.log(`[Upload] ✓ Nova foto salva com sucesso: ${fileName} (${(buffer.length / 1024).toFixed(1)} KB)`);
+
+            return sendJson(res, 200, {
+                sucesso: true,
+                arquivo: fileName,
+                caminho: `/assets/products/${fileName}`,
+                mensagem: 'Foto enviada e salva com sucesso!'
+            });
+        } catch (err) {
+            console.error('[Upload] Erro ao processar upload de imagem:', err.message);
+            return sendJson(res, 500, { sucesso: false, erro: 'Falha ao processar upload: ' + err.message });
+        }
+    }
+
+    // 5.2. Gestão das Fotos das Landing Pages dos Produtos
     if (safePath === '/api/admin/landing-pages' && req.method === 'GET') {
         try {
             const { paginas, fonte } = await db.listarLandingPages();

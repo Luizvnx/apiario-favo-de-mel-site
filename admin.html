@@ -548,24 +548,52 @@
                     <textarea id="prodDescricaoInput" class="form-control" rows="3" placeholder="Propriedades, origem das floradas e benefícios..."></textarea>
                 </div>
 
-                <!-- SELETOR VISUAL DE FOTO DA GALERIA DO APIÁRIO -->
+                <!-- SELETOR VISUAL DE FOTO DA GALERIA DO APIÁRIO & UPLOAD DE NOVA FOTO -->
                 <div class="form-group">
-                    <label>Foto do Produto (Galeria do Apiário)</label>
-                    <div class="image-picker-preview">
-                        <img id="imagePreviewImg" src="assets/products/Mel-in-Natura-500g.png" alt="Prévia da foto" class="image-picker-thumb">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label style="margin-bottom: 0;">Foto do Produto</label>
+                        <span style="font-size: 0.75rem; color: var(--color-text-muted);">Foto oficial do catálogo</span>
+                    </div>
+
+                    <div class="image-picker-preview" style="align-items: center;">
+                        <img id="imagePreviewImg" src="assets/products/Mel-in-Natura-500g.png" alt="Prévia da foto" class="image-picker-thumb" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; font-size: 0.85rem; color: var(--color-dark); margin-bottom: 0.25rem;">
                                 Arquivo Selecionado:
                             </div>
                             <input type="text" id="prodFotoInput" class="form-control" style="font-size: 0.8rem; padding: 0.45rem;" value="Mel-in-Natura-500g.png" readonly>
                             <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">
-                                Clique em uma imagem abaixo para selecionar:
+                                Escolha uma foto do acervo abaixo ou envie um novo arquivo.
                             </div>
                         </div>
                     </div>
 
+                    <!-- Botão e Card para Fazer Upload de Nova Foto -->
+                    <div class="product-upload-bar" style="margin: 0.85rem 0; padding: 0.85rem 1rem; background: #FAF7F2; border: 1px dashed var(--color-primary); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(217, 119, 6, 0.12); display: flex; align-items: center; justify-content: center; color: var(--color-primary); flex-shrink: 0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.83rem; color: var(--color-dark);">Adicionar Nova Foto</div>
+                                <div style="font-size: 0.73rem; color: var(--color-text-muted);">Envie do celular ou computador (WebP, PNG ou JPG)</div>
+                            </div>
+                        </div>
+                        <div>
+                            <input type="file" id="prodUploadInput" accept="image/png, image/jpeg, image/jpg, image/webp" style="display: none;">
+                            <label for="prodUploadInput" id="btnUploadFotoTrigger" class="btn-admin btn-admin-secondary btn-admin-sm" style="cursor: pointer; margin: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.4rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <span id="btnUploadFotoText">Enviar Foto</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="prodUploadStatusMsg" style="display: none; font-size: 0.8rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem;"></div>
+
                     <!-- Grade Visual de Fotos Autênticas -->
-                    <div id="imageGalleryGrid" class="image-gallery-grid">
+                    <div style="font-size: 0.78rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.4rem;">
+                        Fotos disponíveis no acervo do Apiário:
+                    </div>
+                    <div id="imageGalleryGrid" class="image-gallery-grid" style="max-height: 190px; overflow-y: auto;">
                         <!-- Carregado via JS -->
                     </div>
                 </div>
@@ -689,10 +717,18 @@
                             Fechar Seletor
                         </button>
                     </div>
-                    <p style="font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
-                        Clique em qualquer uma das fotos do acervo para aplicar imediatamente:
-                    </p>
-                    <input type="text" id="filtroLandingPickerInput" class="form-control" placeholder="Filtrar por nome de arquivo..." style="margin-bottom: 0.75rem; font-size: 0.85rem;">
+
+                    <!-- Upload Direto no Modal de Landing -->
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+                        <input type="text" id="filtroLandingPickerInput" class="form-control" placeholder="Filtrar por nome de arquivo..." style="flex: 1; font-size: 0.85rem;">
+                        <input type="file" id="landingUploadInput" accept="image/png, image/jpeg, image/jpg, image/webp" style="display: none;">
+                        <label for="landingUploadInput" id="btnUploadLandingTrigger" class="btn-admin btn-admin-secondary btn-admin-sm" style="cursor: pointer; margin: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.4rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span id="btnUploadLandingText">Enviar Nova Foto</span>
+                        </label>
+                    </div>
+                    <div id="landingUploadStatusMsg" style="display: none; font-size: 0.78rem; padding: 0.4rem 0.75rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem;"></div>
+
                     <div id="landingPickerGallery" class="image-gallery-grid" style="max-height: 240px; overflow-y: auto;">
                         <!-- Preenchido dinamicamente via JS -->
                     </div>
@@ -718,6 +754,6 @@
     <!-- Scripts do Sistema -->
     <script src="/config.js"></script>
     <script src="/js/pix-util.js"></script>
-    <script src="/js/admin.js?v=20261020-2"></script>
+    <script src="/js/admin.js?v=20261022-1"></script>
 </body>
 </html>

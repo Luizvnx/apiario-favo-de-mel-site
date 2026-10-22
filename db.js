@@ -28,9 +28,11 @@ const CANONICAL_PHOTOS = {
 };
 
 function normalizarFotoProduto(id, foto) {
+    if (foto && String(foto).trim() !== '' && String(foto).trim() !== 'null' && String(foto).trim() !== 'undefined') {
+        return String(foto).trim();
+    }
     if (id && CANONICAL_PHOTOS[id]) return CANONICAL_PHOTOS[id];
-    if (!foto) return 'Mel-in-natura-500g.webp';
-    return String(foto).trim().replace(/\.(png|jpe?g)$/i, '.webp');
+    return 'Mel-in-natura-500g.webp';
 }
 
 class DatabaseAdapter {
@@ -256,7 +258,7 @@ class DatabaseAdapter {
             // Sincronização automática contínua das fotos dos produtos para formato WebP canônico
             try {
                 for (const [idStr, fotoWebp] of Object.entries(CANONICAL_PHOTOS)) {
-                    await client.query('UPDATE tb_produtos SET foto = $1 WHERE id = $2 AND (foto != $1 OR foto IS NULL)', [fotoWebp, parseInt(idStr, 10)]);
+                    await client.query('UPDATE tb_produtos SET foto = $1 WHERE id = $2 AND (foto IS NULL OR foto = \'\')', [fotoWebp, parseInt(idStr, 10)]);
                 }
             } catch (errFoto) {
                 console.warn('[DB] Aviso ao sincronizar fotos canônicas no PostgreSQL:', errFoto.message);
