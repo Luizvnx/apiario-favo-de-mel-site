@@ -487,6 +487,16 @@ class AdminApp {
                 inputUpload.value = '';
             });
         }
+
+        // Remover / Restaurar Foto Padrão do Produto
+        document.getElementById('btnRemoverFotoProduto')?.addEventListener('click', () => {
+            const defaultFoto = 'Mel-in-natura-500g.webp';
+            const inputFoto = document.getElementById('prodFotoInput');
+            const previewImg = document.getElementById('imagePreviewImg');
+            if (inputFoto) inputFoto.value = defaultFoto;
+            if (previewImg) previewImg.src = this.resolverCaminhoFoto(defaultFoto);
+            this.renderizarGaleriaImagens();
+        });
     }
 
     atualizarSelectCategorias() {
@@ -519,8 +529,11 @@ class AdminApp {
         grid.innerHTML = this.imagensDisponiveis.map(imgName => {
             const isSel = imgName === fotoSelecionada;
             return `
-                <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}">
-                    <img src="assets/products/${imgName}" alt="${imgName}" loading="lazy">
+                <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}" style="position: relative;">
+                    <button type="button" class="btn-apagar-acervo" data-file="${imgName}" title="Excluir foto do acervo permanentemente" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 4px; background: rgba(220, 38, 38, 0.85); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; opacity: 0.75; transition: opacity 0.2s, background 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                    <img src="assets/products/${imgName}" alt="${imgName}" loading="lazy" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                     <span>${imgName.replace(/\.[^/.]+$/, "")}</span>
                 </div>
             `;
@@ -537,6 +550,14 @@ class AdminApp {
 
                 if (inputFoto) inputFoto.value = fileName;
                 if (previewImg) previewImg.src = `assets/products/${fileName}`;
+            });
+        });
+
+        grid.querySelectorAll('.btn-apagar-acervo').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const file = btn.getAttribute('data-file');
+                this.confirmarExclusaoFotoAcervo(file);
             });
         });
     }
@@ -1262,6 +1283,24 @@ class AdminApp {
                 inputUploadLanding.value = '';
             });
         }
+
+        // Botões para remover fotos da landing page
+        document.querySelectorAll('.btn-remover-landing-img').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-target'); // 'Principal', 'Thumb1', 'Thumb2', 'Thumb3'
+                const inputEl = document.getElementById(`landingInput${target}`);
+                const previewEl = document.getElementById(`landingPreview${target}`);
+
+                if (target === 'Principal') {
+                    const defaultFoto = '/assets/products/Mel-in-natura-500g.webp';
+                    if (inputEl) inputEl.value = defaultFoto;
+                    if (previewEl) previewEl.src = defaultFoto;
+                } else {
+                    if (inputEl) inputEl.value = '';
+                    if (previewEl) previewEl.src = '';
+                }
+            });
+        });
     }
 
     async carregarLandingPages() {
@@ -1572,7 +1611,10 @@ class AdminApp {
             const isSel = currentVal.includes(imgName);
 
             return `
-                <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}" style="cursor: pointer;">
+                <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}" style="cursor: pointer; position: relative;">
+                    <button type="button" class="btn-apagar-acervo" data-file="${imgName}" title="Excluir foto do acervo permanentemente" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 4px; background: rgba(220, 38, 38, 0.85); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; opacity: 0.75; transition: opacity 0.2s, background 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
                     <img src="/assets/products/${imgName}" alt="${imgName}" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                     <span>${imgName.replace(/\.[^/.]+$/, "")}</span>
                 </div>
@@ -1593,6 +1635,57 @@ class AdminApp {
                 this.fecharSeletorFotoLanding();
             });
         });
+
+        grid.querySelectorAll('.btn-apagar-acervo').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const file = btn.getAttribute('data-file');
+                this.confirmarExclusaoFotoAcervo(file);
+            });
+        });
+    }
+
+    async confirmarExclusaoFotoAcervo(nomeArquivo) {
+        if (!nomeArquivo) return;
+        const confirmou = confirm(`Deseja realmente apagar a foto "${nomeArquivo}" do acervo?\n\nEsta ação excluirá o arquivo do servidor permanentemente.`);
+        if (!confirmou) return;
+
+        try {
+            const res = await fetch(this.getApiUrl('/api/admin/deletar-imagem'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: nomeArquivo })
+            });
+            const data = await res.json();
+            if (data.sucesso) {
+                this.imagensDisponiveis = this.imagensDisponiveis.filter(img => img !== nomeArquivo);
+
+                const prodInput = document.getElementById('prodFotoInput');
+                if (prodInput && prodInput.value === nomeArquivo) {
+                    prodInput.value = 'Mel-in-natura-500g.webp';
+                    const preview = document.getElementById('imagePreviewImg');
+                    if (preview) preview.src = this.resolverCaminhoFoto('Mel-in-natura-500g.webp');
+                }
+
+                ['Principal', 'Thumb1', 'Thumb2', 'Thumb3'].forEach(t => {
+                    const lInput = document.getElementById(`landingInput${t}`);
+                    if (lInput && lInput.value.includes(nomeArquivo)) {
+                        lInput.value = '';
+                        const lPrev = document.getElementById(`landingPreview${t}`);
+                        if (lPrev) lPrev.src = '';
+                    }
+                });
+
+                this.renderizarGaleriaImagens();
+                this.renderizarGaleriaPickerLanding();
+                alert(`Foto "${nomeArquivo}" excluída do acervo com sucesso.`);
+            } else {
+                alert(data.erro || 'Não foi possível excluir a imagem.');
+            }
+        } catch (err) {
+            console.error('Erro ao excluir foto:', err);
+            alert('Falha de conexão ao tentar excluir a foto: ' + err.message);
+        }
     }
 
     async salvarFotosLandingPageForm() {

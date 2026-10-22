@@ -561,7 +561,13 @@
                             <div style="font-weight: 600; font-size: 0.85rem; color: var(--color-dark); margin-bottom: 0.25rem;">
                                 Arquivo Selecionado:
                             </div>
-                            <input type="text" id="prodFotoInput" class="form-control" style="font-size: 0.8rem; padding: 0.45rem;" value="Mel-in-Natura-500g.png" readonly>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="text" id="prodFotoInput" class="form-control" style="font-size: 0.8rem; padding: 0.45rem; flex: 1;" value="Mel-in-natura-500g.webp" readonly>
+                                <button type="button" id="btnRemoverFotoProduto" class="btn-admin btn-admin-secondary btn-admin-sm" title="Restaurar foto padrão" style="color: #DC2626; border-color: #FECACA; display: flex; align-items: center; gap: 0.25rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Remover</span>
+                                </button>
+                            </div>
                             <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">
                                 Escolha uma foto do acervo abaixo ou envie um novo arquivo.
                             </div>
@@ -652,7 +658,13 @@
                         </div>
                         <div style="flex: 1;">
                             <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-dark); margin-bottom: 0.35rem;">Caminho / Arquivo Selecionado:</div>
-                            <input type="text" id="landingInputPrincipal" class="form-control" style="font-size: 0.82rem; margin-bottom: 0.6rem;" readonly>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem;">
+                                <input type="text" id="landingInputPrincipal" class="form-control" style="font-size: 0.82rem; flex: 1;" readonly>
+                                <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-remover-landing-img" data-target="Principal" title="Restaurar foto padrão" style="color: #DC2626; border-color: #FECACA; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Restaurar</span>
+                                </button>
+                            </div>
                             <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Principal">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                                 <span>Escolher da Galeria de Fotos do Apiário</span>
@@ -677,9 +689,14 @@
                             <img id="landingPreviewThumb1" src="" alt="Thumb 1" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <input type="text" id="landingInputThumb1" class="form-control" style="font-size: 0.75rem; margin-bottom: 0.5rem; padding: 0.35rem;" readonly>
-                        <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb1" style="width: 100%; font-size: 0.78rem;">
-                            <span>Trocar Foto</span>
-                        </button>
+                        <div style="display: flex; gap: 0.25rem;">
+                            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb1" style="flex: 1; font-size: 0.78rem;">
+                                <span>Trocar</span>
+                            </button>
+                            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-remover-landing-img" data-target="Thumb1" title="Remover miniatura" style="color: #DC2626; border-color: #FECACA; font-size: 0.78rem;">
+                                <span>Remover</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Miniatura 2 -->
@@ -689,9 +706,14 @@
                             <img id="landingPreviewThumb2" src="" alt="Thumb 2" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <input type="text" id="landingInputThumb2" class="form-control" style="font-size: 0.75rem; margin-bottom: 0.5rem; padding: 0.35rem;" readonly>
-                        <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb2" style="width: 100%; font-size: 0.78rem;">
-                            <span>Trocar Foto</span>
-                        </button>
+                        <div style="display: flex; gap: 0.25rem;">
+                            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb2" style="flex: 1; font-size: 0.78rem;">
+                                <span>Trocar</span>
+                            </button>
+                            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-remover-landing-img" data-target="Thumb2" title="Remover miniatura" style="color: #DC2626; border-color: #FECACA; font-size: 0.78rem;">
+                                <span>Remover</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Miniatura 3 -->
@@ -701,9 +723,14 @@
                             <img id="landingPreviewThumb3" src="" alt="Thumb 3" style="width: 100%; height: 100%; object-fit: cover;" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                         </div>
                         <input type="text" id="landingInputThumb3" class="form-control" style="font-size: 0.75rem; margin-bottom: 0.5rem; padding: 0.35rem;" readonly>
-                        <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb3" style="width: 100%; font-size: 0.78rem;">
-                            <span>Trocar Foto</span>
-                        </button>
+                        <div style="display: flex; gap: 0.25rem;">
+                            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-pick-landing-img" data-target="Thumb3" style="flex: 1; font-size: 0.78rem;">
+                                <span>Trocar</span>
+                            </button>
+                            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-remover-landing-img" data-target="Thumb3" title="Remover miniatura" style="color: #DC2626; border-color: #FECACA; font-size: 0.78rem;">
+                                <span>Remover</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -754,6 +781,6 @@
     <!-- Scripts do Sistema -->
     <script src="/config.js"></script>
     <script src="/js/pix-util.js"></script>
-    <script src="/js/admin.js?v=20261022-1"></script>
+    <script src="/js/admin.js?v=20261022-2"></script>
 </body>
 </html>

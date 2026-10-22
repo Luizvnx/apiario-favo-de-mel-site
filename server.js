@@ -227,46 +227,113 @@ function atualizarHtmlLandingPage(arquivoHtml, novosDados) {
     try {
         let content = fs.readFileSync(filePath, 'utf8');
 
-        const fotoPrincipal = normalizarCaminhoFoto(novosDados.foto_principal);
-        const fotoThumb1 = normalizarCaminhoFoto(novosDados.foto_thumb1 || novosDados.foto_principal);
-        const fotoThumb2 = normalizarCaminhoFoto(novosDados.foto_thumb2 || novosDados.foto_principal);
-        const fotoThumb3 = normalizarCaminhoFoto(novosDados.foto_thumb3 || novosDados.foto_principal);
+        // 1. Atualiza Foto Principal do Hero se fornecida
+        let fotoPrincipal = '';
+        if (novosDados.foto_principal && String(novosDados.foto_principal).trim() !== '') {
+            fotoPrincipal = normalizarCaminhoFoto(novosDados.foto_principal);
+            content = content.replace(/(<img\s+id=["']mainProductImg["'][^>]*\ssrc=["'])[^"']+(["'])/i, `$1${fotoPrincipal}$2`);
+        }
 
-        // 1. Atualiza imagem principal do hero: <img id="mainProductImg" src="..."
-        content = content.replace(/(<img\s+id=["']mainProductImg["'][^>]*\ssrc=["'])[^"']+(["'])/i, `$1${fotoPrincipal}$2`);
+        // 2. Atualiza Miniaturas da Galeria (suporta remoção: omite thumbs vazios)
+        const thumbs = [];
+        const f1 = novosDados.foto_thumb1 !== undefined ? novosDados.foto_thumb1 : novosDados.foto_principal;
+        const f2 = novosDados.foto_thumb2;
+        const f3 = novosDados.foto_thumb3;
 
-        // 2. Atualiza miniaturas da galeria dentro de .product-thumbs
-        const thumbsRegex = /<div class="product-thumbs">([\s\S]*?)<\/div>\s*<\/div>/i;
-        const match = content.match(thumbsRegex);
-        if (match) {
-            const newThumbsHtml = 
-`<div class="product-thumbs">
-                        <div class="product-thumb-item active" onclick="changeThumb('${fotoThumb1}', this)">
-                            <img src="${fotoThumb1}" alt="Visualização 1">
-                        </div>
-                        <div class="product-thumb-item" onclick="changeThumb('${fotoThumb2}', this)">
-                            <img src="${fotoThumb2}" alt="Visualização 2">
-                        </div>
-                        <div class="product-thumb-item" onclick="changeThumb('${fotoThumb3}', this)">
-                            <img src="${fotoThumb3}" alt="Visualização 3">
-                        </div>
-                    </div>
-                </div>`;
+        if (f1 && String(f1).trim() !== '') {
+            thumbs.push({ src: normalizarCaminhoFoto(f1), label: 'Visualização 1' });
+        } else if (fotoPrincipal) {
+            thumbs.push({ src: fotoPrincipal, label: 'Visualização 1' });
+        }
+
+        if (f2 && String(f2).trim() !== '') {
+            thumbs.push({ src: normalizarCaminhoFoto(f2), label: 'Visualização 2' });
+        }
+
+        if (f3 && String(f3).trim() !== '') {
+            thumbs.push({ src: normalizarCaminhoFoto(f3), label: 'Visualização 3' });
+        }
+
+        const thumbsRegex = /<div class="product-thumbs">[\s\S]*?<\/div>(?=\s*<\/div>\s*(?:<!--[\s\S]*?-->\s*)?<div class="product-info-box">)/i;
+        if (thumbsRegex.test(content)) {
+            let thumbsItemsHtml = '';
+            if (thumbs.length > 0) {
+                thumbsItemsHtml = thumbs.map((t, idx) => `
+                        <div class="product-thumb-item ${idx === 0 ? 'active' : ''}" onclick="changeThumb('${t.src}', this)">
+                            <img src="${t.src}" alt="${t.label}">
+                        </div>`).join('');
+            }
+            const newThumbsHtml = `<div class="product-thumbs">${thumbsItemsHtml}
+                    </div>`;
             content = content.replace(thumbsRegex, newThumbsHtml);
         }
 
         // 3. Atualiza Schema.org JSON-LD image se existir
-        const schemaImgRegex = /"image":\s*\[\s*"[^"]*",\s*"[^"]*"\s*\]/i;
-        if (schemaImgRegex.test(content)) {
-            content = content.replace(schemaImgRegex, `"image": [\n            "${fotoPrincipal}",\n            "${fotoThumb2}"\n          ]`);
+        if (fotoPrincipal) {
+            const thumbRef = thumbs.length > 1 ? thumbs[1].src : fotoPrincipal;
+            const schemaImgRegex = /"image":\s*\[\s*"[^"]*",\s*"[^"]*"\s*\]/i;
+            if (schemaImgRegex.test(content)) {
+                content = content.replace(schemaImgRegex, `"image": [\n            "${fotoPrincipal}",\n            "${thumbRef}"\n          ]`);
+            }
+        }
+
+        // 4. Atualiza Preço Visual, Link WhatsApp e Schema.org se preço for fornecido
+        if (novosDados.preco !== undefined && novosDados.preco !== null && !isNaN(parseFloat(novosDados.preco))) {
+            const precoNum = parseFloat(novosDados.preco);
+            const precoFormatado = precoNum.toFixed(2).replace('.', ',');
+            const precoSchema = precoNum.toFixed(2);
+
+            // A) Tag visual de preço no hero: <span class="price-val">65,00</span>
+            content = content.replace(/(<span\s+class=["']price-val["'][^>]*>)[^<]+(<\/span>)/gi, `$1${precoFormatado}$2`);
+
+            // B) Schema.org JSON-LD "price": "65.00"
+            content = content.replace(/("price":\s*")[\d.,]+(")/gi, `$1${precoSchema}$2`);
+
+            // C) Link WhatsApp codificado: text=...R%24%2065%2C00... ou R$ 65,00
+            content = content.replace(/(text=[^"']*?R%24%20)(?:\d+(?:%2C\d+)?|\d+(?:\.\d+)?)/gi, `$1${encodeURIComponent(precoFormatado)}`);
+            content = content.replace(/(text=[^"']*?R\$\s*)(?:\d+(?:,\d+)?|\d+(?:\.\d+)?)/gi, `$1${precoFormatado}`);
         }
 
         fs.writeFileSync(filePath, content, 'utf8');
-        console.log(`[LandingPages] ✓ HTML ${arquivoHtml} atualizado com novas fotos com sucesso!`);
+        console.log(`[LandingPages] ✓ HTML ${arquivoHtml} atualizado com sucesso!`);
         return true;
     } catch (err) {
         console.error(`[LandingPages] Erro ao atualizar HTML ${arquivoHtml}:`, err.message);
         return false;
+    }
+}
+
+function sincronizarTodasLandingPages() {
+    try {
+        const landingPagesPath = path.join(DATA_DIR, 'landing_pages.json');
+        const produtosPath = path.join(DATA_DIR, 'produtos.json');
+        if (!fs.existsSync(landingPagesPath) || !fs.existsSync(produtosPath)) return;
+
+        const paginas = JSON.parse(fs.readFileSync(landingPagesPath, 'utf8'));
+        const produtos = JSON.parse(fs.readFileSync(produtosPath, 'utf8'));
+
+        for (const pag of paginas) {
+            if (!pag.arquivo_html) continue;
+            let prod = null;
+            if (pag.produto_id) {
+                prod = produtos.find(p => String(p.id) === String(pag.produto_id));
+            }
+            if (!prod) {
+                prod = produtos.find(p => (p.nome || '').toLowerCase().includes((pag.slug || '').replace(/-/g, ' ')));
+            }
+
+            if (prod && prod.preco) {
+                atualizarHtmlLandingPage(pag.arquivo_html, {
+                    ...pag,
+                    preco: prod.preco
+                });
+            } else {
+                atualizarHtmlLandingPage(pag.arquivo_html, pag);
+            }
+        }
+        console.log('[LandingPages] ✓ Sincronização inicial de todas as landing pages concluída!');
+    } catch (err) {
+        console.error('[LandingPages] Erro ao sincronizar landing pages:', err.message);
     }
 }
 
@@ -505,6 +572,24 @@ const server = http.createServer(async (req, res) => {
             try {
                 const body = await parseBody(req);
                 const { produto, fonte } = await db.atualizarProduto(produtoId, body);
+
+                // Sincroniza automaticamente a landing page vinculada se o preço mudar
+                try {
+                    const landingPagesPath = path.join(DATA_DIR, 'landing_pages.json');
+                    if (fs.existsSync(landingPagesPath)) {
+                        const paginas = JSON.parse(fs.readFileSync(landingPagesPath, 'utf8'));
+                        const paginaVinculada = paginas.find(p => String(p.produto_id) === String(produtoId));
+                        if (paginaVinculada && paginaVinculada.arquivo_html) {
+                            atualizarHtmlLandingPage(paginaVinculada.arquivo_html, {
+                                ...paginaVinculada,
+                                preco: produto.preco
+                            });
+                        }
+                    }
+                } catch (errSync) {
+                    console.warn('[Sync Landing] Erro ao sincronizar landing page com produto:', errSync.message);
+                }
+
                 return sendJson(res, 200, { sucesso: true, produto, fonte });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: 'Erro ao atualizar produto: ' + err.message });
@@ -626,7 +711,45 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // 5.2. Gestão das Fotos das Landing Pages dos Produtos
+    // 5.2. Excluir Foto do Acervo (assets/products)
+    if ((safePath.startsWith('/api/admin/imagens/') && req.method === 'DELETE') || 
+        (safePath === '/api/admin/deletar-imagem' && req.method === 'POST')) {
+        try {
+            let nomeArquivo = '';
+            if (req.method === 'DELETE') {
+                nomeArquivo = decodeURIComponent(safePath.replace('/api/admin/imagens/', '')).trim();
+            } else {
+                const body = await parseBody(req);
+                nomeArquivo = (body.nome || body.arquivo || '').trim();
+            }
+
+            if (!nomeArquivo) {
+                return sendJson(res, 400, { sucesso: false, erro: 'Nome de arquivo não especificado.' });
+            }
+
+            const baseName = path.basename(nomeArquivo);
+            const targetPath = path.join(PRODUCTS_ASSETS_DIR, baseName);
+
+            if (!fs.existsSync(targetPath)) {
+                return sendJson(res, 404, { sucesso: false, erro: 'Arquivo não encontrado no acervo.' });
+            }
+
+            fs.unlinkSync(targetPath);
+            indexarArquivosAssets();
+
+            console.log(`[Imagens] ✓ Foto excluída com sucesso: ${baseName}`);
+
+            return sendJson(res, 200, {
+                sucesso: true,
+                mensagem: `Foto "${baseName}" excluída do acervo com sucesso.`
+            });
+        } catch (err) {
+            console.error('[Imagens] Erro ao excluir imagem:', err.message);
+            return sendJson(res, 500, { sucesso: false, erro: 'Falha ao excluir imagem: ' + err.message });
+        }
+    }
+
+    // 5.3. Gestão das Fotos das Landing Pages dos Produtos
     if (safePath === '/api/admin/landing-pages' && req.method === 'GET') {
         try {
             const { paginas, fonte } = await db.listarLandingPages();
@@ -987,6 +1110,9 @@ function iniciarServidor(porta) {
         console.log(`Painel Seguro:  http://localhost:${porta}/admin/favodemel`);
         console.log(`Banco:          PostgreSQL (${process.env.DB_NAME || 'evolution_db'}) c/ Fallback Resiliente`);
         console.log('======================================================\n');
+
+        // Sincroniza todas as landing pages de produtos com o banco
+        sincronizarTodasLandingPages();
     });
 }
 
@@ -1000,4 +1126,8 @@ server.on('error', (err) => {
     }
 });
 
-iniciarServidor(PORT);
+if (require.main === module) {
+    iniciarServidor(PORT);
+}
+
+module.exports = { server, iniciarServidor, sincronizarTodasLandingPages };

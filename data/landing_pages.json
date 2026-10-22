@@ -1,6 +1,7 @@
 [
   {
     "slug": "mel-com-favo",
+    "produto_id": 1,
     "titulo": "Mel com Favo Nobre 500g",
     "categoria": "Méis Nobres",
     "arquivo_html": "mel-com-favo.html",
@@ -12,6 +13,7 @@
   },
   {
     "slug": "propolis-vermelha",
+    "produto_id": 4,
     "titulo": "Própolis Vermelha Nobre 20ml",
     "categoria": "Própolis & Saúde",
     "arquivo_html": "propolis-vermelha.html",
@@ -23,6 +25,7 @@
   },
   {
     "slug": "propolis-verde",
+    "produto_id": 3,
     "titulo": "Própolis Verde Pura 20ml",
     "categoria": "Própolis & Saúde",
     "arquivo_html": "propolis-verde.html",
@@ -34,6 +37,7 @@
   },
   {
     "slug": "mel-de-urucu",
+    "produto_id": 2,
     "titulo": "Mel de Abelha Uruçu 280g (Nativa)",
     "categoria": "Méis Nobres",
     "arquivo_html": "mel-de-urucu.html",
@@ -45,6 +49,7 @@
   },
   {
     "slug": "mel-silvestre",
+    "produto_id": 8,
     "titulo": "Mel Silvestre in Natura 500g",
     "categoria": "Méis Nobres",
     "arquivo_html": "mel-silvestre.html",
@@ -56,6 +61,7 @@
   },
   {
     "slug": "polen-apicola",
+    "produto_id": 10,
     "titulo": "Pólen Apícola Desidratado 140g",
     "categoria": "Superalimentos",
     "arquivo_html": "polen-apicola.html",
@@ -67,6 +73,7 @@
   },
   {
     "slug": "kit-presente",
+    "produto_id": 5,
     "titulo": "Kit Presente Degustação & Madeira Artesanal",
     "categoria": "Kits & Especiais",
     "arquivo_html": "kit-presente.html",
@@ -78,6 +85,7 @@
   },
   {
     "slug": "resgate-de-abelhas",
+    "produto_id": null,
     "titulo": "Resgate e Captura Ecológica de Abelhas",
     "categoria": "Serviços Especializados",
     "arquivo_html": "resgate-de-abelhas.html",
@@ -89,6 +97,7 @@
   },
   {
     "slug": "consultoria-apicola",
+    "produto_id": null,
     "titulo": "Consultoria Apícola & Implantação de Apiários",
     "categoria": "Serviços Especializados",
     "arquivo_html": "consultoria-apicola.html",
