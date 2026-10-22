@@ -7,6 +7,11 @@ services:
     restart: always
     environment:
       PORT: 3300
+      DB_HOST: evolution_postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: typebot
+      DB_NAME: evolution_db
       EVOLUTION_URL: http://137.131.164.202:8081
       EVOLUTION_INSTANCE: FavoDeMel
       EVOLUTION_API_KEY: 429683C4C977415CAAFCCE10F7D57E11
@@ -16,6 +21,7 @@ services:
       - /app/node_modules
     networks:
       - favo_net
+      - evolution-net
 
   caddy:
     image: caddy:alpine
@@ -39,3 +45,5 @@ volumes:
 networks:
   favo_net:
     driver: bridge
+  evolution-net:
+    external: true
