@@ -10,7 +10,8 @@ const path = require('path');
 
 const DATA_DIR = path.join(__dirname, 'data');
 
-const CANONICAL_PHOTOS = {
+// Fotos canônicas usadas APENAS como fallback quando o produto não tem nenhuma foto cadastrada
+const CANONICAL_PHOTOS_FALLBACK = {
     1: 'Mel-com-favo-500g.webp',
     2: 'Mel-in-natura-280g.webp',
     3: 'Propolis-verde-20ml.webp',
@@ -28,10 +29,12 @@ const CANONICAL_PHOTOS = {
 };
 
 function normalizarFotoProduto(id, foto) {
+    // Se há foto cadastrada (não vazia, não nula) → respeita exatamente o que o admin salvou
     if (foto && String(foto).trim() !== '' && String(foto).trim() !== 'null' && String(foto).trim() !== 'undefined') {
         return String(foto).trim();
     }
-    if (id && CANONICAL_PHOTOS[id]) return CANONICAL_PHOTOS[id];
+    // Sem foto: usa a canônica de fallback só se não houver foto real
+    if (id && CANONICAL_PHOTOS_FALLBACK[id]) return CANONICAL_PHOTOS_FALLBACK[id];
     return 'Mel-in-natura-500g.webp';
 }
 
@@ -689,11 +692,23 @@ class DatabaseAdapter {
                 nome: row.nome,
                 preco: parseFloat(row.preco),
                 descricao: row.descricao || '',
-                foto: row.foto || 'Mel-in-Natura-500g.png',
+                foto: normalizarFotoProduto(row.id, row.foto),
                 estoque: parseInt(row.estoque, 10),
                 ativo: row.ativo !== false,
+                criado_em: row.criado_em,
                 atualizado_em: row.atualizado_em
             };
+
+            // Sincroniza o cache local (produtos.json) com os dados confirmados pelo PostgreSQL
+            let produtosCache = this.readJson('produtos.json', []);
+            const idxCache = produtosCache.findIndex(p => String(p.id) === String(formatado.id));
+            if (idxCache !== -1) {
+                produtosCache[idxCache] = formatado;
+            } else {
+                produtosCache.unshift(formatado);
+            }
+            this.writeJson('produtos.json', produtosCache);
+
             return { produto: formatado, fonte: 'postgresql' };
         } catch (err) {
             console.error('[DB] Erro ao atualizar produto no PostgreSQL:', err.message);

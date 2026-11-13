@@ -316,17 +316,18 @@ class AdminApp {
 
     async carregarProdutos() {
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/produtos'));
+            const res = await fetch(this.getApiUrl(`/api/admin/produtos?_t=${Date.now()}`), { cache: 'no-store' });
             const data = await res.json();
             if (data.sucesso && Array.isArray(data.produtos)) {
                 this.produtos = data.produtos;
+                localStorage.setItem('favodemel_produtos_cache', JSON.stringify(this.produtos));
             } else {
-                throw new Error();
+                throw new Error(data.erro || 'Falha ao carregar produtos');
             }
         } catch (err) {
             const salvo = localStorage.getItem('favodemel_produtos_cache');
             if (salvo) {
-                this.produtos = JSON.parse(salvo);
+                try { this.produtos = JSON.parse(salvo); } catch (_) {}
             }
         }
 
@@ -438,18 +439,18 @@ class AdminApp {
     }
 
     resolverCaminhoFoto(foto) {
-        if (!foto) return '/assets/products/Mel-in-natura-500g.webp';
+        const apiBase = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
+        if (!foto) return `${apiBase}/assets/products/Mel-in-natura-500g.webp`;
         foto = String(foto).trim();
-        if (foto.startsWith('http://') || foto.startsWith('https://')) {
-            return foto;
-        }
-        if (foto.startsWith('/assets/')) {
-            return foto;
-        }
-        if (foto.startsWith('assets/')) {
-            return `/${foto}`;
-        }
-        return `/assets/products/${foto}`;
+        // Data URI (base64) — retorna direto
+        if (foto.startsWith('data:image/')) return foto;
+        // URL absoluta — retorna direto
+        if (foto.startsWith('http://') || foto.startsWith('https://')) return foto;
+        // Já é caminho absoluto de asset
+        if (foto.startsWith('/assets/')) return apiBase ? `${apiBase}${foto}` : foto;
+        if (foto.startsWith('assets/')) return apiBase ? `${apiBase}/${foto}` : `/${foto}`;
+        // Nome de arquivo simples — aponta para o VPS
+        return `${apiBase}/assets/products/${foto}`;
     }
 
     // =========================================================================
@@ -528,12 +529,13 @@ class AdminApp {
 
         grid.innerHTML = this.imagensDisponiveis.map(imgName => {
             const isSel = imgName === fotoSelecionada;
+            const imgSrc = this.resolverCaminhoFoto(imgName);
             return `
                 <div class="gallery-item ${isSel ? 'selected' : ''}" data-file="${imgName}" style="position: relative;">
                     <button type="button" class="btn-apagar-acervo" data-file="${imgName}" title="Excluir foto do acervo permanentemente" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 4px; background: rgba(220, 38, 38, 0.85); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; opacity: 0.75; transition: opacity 0.2s, background 0.2s;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
-                    <img src="assets/products/${imgName}" alt="${imgName}" loading="lazy" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
+                    <img src="${imgSrc}" alt="${imgName}" loading="lazy" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                     <span>${imgName.replace(/\.[^/.]+$/, "")}</span>
                 </div>
             `;
@@ -549,7 +551,7 @@ class AdminApp {
                 const previewImg = document.getElementById('imagePreviewImg');
 
                 if (inputFoto) inputFoto.value = fileName;
-                if (previewImg) previewImg.src = `assets/products/${fileName}`;
+                if (previewImg) previewImg.src = this.resolverCaminhoFoto(fileName);
             });
         });
 
@@ -742,6 +744,8 @@ class AdminApp {
                 if (data.sucesso) {
                     const idx = this.produtos.findIndex(p => p.id === parseInt(id, 10));
                     if (idx !== -1) this.produtos[idx] = data.produto;
+                } else {
+                    throw new Error(data.erro || 'Falha ao atualizar produto no servidor');
                 }
             } else {
                 // Criação
@@ -753,19 +757,13 @@ class AdminApp {
                 const data = await res.json();
                 if (data.sucesso) {
                     this.produtos.unshift(data.produto);
+                } else {
+                    throw new Error(data.erro || 'Falha ao criar produto no servidor');
                 }
             }
         } catch (err) {
-            console.warn('Salvando alteração localmente:', err.message);
-            if (id) {
-                const idx = this.produtos.findIndex(p => p.id === parseInt(id, 10));
-                if (idx !== -1) {
-                    this.produtos[idx] = { ...this.produtos[idx], ...payload };
-                }
-            } else {
-                const novoId = this.produtos.length > 0 ? Math.max(...this.produtos.map(p => p.id)) + 1 : 1;
-                this.produtos.unshift({ id: novoId, ...payload });
-            }
+            console.error('[Admin] Erro ao salvar produto:', err.message);
+            alert('Erro ao salvar produto: ' + err.message);
         } finally {
             btnSave.disabled = false;
             btnSave.innerText = 'Salvar Produto';

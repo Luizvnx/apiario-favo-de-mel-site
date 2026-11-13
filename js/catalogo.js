@@ -3,6 +3,48 @@
  * Versão: 2.0 (Desacoplado, Reativo, Zero WordPress)
  */
 
+window.handleCatalogImgError = function(img) {
+    if (!img) return;
+    const currentSrc = img.src || img.getAttribute('src') || '';
+    if (!currentSrc) return;
+
+    // Se falhou ao carregar da API remota (VPS), tenta carregar diretamente da origem local
+    const apiBase = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
+    if (apiBase && currentSrc.startsWith(apiBase)) {
+        const localPath = currentSrc.replace(apiBase, '');
+        img.onerror = function() {
+            window.handleCatalogImgError(img);
+        };
+        img.src = localPath;
+        return;
+    }
+
+    // Tenta alternar extensões caso arquivo físico seja .png ou .jpeg
+    if (currentSrc.endsWith('.webp')) {
+        img.onerror = function() {
+            img.onerror = function() {
+                img.onerror = null;
+                img.src = '/assets/products/Mel-in-natura-500g.webp';
+            };
+            img.src = currentSrc.replace(/\.webp$/i, '.jpeg');
+        };
+        img.src = currentSrc.replace(/\.webp$/i, '.png');
+        return;
+    }
+
+    if (currentSrc.endsWith('.png') || currentSrc.endsWith('.jpeg') || currentSrc.endsWith('.jpg')) {
+        img.onerror = function() {
+            img.onerror = null;
+            img.src = '/assets/products/Mel-in-natura-500g.webp';
+        };
+        img.src = currentSrc.replace(/\.(png|jpeg|jpg)$/i, '.webp');
+        return;
+    }
+
+    img.onerror = null;
+    img.src = '/assets/products/Mel-in-natura-500g.webp';
+};
+
 class CatalogoApp {
     constructor() {
         this.produtos = [];
@@ -165,9 +207,9 @@ class CatalogoApp {
     }
 
     async carregarDadosDoServidor() {
-        // Carrega configurações da loja e do PIX
+        // Carrega configurações da loja e do PIX com cache buster
         try {
-            const resCfg = await fetch(this.getApiUrl('/api/catalogo/config'));
+            const resCfg = await fetch(this.getApiUrl(`/api/catalogo/config?_t=${Date.now()}`), { cache: 'no-store' });
             const dataCfg = await resCfg.json();
             if (dataCfg.sucesso && dataCfg.config) {
                 this.config = { ...this.config, ...dataCfg.config };
@@ -191,40 +233,68 @@ class CatalogoApp {
                 `;
             }
 
-            const res = await fetch(this.getApiUrl('/api/catalogo/produtos'));
+            const res = await fetch(this.getApiUrl(`/api/catalogo/produtos?_t=${Date.now()}`), { cache: 'no-store' });
             const data = await res.json();
 
             if (data.sucesso && Array.isArray(data.produtos) && data.produtos.length > 0) {
                 this.categorias = data.categorias || [];
                 this.produtos = data.produtos || [];
+                try {
+                    localStorage.setItem('favodemel_catalogo_cache', JSON.stringify({
+                        categorias: this.categorias,
+                        produtos: this.produtos,
+                        salvo_em: Date.now()
+                    }));
+                } catch (_) {}
                 return;
             } else {
                 throw new Error(data.erro || 'Falha ao carregar catálogo da API');
             }
         } catch (err) {
             console.warn('Utilizando catálogo integrado do Apiário Favo de Mel (Modo Resiliente):', err.message);
-            // Fallback com catálogo 100% autêntico do Apiário Favo de Mel
+            // 1. Tenta recuperar o cache local salvo anteriormente
+            try {
+                const salvo = localStorage.getItem('favodemel_catalogo_cache');
+                if (salvo) {
+                    const parsed = JSON.parse(salvo);
+                    if (Array.isArray(parsed.produtos) && parsed.produtos.length > 0) {
+                        this.categorias = parsed.categorias || [];
+                        this.produtos = parsed.produtos;
+                        return;
+                    }
+                }
+            } catch (_) {}
+
+            // 2. Fallback com catálogo sincronizado e autêntico do Apiário Favo de Mel
             this.categorias = [
-                { id: 1, nome: "Méis & Acessórios" },
-                { id: 2, nome: "Cuidados Naturais e Própolis" },
-                { id: 3, nome: "Artesanais, Cera & Bebidas" }
+                { id: "1", nome: "Méis & Acessórios" },
+                { id: "2", nome: "Cuidados Naturais e Própolis" },
+                { id: "3", nome: "Artesanais, Cera & Bebidas" }
             ];
 
             this.produtos = [
-                { id: 1, categoria_id: 1, nome: "Mel com Favo 500g", preco: 65.00, peso: "500g", descricao: "Pedaço genuíno de favo de mel imerso no mel puro. Experiência sensorial inigualável.", estoque: 20, foto: "Mel-com-favo-500g.webp" },
-                { id: 2, categoria_id: 1, nome: "Mel de Uruçú (Nativa)", preco: 85.00, peso: "280g", descricao: "Mel puro de abelha nativa sem ferrão. Acidez nobre, textura fluida e alto valor medicinal.", estoque: 15, foto: "Mel-in-natura-280g.webp" },
-                { id: 3, categoria_id: 2, nome: "Própolis Verde 20ml", preco: 38.00, peso: "20ml", descricao: "Extrato puro concentrado com Artepillin-C. Ação bactericida e fortalecedor do sistema imune.", estoque: 40, foto: "Propolis-verde-20ml.webp" },
-                { id: 4, categoria_id: 2, nome: "Própolis Vermelha 20ml", preco: 50.00, peso: "20ml", descricao: "Considerada a mais nobre do mundo, riquíssima em flavonoides antioxidantes e antivirais.", estoque: 30, foto: "Propolis-vermelha-20ml.webp" },
-                { id: 5, categoria_id: 3, nome: "Kit Presente Favo de Mel", preco: 120.00, peso: "Kit", descricao: "Caixa rústica de madeira artesanal com mel nobre, vela aromática, própolis e doce da colmeia.", estoque: 10, foto: "Kit-presente.webp" },
-                { id: 6, categoria_id: 2, nome: "Kit Sabonete Terapêutico", preco: 35.00, peso: "Kit", descricao: "Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.", estoque: 25, foto: "Kit-de-sabinete-terapeutico.webp" },
-                { id: 7, categoria_id: 3, nome: "Licor de Mel Nobre 250ml", preco: 35.00, peso: "250ml", descricao: "Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.", estoque: 18, foto: "Licor-de-mel-250ml.webp" },
-                { id: 8, categoria_id: 1, nome: "Mel in Natura 500g", preco: 35.00, peso: "500g", descricao: "Mel puro de floradas silvestres brasileiras. Embalagem prática com bico dosador corta-pingos.", estoque: 50, foto: "Mel-in-natura-500g.webp" },
-                { id: 9, categoria_id: 1, nome: "Meleira com Mel Nobre", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro de florada silvestre e pegador dosador.", estoque: 20, foto: "Meleira-com-mel-280g.webp" },
-                { id: 10, categoria_id: 2, nome: "Pólen Apícola Desidratado (140g)", preco: 42.00, peso: "140g", descricao: "Superalimento natural das abelhas repleto de aminoácidos essenciais, vitaminas do complexo B e minerais energizantes.", estoque: 25, foto: "Polen-apicola-140g.webp" },
-                { id: 11, categoria_id: 3, nome: "Vinagre Nobre de Mel (315ml)", preco: 28.00, peso: "315ml", descricao: "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado para saladas e pratos nobres.", estoque: 22, foto: "Vinagre-de-mel-315ml.webp" },
-                { id: 12, categoria_id: 3, nome: "Vela Artesanal de Cera Pura de Abelha", preco: 18.00, peso: "Unidade", descricao: "Vela aromática 100% natural sem derivados de petróleo. Aroma suave e adocicado de favo com queima limpa e duradoura.", estoque: 35, foto: "Velas-artesanais-de-cera-de-abelha.webp" },
-                { id: 13, categoria_id: 3, nome: "Cera Bruta de Apis (1kg)", preco: 95.00, peso: "1kg", descricao: "Bloco maciço de cera virgem de opérculo purificada. Ideal para cosmética, pomadas medicinais, marcenaria nobre e apicultura.", estoque: 12, foto: "Cera-bruta-de-apis.webp" },
-                { id: 14, categoria_id: 1, nome: "Mel In Natura Garrafa (1400g)", preco: 65.00, peso: "1400g", descricao: "Embalagem família econômica com 1,4kg de mel cru silvestre colhido nas matas nativas. Pureza garantida.", estoque: 28, foto: "Mel-in-Natura-1400g.webp" }
+                { id: 1, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Mel com Favo 500g", preco: 65.00, peso: "500g", descricao: "Pedaço genuíno de favo de mel imerso no mel puro.", estoque: 20, foto: "Mel-com-favo-500g.webp", ativo: true },
+                { id: 2, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Meleira com Mel", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro de alta qualidade acompanhada com mel puro.", estoque: 2, foto: "Meleira-com-mel-280g.jpeg", ativo: true },
+                { id: 3, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Pomada de Própolis (20g)", preco: 45.00, peso: "20g", descricao: "Pomada natural de própolis puro. Ação cicatrizante, anti-inflamatória e protetora.", estoque: 999, foto: "POMADA-DE-PROPOLIS-1794582053546.jpeg", ativo: true },
+                { id: 4, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Hidratante Labial", preco: 12.00, peso: "4g", descricao: "Hidratação duradoura para seus lábios à base de cera pura de abelha e mel.", estoque: 50, foto: "Kit-de-sabinete-terapeutico.webp", ativo: true },
+                { id: 5, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Kit Presente Favo de Mel", preco: 120.00, peso: "Kit", descricao: "Caixa rústica de madeira artesanal com mel nobre, vela aromática, própolis e doce da colmeia.", estoque: 10, foto: "Kit-presente.webp", ativo: true },
+                { id: 6, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Kit Sabonete Terapêutico", preco: 35.00, peso: "Kit", descricao: "Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.", estoque: 25, foto: "Kit-de-sabinete-terapeutico.webp", ativo: true },
+                { id: 7, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Licor de Mel Nobre 250ml", preco: 35.00, peso: "250ml", descricao: "Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.", estoque: 18, foto: "Licor-de-mel-250ml.webp", ativo: true },
+                { id: 8, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Mel in Natura 500g", preco: 35.00, peso: "500g", descricao: "Mel puro de floradas silvestres brasileiras. Embalagem prática com bico dosador.", estoque: 50, foto: "Mel-in-natura-500g.webp", ativo: true },
+                { id: 9, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Meleira com Mel Nobre", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro.", estoque: 20, foto: "Meleira-com-mel-280g.webp", ativo: true },
+                { id: 10, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Pólen Apícola Desidratado (140g)", preco: 42.00, peso: "140g", descricao: "Superalimento natural das abelhas repleto de aminoácidos essenciais e minerais energizantes.", estoque: 25, foto: "Polen-apicola-140g.webp", ativo: true },
+                { id: 11, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Vinagre Nobre de Mel (315ml)", preco: 30.00, peso: "315ml", descricao: "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado.", estoque: 22, foto: "Vinagre-de-mel-315ml.webp", ativo: true },
+                { id: 12, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Formão Inox", preco: 40.00, peso: "Unidade", descricao: "Formão para apicultura em inox para manejo de colmeias.", estoque: 35, foto: "Formao.jpeg", ativo: true },
+                { id: 13, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Cera Bruta de Apis (1kg)", preco: 95.00, peso: "1kg", descricao: "Bloco maciço de cera virgem de opérculo purificada.", estoque: 12, foto: "Cera-bruta-de-apis.webp", ativo: true },
+                { id: 14, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Acetato Pet", preco: 2.50, peso: "Unidade", descricao: "Acetato transparente para divisão de meliponário.", estoque: 28, foto: "Acetato-pet.jpeg", ativo: true },
+                { id: 15, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Alimentador", preco: 14.00, peso: "Unidade", descricao: "Alimentador para caixa de apis.", estoque: 10, foto: "Alimentador.jpeg", ativo: true },
+                { id: 16, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "BOTA EM PVC", preco: 70.00, peso: "40-42", descricao: "Bota em PVC branca tam. 40 - 42.", estoque: 5, foto: "Bota-de-pvc.jpeg", ativo: true },
+                { id: 17, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "ATRATIVA PARA ABELHAS APIS", preco: 25.00, peso: "Frasco", descricao: "Atrativo para captura de abelha APIS.", estoque: 5, foto: "Atrativo.jpeg", ativo: true },
+                { id: 18, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CANECA", preco: 45.00, peso: "Unidade", descricao: "Caneca temática abelha em louça.", estoque: 2, foto: "Caneca-tematica-abelha.jpeg", ativo: true },
+                { id: 19, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "ATRATIVO MISTO", preco: 25.00, peso: "Frasco", descricao: "Atrativo misto para abelha nativa.", estoque: 3, foto: "Atrativo-misto-de-abelha-nativa.jpeg", ativo: true },
+                { id: 20, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "FAVO DE MEL", preco: 130.00, peso: "Quadro", descricao: "Favo de mel em quadro.", estoque: 8, foto: "Captura-de-Tela-2026-05-29-as-14.02.58.png", ativo: true },
+                { id: 21, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CERA MISTA DE ABELHA NATIVA FOLHA", preco: 3.00, peso: "Folha", descricao: "Folha de cera mista para abelha nativa.", estoque: 25, foto: "Cera-mista-abelha-asf.jpeg", ativo: true },
+                { id: 22, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CERA BRUTA DE APIS 100G", preco: 10.00, peso: "100g", descricao: "Cera bruta de abelha apis fracionada.", estoque: 10, foto: "Cera-Bruta-de-Apis.png", ativo: true }
             ];
         }
     }
@@ -281,72 +351,57 @@ class CatalogoApp {
     // RENDERIZAÇÃO DA VITRINE DE PRODUTOS
     // =========================================================================
     resolverFoto(prod) {
-        const canonicalById = {
-            '1': 'Mel-com-favo-500g.webp',
-            '2': 'Mel-in-natura-280g.webp',
-            '3': 'Propolis-verde-20ml.webp',
-            '4': 'Propolis-vermelha-20ml.webp',
-            '5': 'Kit-presente.webp',
-            '6': 'Kit-de-sabinete-terapeutico.webp',
-            '7': 'Licor-de-mel-250ml.webp',
-            '8': 'Mel-in-natura-500g.webp',
-            '9': 'Meleira-com-mel-280g.webp',
-            '10': 'Polen-apicola-140g.webp',
-            '11': 'Vinagre-de-mel-315ml.webp',
-            '12': 'Velas-artesanais-de-cera-de-abelha.webp',
-            '13': 'Cera-bruta-de-apis.webp',
-            '14': 'Mel-in-Natura-1400g.webp'
-        };
-
-        if (prod && prod.id && canonicalById[String(prod.id)]) {
-            return `/assets/products/${canonicalById[String(prod.id)]}`;
-        }
+        // Obtém a base da API (VPS) para imagens enviadas via admin
+        const apiBase = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
 
         let foto = (prod && prod.foto) ? String(prod.foto).trim() : '';
 
-        // Se foto for nula, vazia, genérica ou avatar, mapeia pelo nome exato do produto (idêntico à vitrine #produtos)
-        if (!foto || foto === 'null' || foto === 'undefined' || foto.includes('site-assets') || foto.includes('avatar-favo-de-mel')) {
-            const nomeNorm = (prod && prod.nome ? prod.nome : '').toLowerCase();
-            if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu')) return '/assets/products/Mel-in-natura-280g.webp';
-            if (nomeNorm.includes('favo')) return '/assets/products/Mel-com-favo-500g.webp';
-            if (nomeNorm.includes('verde')) return '/assets/products/Propolis-verde-20ml.webp';
-            if (nomeNorm.includes('vermelha')) return '/assets/products/Propolis-vermelha-20ml.webp';
-            if (nomeNorm.includes('sabonete') || nomeNorm.includes('labial') || nomeNorm.includes('hidratante')) return '/assets/products/Kit-de-sabinete-terapeutico.webp';
-            if (nomeNorm.includes('licor') || nomeNorm.includes('hidromel')) return '/assets/products/Licor-de-mel-250ml.webp';
-            if (nomeNorm.includes('meleira')) return '/assets/products/Meleira-com-mel-280g.webp';
-            if (nomeNorm.includes('presente')) return '/assets/products/Kit-presente.webp';
-            if (nomeNorm.includes('polen') || nomeNorm.includes('pólen')) return '/assets/products/Polen-apicola-140g.webp';
-            if (nomeNorm.includes('vinagre')) return '/assets/products/Vinagre-de-mel-315ml.webp';
-            if (nomeNorm.includes('vela')) return '/assets/products/Velas-artesanais-de-cera-de-abelha.webp';
-            if (nomeNorm.includes('alveolada')) return '/assets/products/Cera-alveolada.webp';
-            if (nomeNorm.includes('cera') || nomeNorm.includes('pasta')) return '/assets/products/Cera-bruta-de-apis.webp';
-            if (nomeNorm.includes('desmoldante')) return '/assets/products/Desmoldante-de-forma.webp';
-            if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) return '/assets/products/Formao.webp';
-            if (nomeNorm.includes('fumigador')) return '/assets/products/Fumigador.webp';
-            if (nomeNorm.includes('pomada')) return '/assets/products/Propolis-verde-20ml.webp';
-            if (nomeNorm.includes('1400g')) return '/assets/products/Mel-in-Natura-1400g.webp';
-            return '/assets/products/Mel-in-natura-500g.webp';
-        }
-
-        const base = foto.split('/').pop().toLowerCase();
-        const baseWebp = base.replace(/\.(png|jpe?g)$/i, '.webp');
-        for (const can of Object.values(canonicalById)) {
-            if (can.toLowerCase() === base || can.toLowerCase() === baseWebp) {
-                return `/assets/products/${can}`;
-            }
-        }
-
-        if (foto.endsWith('.png') || foto.endsWith('.jpg') || foto.endsWith('.jpeg')) {
-            foto = foto.replace(/\.(png|jpg|jpeg)$/i, '.webp');
-        }
-
-        if (foto.startsWith('http://') || foto.startsWith('https://') || foto.startsWith('/assets/')) {
+        // 1. Foto é uma data URI (Base64 gerada pelo sistema legado) — retorna direto
+        if (foto.startsWith('data:image/')) {
             return foto;
         }
-        if (foto.startsWith('assets/')) {
-            return `/${foto}`;
+
+        // 2. Foto é uma URL absoluta (já tem protocolo) — retorna direto
+        if (foto.startsWith('http://') || foto.startsWith('https://')) {
+            return foto;
         }
-        return `/assets/products/${foto}`;
+
+        // 3. Foto vazia, nula, ou genérica → usa fallback por nome do produto
+        if (!foto || foto === 'null' || foto === 'undefined' || foto.includes('avatar-favo-de-mel')) {
+            const nomeNorm = (prod && prod.nome ? prod.nome : '').toLowerCase();
+            if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu')) return `${apiBase}/assets/products/Mel-in-natura-280g.webp`;
+            if (nomeNorm.includes('favo')) return `${apiBase}/assets/products/Mel-com-favo-500g.webp`;
+            if (nomeNorm.includes('verde')) return `${apiBase}/assets/products/Propolis-verde-20ml.webp`;
+            if (nomeNorm.includes('vermelha')) return `${apiBase}/assets/products/Propolis-vermelha-20ml.webp`;
+            if (nomeNorm.includes('sabonete') || nomeNorm.includes('labial') || nomeNorm.includes('hidratante')) return `${apiBase}/assets/products/Kit-de-sabinete-terapeutico.webp`;
+            if (nomeNorm.includes('licor') || nomeNorm.includes('hidromel')) return `${apiBase}/assets/products/Licor-de-mel-250ml.webp`;
+            if (nomeNorm.includes('meleira')) return `${apiBase}/assets/products/Meleira-com-mel-280g.webp`;
+            if (nomeNorm.includes('presente')) return `${apiBase}/assets/products/Kit-presente.webp`;
+            if (nomeNorm.includes('polen') || nomeNorm.includes('pólen')) return `${apiBase}/assets/products/Polen-apicola-140g.webp`;
+            if (nomeNorm.includes('vinagre')) return `${apiBase}/assets/products/Vinagre-de-mel-315ml.webp`;
+            if (nomeNorm.includes('vela')) return `${apiBase}/assets/products/Velas-artesanais-de-cera-de-abelha.webp`;
+            if (nomeNorm.includes('alveolada')) return `${apiBase}/assets/products/Cera-alveolada.webp`;
+            if (nomeNorm.includes('cera') || nomeNorm.includes('pasta')) return `${apiBase}/assets/products/Cera-bruta-de-apis.webp`;
+            if (nomeNorm.includes('desmoldante')) return `${apiBase}/assets/products/Desmoldante-de-forma.webp`;
+            if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) return `${apiBase}/assets/products/Formao.webp`;
+            if (nomeNorm.includes('fumigador')) return `${apiBase}/assets/products/Fumigador.webp`;
+            if (nomeNorm.includes('pomada')) return `${apiBase}/assets/products/Propolis-verde-20ml.webp`;
+            if (nomeNorm.includes('1400g')) return `${apiBase}/assets/products/Mel-in-Natura-1400g.webp`;
+            return `${apiBase}/assets/products/Mel-in-natura-500g.webp`;
+        }
+
+        // 4. Foto já é um caminho absoluto no servidor (/assets/...)
+        if (foto.startsWith('/assets/')) {
+            return apiBase ? `${apiBase}${foto}` : foto;
+        }
+        if (foto.startsWith('assets/')) {
+            return apiBase ? `${apiBase}/${foto}` : `/${foto}`;
+        }
+
+        // 5. É apenas um nome de arquivo (ex: "Meleira-com-mel-280g.jpeg")
+        // Monta URL completa apontando para o VPS onde a imagem realmente está
+        const fileName = foto.split('/').pop();
+        return apiBase ? `${apiBase}/assets/products/${fileName}` : `/assets/products/${fileName}`;
     }
 
     renderizarProdutos() {
@@ -395,7 +450,7 @@ class CatalogoApp {
             return `
                 <div class="catalog-card" data-id="${prod.id}">
                     <div class="card-img-area" onclick="catalogoApp.abrirModalProduto('${prod.id}')" style="cursor: pointer;" title="Clique para ver detalhes do produto">
-                        <img src="${fotoUrl}" alt="${prod.nome}" width="260" height="260" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/assets/products/Mel-in-natura-500g.webp'">
+                        <img src="${fotoUrl}" alt="${prod.nome}" width="260" height="260" loading="lazy" decoding="async" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
                     </div>
                     <div class="card-content">
                         <span class="card-category-label">${catNomeLimpo}</span>
@@ -454,6 +509,7 @@ class CatalogoApp {
         if (imgEl) {
             imgEl.src = fotoUrl;
             imgEl.alt = prod.nome;
+            imgEl.onerror = function() { window.handleCatalogImgError && window.handleCatalogImgError(this); };
         }
         if (titleEl) titleEl.innerText = prod.nome;
         if (catEl) catEl.innerText = catNomeLimpo;
@@ -700,7 +756,7 @@ class CatalogoApp {
 
                 return `
                     <div class="cart-item-row">
-                        <img src="${fotoUrl}" alt="${item.nome}" class="cart-item-img" onerror="this.onerror=null; this.src='/assets/products/Mel-in-natura-500g.webp'">
+                        <img src="${fotoUrl}" alt="${item.nome}" class="cart-item-img" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
                         <div class="cart-item-info">
                             <div class="cart-item-name">${item.nome}</div>
                             ${obsHtml}
