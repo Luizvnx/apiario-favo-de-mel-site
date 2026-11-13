@@ -77,7 +77,7 @@
           {
             "@type": "Product",
             "position": 2,
-            "name": "Mel de Uruçú (Abelha Nativa)",
+            "name": "Mel de Uruçu (Abelha Nativa)",
             "image": "https://www.apiariofavodemel.com.br/assets/products/Mel-in-natura-280g.webp",
             "description": "Mel puro de abelha nativa sem ferrão com sabor refinado e alto valor terapêutico.",
             "offers": {
@@ -154,8 +154,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="/css/style.css?v=5.1">
-    <link rel="stylesheet" href="/css/catalogo.css?v=5.1">
+    <link rel="stylesheet" href="/css/style.css?v=8.0">
+    <link rel="stylesheet" href="/css/catalogo.css?v=8.0">
 </head>
 <body class="catalogo-body">
 
@@ -164,6 +164,7 @@
          ========================================================================== -->
     <header class="catalog-top-header">
         <div class="container catalog-header-inner">
+            <h1 class="sr-only">Catálogo Online — Apiário Favo de Mel</h1>
             <div class="catalog-brand">
                 <a href="/" class="back-to-site" title="Voltar para a Página Principal">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -182,7 +183,7 @@
                 <button id="cartTopBtn" class="cart-top-btn" aria-label="Abrir Carrinho">
                     <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                     <span id="cartTopTotal">R$ 0,00</span>
-                    <span id="cartTopBadge" class="cart-count-badge">0</span>
+                    <span id="cartTopBadge" class="cart-count-badge" aria-live="polite">0</span>
                 </button>
             </div>
         </div>
@@ -191,18 +192,19 @@
     <!-- ==========================================================================
          BARRA DE CONTROLE: BUSCA E FILTROS DE CATEGORIA
          ========================================================================== -->
-    <section class="catalog-controls">
+    <section class="catalog-controls" aria-label="Busca e filtros de categoria">
         <div class="container">
             <!-- Barra de Busca -->
             <div class="catalog-search-wrap">
-                <span class="catalog-search-icon">
+                <label for="catalogSearch" class="sr-only">Buscar produtos no catálogo</label>
+                <span class="catalog-search-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </span>
-                <input type="text" id="catalogSearch" class="catalog-search-input" placeholder="Buscar méis, própolis, favos, cosméticos...">
+                <input type="search" id="catalogSearch" class="catalog-search-input" placeholder="Buscar méis, própolis, favos, cosméticos..." autocomplete="off">
             </div>
 
             <!-- Filtros de Categoria (Pills Deslizáveis) -->
-            <div id="categoriesPills" class="categories-pills-wrap">
+            <div id="categoriesPills" class="categories-pills-wrap" role="tablist" aria-label="Categorias de produtos">
                 <!-- Inserido dinamicamente pelo JS -->
             </div>
         </div>
@@ -212,6 +214,7 @@
          VITRINE DE PRODUTOS
          ========================================================================== -->
     <main class="container catalog-main">
+        <div id="catalogResultsStatus" class="catalog-results-status" aria-live="polite"></div>
         <div id="catalogGrid" class="catalog-grid">
             <!-- Inserido dinamicamente pelo JS via API -->
         </div>
@@ -237,9 +240,9 @@
     <!-- ==========================================================================
          MODAL DE DETALHES E PERSONALIZAÇÃO DO PRODUTO (ESTILO TREM DELIVERY)
          ========================================================================== -->
-    <div id="productModalOverlay" class="product-modal-overlay">
+    <div id="productModalOverlay" class="product-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="productModalTitle" aria-hidden="true">
         <div class="product-modal-box">
-            <button id="btnCloseProductModal" class="btn-close-modal" aria-label="Fechar">
+            <button id="btnCloseProductModal" class="btn-close-modal" aria-label="Fechar detalhes do produto">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
             
@@ -273,9 +276,9 @@
 
                 <div class="product-modal-footer">
                     <div class="qty-stepper modal-qty-stepper">
-                        <button id="btnModalQtyMinus" class="qty-btn" type="button">−</button>
-                        <span id="productModalQty" class="qty-value">1</span>
-                        <button id="btnModalQtyPlus" class="qty-btn" type="button">+</button>
+                        <button id="btnModalQtyMinus" class="qty-btn" type="button" aria-label="Diminuir quantidade">−</button>
+                        <span id="productModalQty" class="qty-value" aria-live="polite">1</span>
+                        <button id="btnModalQtyPlus" class="qty-btn" type="button" aria-label="Aumentar quantidade">+</button>
                     </div>
 
                     <button id="btnModalAddToCart" class="btn btn-primary btn-modal-add" type="button">
@@ -290,10 +293,10 @@
     <!-- ==========================================================================
          GAVETA LATERAL DO CARRINHO (DRAWER)
          ========================================================================== -->
-    <div id="cartDrawerOverlay" class="cart-drawer-overlay"></div>
-    <div id="cartDrawer" class="cart-drawer">
+    <div id="cartDrawerOverlay" class="cart-drawer-overlay" aria-hidden="true"></div>
+    <div id="cartDrawer" class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cartDrawerTitle" aria-hidden="true">
         <div class="cart-drawer-header">
-            <h3>
+            <h3 id="cartDrawerTitle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                 <span>Seu Carrinho</span>
             </h3>
@@ -306,7 +309,7 @@
         <div id="freeDeliveryWidget" class="free-delivery-widget">
             <div class="free-delivery-info">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="free-delivery-truck"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-                <span id="freeDeliveryMsg">Faltam <strong>R$ 0,00</strong> para <strong>Frete Grátis</strong>!</span>
+                <span id="freeDeliveryMsg" aria-live="polite">Faltam <strong>R$ 0,00</strong> para <strong>Frete Grátis</strong>!</span>
             </div>
             <div class="free-delivery-bar">
                 <div id="freeDeliveryBarFill" class="free-delivery-fill" style="width: 0%;"></div>
@@ -352,14 +355,14 @@
     <!-- ==========================================================================
          MODAL DE CHECKOUT (ESTILO TREM DELIVERY)
          ========================================================================== -->
-    <div id="checkoutModalOverlay" class="checkout-modal-overlay">
+    <div id="checkoutModalOverlay" class="checkout-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="checkoutModalTitle" aria-hidden="true">
         <div class="checkout-modal-box">
             <div class="checkout-modal-header">
-                <h3>
+                <h3 id="checkoutModalTitle">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                     <span>Finalizar Pedido</span>
                 </h3>
-                <button id="btnCloseCheckout" class="btn-close-drawer">
+                <button id="btnCloseCheckout" class="btn-close-drawer" aria-label="Fechar checkout">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
@@ -387,15 +390,15 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
                             <span>Como deseja receber?</span>
                         </div>
-                        <div class="delivery-options-grid">
-                            <div class="delivery-opt-card active" data-type="entrega">
+                        <div class="delivery-options-grid" role="radiogroup" aria-label="Modalidade de entrega">
+                            <div class="delivery-opt-card active" data-type="entrega" role="radio" tabindex="0" aria-checked="true">
                                 <div class="delivery-opt-icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
                                 </div>
                                 <div class="delivery-opt-title">Entrega</div>
                                 <div class="delivery-opt-sub">Receba no seu endereço</div>
                             </div>
-                            <div class="delivery-opt-card" data-type="retirada">
+                            <div class="delivery-opt-card" data-type="retirada" role="radio" tabindex="0" aria-checked="false">
                                 <div class="delivery-opt-icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                                 </div>
@@ -420,7 +423,7 @@
                                         <svg class="spin-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
                                     </div>
                                 </div>
-                                <div id="cepStatusMsg" class="cep-status-msg"></div>
+                                <div id="cepStatusMsg" class="cep-status-msg" aria-live="polite"></div>
                             </div>
 
                             <!-- 2. Rua e Número (Número ganha foco imediato ao achar o CEP) -->
@@ -455,20 +458,20 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                             <span>Forma de Pagamento</span>
                         </div>
-                        <div class="payment-options-grid">
-                            <div class="payment-opt-card active" data-payment="pix">
+                        <div class="payment-options-grid" role="radiogroup" aria-label="Forma de pagamento">
+                            <div class="payment-opt-card active" data-payment="pix" role="radio" tabindex="0" aria-checked="true">
                                 <div class="payment-opt-icon">
                                     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"><path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156"/></svg>
                                 </div>
                                 <div class="payment-opt-title">PIX</div>
                             </div>
-                            <div class="payment-opt-card" data-payment="cartao">
+                            <div class="payment-opt-card" data-payment="cartao" role="radio" tabindex="0" aria-checked="false">
                                 <div class="payment-opt-icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                                 </div>
                                 <div class="payment-opt-title">Cartão</div>
                             </div>
-                            <div class="payment-opt-card" data-payment="dinheiro">
+                            <div class="payment-opt-card" data-payment="dinheiro" role="radio" tabindex="0" aria-checked="false">
                                 <div class="payment-opt-icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                                 </div>
@@ -525,7 +528,7 @@
 
                         <!-- Resumo dos Itens do Pedido (Acordeão Retrátil Estilo Trem Delivery) -->
                         <div id="checkoutItemsPreview" class="checkout-items-preview">
-                            <div id="checkoutPreviewHeader" class="checkout-preview-header" role="button" tabindex="0">
+                            <div id="checkoutPreviewHeader" class="checkout-preview-header" role="button" tabindex="0" aria-expanded="false" aria-controls="checkoutPreviewList">
                                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                                     <span>Itens do pedido (<strong id="checkoutPreviewCount">0</strong>)</span>
@@ -677,8 +680,8 @@
     </footer>
 
     <!-- Scripts com Defer para Não Bloquear Renderização -->
-    <script src="/config.js?v=7.0" defer></script>
-    <script src="/js/pix-util.js?v=7.0" defer></script>
-    <script src="/js/catalogo.js?v=7.0" defer></script>
+    <script src="/config.js?v=8.0" defer></script>
+    <script src="/js/pix-util.js?v=8.0" defer></script>
+    <script src="/js/catalogo.js?v=8.0" defer></script>
 </body>
 </html>

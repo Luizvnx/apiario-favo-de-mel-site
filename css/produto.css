@@ -90,7 +90,7 @@
     left: 18px;
     z-index: 10;
     pointer-events: none;
-    background: #D98200;
+    background: #A35A00;
     color: #FFFFFF;
     font-size: 0.75rem;
     font-weight: 700;
@@ -98,7 +98,7 @@
     letter-spacing: 0.08em;
     padding: 0.4rem 0.85rem;
     border-radius: var(--radius-sm);
-    box-shadow: 0 4px 12px rgba(217, 130, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(163, 90, 0, 0.35);
 }
 
 .product-thumbs {
@@ -232,7 +232,7 @@
 
 /* 1. Botão Principal do Site: Adicionar ao Carrinho & Comprar pelo Site (Destaque Dourado/Mel de Alta Conversão) */
 .btn-buy-catalog {
-    background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+    background: linear-gradient(135deg, #A35A00 0%, #7C3F00 100%);
     color: #FFFFFF;
     font-size: 1.12rem;
     font-weight: 700;
@@ -242,7 +242,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    box-shadow: 0 4px 18px rgba(217, 119, 6, 0.35);
+    box-shadow: 0 4px 18px rgba(163, 90, 0, 0.35);
     transition: var(--transition);
     text-decoration: none;
     border: none;
@@ -250,10 +250,18 @@
 }
 
 .btn-buy-catalog:hover {
-    background: linear-gradient(135deg, #B45309 0%, #92400E 100%);
+    background: linear-gradient(135deg, #8A4B00 0%, #633200 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(217, 119, 6, 0.45);
+    box-shadow: 0 8px 24px rgba(163, 90, 0, 0.45);
     color: #FFFFFF;
+}
+
+.btn-buy-catalog.is-disabled,
+.btn-buy-catalog[aria-disabled="true"] {
+    background: #9CA3AF;
+    box-shadow: none;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* 2. Botão Secundário: WhatsApp (Tirar Dúvidas / Suporte) */

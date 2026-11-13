@@ -192,18 +192,29 @@
         lista.forEach(function (url, indice) {
             var item = document.createElement('div');
             item.className = 'product-thumb-item' + (indice === 0 ? ' active' : '');
+            item.setAttribute('role', 'button');
+            item.setAttribute('tabindex', '0');
+            item.setAttribute('aria-label', 'Visualização ' + (indice + 1));
 
             var img = document.createElement('img');
             img.alt = 'Visualização ' + (indice + 1);
             aplicarImagem(img, url);
 
-            item.appendChild(img);
-            item.addEventListener('click', function () {
+            var selecionar = function () {
                 var principal = document.getElementById('mainProductImg');
                 if (principal) aplicarImagem(principal, url);
                 var itens = container.querySelectorAll('.product-thumb-item');
                 Array.prototype.forEach.call(itens, function (i) { i.classList.remove('active'); });
                 item.classList.add('active');
+            };
+
+            item.appendChild(img);
+            item.addEventListener('click', selecionar);
+            item.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selecionar();
+                }
             });
 
             container.appendChild(item);
@@ -265,14 +276,31 @@
             alvo.appendChild(status);
         }
 
+        var btnCatalogo = document.querySelector('.btn-buy-catalog');
+
         if (estoque > 0) {
             status.style.color = '#047857';
             status.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;"></span>' +
                 (estoque <= 5 ? 'Últimas unidades em estoque' : 'Disponível em estoque');
+            if (btnCatalogo) {
+                btnCatalogo.classList.remove('is-disabled');
+                btnCatalogo.removeAttribute('aria-disabled');
+                if (btnCatalogo.getAttribute('data-original-href')) {
+                    btnCatalogo.setAttribute('href', btnCatalogo.getAttribute('data-original-href'));
+                }
+            }
         } else {
             status.style.color = '#B91C1C';
             status.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;"></span>' +
                 'Temporariamente esgotado - fale conosco no WhatsApp';
+            if (btnCatalogo) {
+                if (!btnCatalogo.getAttribute('data-original-href') && btnCatalogo.getAttribute('href')) {
+                    btnCatalogo.setAttribute('data-original-href', btnCatalogo.getAttribute('href'));
+                }
+                btnCatalogo.classList.add('is-disabled');
+                btnCatalogo.setAttribute('aria-disabled', 'true');
+                btnCatalogo.removeAttribute('href');
+            }
         }
     }
 
@@ -345,7 +373,93 @@
         sincronizar(true);
     }
 
+    function inicializarAcessibilidadeLanding() {
+        // 1. Menu mobile para todas as landing pages
+        var navLinks = document.querySelector('.nav-links');
+        var navActions = document.querySelector('.nav-actions');
+        if (navLinks && navActions) {
+            if (!navLinks.id) navLinks.id = 'landingNavLinks';
+            var mobileBtn = navActions.querySelector('.mobile-toggle');
+            var iconMenu = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+            var iconClose = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+            if (!mobileBtn) {
+                mobileBtn = document.createElement('button');
+                mobileBtn.type = 'button';
+                mobileBtn.className = 'mobile-toggle';
+                mobileBtn.setAttribute('aria-label', 'Abrir Menu');
+                mobileBtn.setAttribute('aria-expanded', 'false');
+                mobileBtn.setAttribute('aria-controls', navLinks.id);
+                mobileBtn.innerHTML = iconMenu;
+                navActions.appendChild(mobileBtn);
+            } else {
+                mobileBtn.setAttribute('aria-expanded', 'false');
+                mobileBtn.setAttribute('aria-controls', navLinks.id);
+            }
+
+            var definirMenu = function (aberto) {
+                navLinks.classList.toggle('active', aberto);
+                mobileBtn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+                mobileBtn.setAttribute('aria-label', aberto ? 'Fechar Menu' : 'Abrir Menu');
+                mobileBtn.innerHTML = aberto ? iconClose : iconMenu;
+            };
+
+            mobileBtn.addEventListener('click', function () {
+                definirMenu(!navLinks.classList.contains('active'));
+            });
+
+            Array.prototype.forEach.call(navLinks.querySelectorAll('a'), function (link) {
+                link.addEventListener('click', function () { definirMenu(false); });
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+                    definirMenu(false);
+                    mobileBtn.focus();
+                }
+            });
+        }
+
+        // 2. Acordeão de FAQ acessível (aria-expanded)
+        var faqBtns = document.querySelectorAll('.faq-question');
+        Array.prototype.forEach.call(faqBtns, function (btn) {
+            var item = btn.closest('.faq-item');
+            btn.setAttribute('aria-expanded', item && item.classList.contains('active') ? 'true' : 'false');
+        });
+
+        window.toggleFaq = function (btn) {
+            if (!btn) return;
+            var item = btn.closest('.faq-item');
+            if (!item) return;
+            var isActive = item.classList.contains('active');
+            Array.prototype.forEach.call(document.querySelectorAll('.faq-item'), function (el) {
+                el.classList.remove('active');
+                var q = el.querySelector('.faq-question');
+                if (q) q.setAttribute('aria-expanded', 'false');
+            });
+            if (!isActive) {
+                item.classList.add('active');
+                btn.setAttribute('aria-expanded', 'true');
+            }
+        };
+
+        // 3. Miniaturas da galeria acessíveis via teclado
+        var thumbs = document.querySelectorAll('.product-thumb-item');
+        Array.prototype.forEach.call(thumbs, function (thumb, idx) {
+            if (!thumb.hasAttribute('role')) thumb.setAttribute('role', 'button');
+            if (!thumb.hasAttribute('tabindex')) thumb.setAttribute('tabindex', '0');
+            if (!thumb.hasAttribute('aria-label')) thumb.setAttribute('aria-label', 'Visualização ' + (idx + 1));
+            thumb.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    thumb.click();
+                }
+            });
+        });
+    }
+
     function iniciar() {
+        inicializarAcessibilidadeLanding();
         if (!slugDaPagina()) return;
 
         sincronizar(false);

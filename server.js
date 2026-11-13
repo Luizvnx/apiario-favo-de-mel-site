@@ -270,6 +270,22 @@ function encontrarProdutoDaPagina(pagina, produtos) {
     return produtos.find(p => produtoCompativelComPagina(pagina, p)) || null;
 }
 
+// Constrói o vínculo confiável produto -> landing page. O vínculo só existe
+// quando o nome do produto realmente corresponde à página, evitando que um
+// produto_id antigo aponte para o produto errado.
+function mapearLandingSlugs(paginas, produtos) {
+    const mapa = new Map();
+    if (!Array.isArray(paginas) || !Array.isArray(produtos)) return mapa;
+
+    for (const pagina of paginas) {
+        if (!pagina || !pagina.slug) continue;
+        const produto = encontrarProdutoDaPagina(pagina, produtos);
+        if (produto) mapa.set(String(produto.id), pagina.slug);
+    }
+
+    return mapa;
+}
+
 function normalizarCaminhoFoto(foto) {
     if (!foto) return '';
     foto = String(foto).trim();
@@ -610,9 +626,25 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
             try {
                 const { produtos, fonte: fonteP } = await db.listarProdutos(true);
                 const { categorias, fonte: fonteC } = await db.listarCategorias(true);
+
+                // O catálogo expõe a landing page realmente vinculada ao produto.
+                // O front-end usa esse slug (e nunca IDs fixos) para deep links.
+                let slugPorProduto = new Map();
+                try {
+                    const { paginas } = await db.listarLandingPages();
+                    slugPorProduto = mapearLandingSlugs(paginas, produtos);
+                } catch (errLanding) {
+                    console.warn('[Catálogo] Não foi possível mapear landing pages:', errLanding.message);
+                }
+
+                const produtosPublicos = produtos.map(produto => ({
+                    ...produto,
+                    landing_slug: slugPorProduto.get(String(produto.id)) || null
+                }));
+
                 return sendJson(res, 200, {
                     sucesso: true,
-                    produtos,
+                    produtos: produtosPublicos,
                     categorias,
                     fonte: fonteP === 'postgresql' || fonteC === 'postgresql' ? 'postgresql' : 'local_json',
                     pendente: typeof db.temPendencias === 'function' ? db.temPendencias() : false,
@@ -711,19 +743,34 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
                 const body = await parseBody(req);
                 const { produto, fonte, pendente } = await db.atualizarProduto(produtoId, body);
 
-                // Sincroniza automaticamente a landing page vinculada se o preço mudar
+                // Sincroniza automaticamente a landing page vinculada se o preço mudar.
+                // Usa a mesma validação de compatibilidade do catálogo público e corrige
+                // vínculos antigos (produto_id) quando o nome do produto corresponde à página.
                 try {
                     const landingPagesPath = path.join(DATA_DIR, 'landing_pages.json');
                     if (fs.existsSync(landingPagesPath)) {
                         const paginas = JSON.parse(fs.readFileSync(landingPagesPath, 'utf8'));
-                        const paginaVinculada = paginas.find(p =>
-                            String(p.produto_id) === String(produtoId) && produtoCompativelComPagina(p, produto)
-                        );
-                        if (paginaVinculada && paginaVinculada.arquivo_html) {
-                            atualizarHtmlLandingPage(paginaVinculada.arquivo_html, {
-                                ...paginaVinculada,
-                                preco: produto.preco
-                            });
+                        let paginasAlteradas = false;
+
+                        for (const pagina of paginas) {
+                            if (!produtoCompativelComPagina(pagina, produto)) continue;
+
+                            const idAtual = pagina.produto_id;
+                            if (String(idAtual) !== String(produto.id)) {
+                                pagina.produto_id = produto.id;
+                                paginasAlteradas = true;
+                            }
+
+                            if (pagina.arquivo_html) {
+                                atualizarHtmlLandingPage(pagina.arquivo_html, {
+                                    ...pagina,
+                                    preco: produto.preco
+                                });
+                            }
+                        }
+
+                        if (paginasAlteradas) {
+                            fs.writeFileSync(landingPagesPath, JSON.stringify(paginas, null, 2), 'utf8');
                         }
                     }
                 } catch (errSync) {
@@ -947,10 +994,86 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
     if (safePath === '/api/catalogo/pedidos' && req.method === 'POST') {
         try {
             const body = await parseBody(req);
+            const itensRecebidos = Array.isArray(body.itens) ? body.itens : [];
+
+            if (itensRecebidos.length === 0) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    codigo: 'carrinho_vazio',
+                    erro: 'O carrinho está vazio.'
+                });
+            }
+
+            // O banco é a fonte da verdade: preço, nome, disponibilidade e estoque
+            // são reconferidos aqui, ignorando os valores enviados pelo navegador.
+            const { produtos } = await db.listarProdutos(false);
+            const produtosPorId = new Map(produtos.map(p => [String(p.id), p]));
+            const erros = [];
+            const itens = [];
+            let subtotal = 0;
+
+            for (const item of itensRecebidos) {
+                const referencia = item && item.id !== undefined && item.id !== null ? String(item.id) : '';
+                const produtoAtual = produtosPorId.get(referencia);
+                const quantidade = parseInt(item && item.quantidade, 10);
+
+                if (!produtoAtual) {
+                    erros.push(`O produto "${(item && item.nome) || referencia || 'selecionado'}" não está mais no catálogo.`);
+                    continue;
+                }
+                if (produtoAtual.ativo === false) {
+                    erros.push(`O produto "${produtoAtual.nome}" não está mais disponível.`);
+                    continue;
+                }
+                if (!Number.isFinite(quantidade) || quantidade < 1) {
+                    erros.push(`Quantidade inválida para o produto "${produtoAtual.nome}".`);
+                    continue;
+                }
+
+                const estoque = parseInt(produtoAtual.estoque, 10);
+                const estoqueConhecido = Number.isFinite(estoque);
+                if (estoqueConhecido && estoque <= 0) {
+                    erros.push(`O produto "${produtoAtual.nome}" está esgotado.`);
+                    continue;
+                }
+                if (estoqueConhecido && quantidade > estoque) {
+                    erros.push(`O produto "${produtoAtual.nome}" tem apenas ${estoque} unidade(s) em estoque.`);
+                    continue;
+                }
+
+                const preco = parseFloat(produtoAtual.preco);
+                if (!Number.isFinite(preco) || preco < 0) {
+                    erros.push(`O produto "${produtoAtual.nome}" está com preço indisponível.`);
+                    continue;
+                }
+
+                subtotal += preco * quantidade;
+                itens.push({
+                    ...item,
+                    id: produtoAtual.id,
+                    nome: produtoAtual.nome,
+                    preco: Number(preco.toFixed(2)),
+                    quantidade,
+                    foto: produtoAtual.foto || item.foto || '',
+                    obs: item.obs ? String(item.obs).slice(0, 500) : ''
+                });
+            }
+
+            if (erros.length > 0) {
+                return sendJson(res, 409, {
+                    sucesso: false,
+                    codigo: 'catalogo_desatualizado',
+                    erro: erros.join(' '),
+                    erros
+                });
+            }
+
             const { dados: config } = await db.obterConfigLoja();
 
             const codigoPedido = `FD-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
             const tokenAcesso = crypto.randomBytes(16).toString('hex');
+            const subtotalValidado = Number(subtotal.toFixed(2));
+            const taxaEntrega = Math.max(0, parseFloat(body.taxa_entrega) || 0);
 
             const novoPedido = {
                 codigo_pedido: codigoPedido,
@@ -962,10 +1085,10 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
                 forma_pagamento: body.forma_pagamento || 'pix',
                 troco_para: body.troco_para || '',
                 observacoes: body.observacoes || '',
-                itens: body.itens || [],
-                subtotal: parseFloat(body.subtotal) || 0,
-                taxa_entrega: parseFloat(body.taxa_entrega) || 0,
-                total: parseFloat(body.total) || 0,
+                itens,
+                subtotal: subtotalValidado,
+                taxa_entrega: taxaEntrega,
+                total: Number((subtotalValidado + taxaEntrega).toFixed(2)),
                 status: 'novo',
                 criado_em: new Date().toISOString()
             };

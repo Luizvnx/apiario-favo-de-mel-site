@@ -67,7 +67,7 @@
           "url": "https://www.apiariofavodemel.com.br/",
           "logo": "https://www.apiariofavodemel.com.br/assets/images/logo-favo-de-mel.webp",
           "image": "https://www.apiariofavodemel.com.br/assets/images/kit-presente-1024x790.webp",
-          "description": "Produção artesanal e sustentável de méis nobres, mel de abelhas nativas sem ferrão (Uruçú), própolis verde e vermelha com laudo, cosméticos naturais e serviços apícolas especializados.",
+          "description": "Produção artesanal e sustentável de méis nobres, mel de abelhas nativas sem ferrão (Uruçu), própolis verde e vermelha com laudo, cosméticos naturais e serviços apícolas especializados.",
           "telephone": "+55-79-98812-5726",
           "priceRange": "$$",
           "paymentAccepted": "PIX, Cartão de Crédito, Dinheiro",
@@ -128,7 +128,7 @@
                 "@type": "Offer",
                 "itemOffered": {
                   "@type": "Product",
-                  "name": "Mel de Uruçú (Abelha Nativa sem Ferrão)",
+                  "name": "Mel de Uruçu (Abelha Nativa sem Ferrão)",
                   "description": "Mel puro de abelha nativa sem ferrão com acidez nobre e alto valor medicinal.",
                   "image": "https://www.apiariofavodemel.com.br/assets/products/Mel-in-natura-280g.webp",
                   "offers": {
@@ -190,7 +190,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
     <!-- CSS Institucional -->
-    <link rel="stylesheet" href="/css/style.css?v=3.0">
+    <link rel="stylesheet" href="/css/style.css?v=8.0">
 </head>
 
 <body>
@@ -204,8 +204,8 @@
                 <img src="/assets/images/logo-favo-de-mel.webp" alt="Apiário Favo de Mel" width="180" height="52">
             </a>
 
-            <nav>
-                <ul class="nav-links">
+            <nav aria-label="Menu principal">
+                <ul id="primaryNavLinks" class="nav-links">
                     <li><a href="#inicio" class="nav-link">Início</a></li>
                     <li><a href="#quem-somos" class="nav-link">Quem Somos</a></li>
                     <li><a href="#produtos" class="nav-link">Produtos</a></li>
@@ -224,7 +224,7 @@
                     </svg>
                     <span class="btn-text">Catálogo Online</span>
                 </a>
-                <button class="mobile-toggle" aria-label="Abrir Menu">
+                <button class="mobile-toggle" aria-label="Abrir Menu" aria-expanded="false" aria-controls="primaryNavLinks">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -447,12 +447,12 @@
                     <div class="product-img-box">
                         <span class="product-badge">Raro / Medicinal</span>
                         <a href="/mel-de-urucu" style="display:contents;">
-                            <img src="/assets/products/Mel-in-natura-280g.webp" alt="Mel de Uruçú" width="300" height="300" loading="lazy" decoding="async">
+                            <img src="/assets/products/Mel-in-natura-280g.webp" alt="Mel de Uruçu" width="300" height="300" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="product-info">
                         <span class="product-category">Abelha Nativa</span>
-                        <h3 class="product-title"><a href="/mel-de-urucu">Mel de Uruçú (Nativa)</a></h3>
+                        <h3 class="product-title"><a href="/mel-de-urucu">Mel de Uruçu (Nativa)</a></h3>
                         <p class="product-desc">Mel puro de abelha nativa sem ferrão. Acidez nobre, textura fluida e alto valor medicinal.</p>
                         <div class="product-footer">
                             <div class="product-price"><small>R$</small> 85,00</div>
@@ -522,17 +522,17 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Terapêutico</span>
-                        <a href="/catalogo?add=6" style="display:contents;">
+                        <a href="/catalogo?add=kit-sabonete-terapeutico" style="display:contents;">
                             <img src="/assets/products/Kit-de-sabinete-terapeutico.webp" alt="Kit Sabonete Terapêutico" width="300" height="300" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="product-info">
                         <span class="product-category">Cosméticos Naturais</span>
-                        <h3 class="product-title"><a href="/catalogo?add=6">Kit Sabonete Terapêutico</a></h3>
+                        <h3 class="product-title"><a href="/catalogo?add=kit-sabonete-terapeutico">Kit Sabonete Terapêutico</a></h3>
                         <p class="product-desc">Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.</p>
                         <div class="product-footer">
                             <div class="product-price"><small>R$</small> 35,00</div>
-                            <a href="/catalogo?add=6" class="btn-card">Ver Detalhes</a>
+                            <a href="/catalogo?add=kit-sabonete-terapeutico" class="btn-card">Ver Detalhes</a>
                         </div>
                     </div>
                 </div>
@@ -541,17 +541,17 @@
                 <div class="product-card">
                     <div class="product-img-box">
                         <span class="product-badge">Artesanal</span>
-                        <a href="/catalogo?add=7" style="display:contents;">
+                        <a href="/catalogo?add=licor-de-mel" style="display:contents;">
                             <img src="/assets/products/Licor-de-mel-250ml.webp" alt="Licor de Mel 250ml" width="300" height="300" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="product-info">
                         <span class="product-category">Bebidas Artesanais</span>
-                        <h3 class="product-title"><a href="/catalogo?add=7">Licor de Mel Nobre 250ml</a></h3>
+                        <h3 class="product-title"><a href="/catalogo?add=licor-de-mel">Licor de Mel Nobre 250ml</a></h3>
                         <p class="product-desc">Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.</p>
                         <div class="product-footer">
                             <div class="product-price"><small>R$</small> 35,00</div>
-                            <a href="/catalogo?add=7" class="btn-card">Ver Detalhes</a>
+                            <a href="/catalogo?add=licor-de-mel" class="btn-card">Ver Detalhes</a>
                         </div>
                     </div>
                 </div>
@@ -579,7 +579,7 @@
             <!-- Caixa de CTA para Catálogo Completo -->
             <div class="catalog-cta-box">
                 <span class="section-tag">Catálogo Completo</span>
-                <h3>Deseja ver todos os mais de 20 produtos cadastrados?</h3>
+                <h3 id="homeCatalogCtaTitle">Deseja conferir todos os produtos do nosso catálogo?</h3>
                 <p>Navegue pelo nosso catálogo digital interativo com carrinho integrado, adicione seus produtos
                     favoritos e envie seu pedido diretamente no WhatsApp!</p>
                 <a href="/catalogo" class="btn btn-primary" style="padding: 0.95rem 2.2rem; font-size: 1rem;">
@@ -919,7 +919,8 @@
     </a>
 
     <!-- Scripts -->
-    <script src="/js/main.js" defer></script>
+    <script src="/config.js?v=8.0" defer></script>
+    <script src="/js/main.js?v=8.0" defer></script>
 </body>
 
 </html>

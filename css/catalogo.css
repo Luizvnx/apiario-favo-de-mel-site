@@ -4,8 +4,9 @@
    ========================================================================== */
 
 :root {
-    --color-primary: #D98200;
-    --color-primary-hover: #BC6E00;
+    --color-primary: #A35A00;
+    --color-primary-hover: #8A4B00;
+    --color-amber-bright: #D98200;
     --color-primary-light: #FFF8EC;
     --color-gold: #F59E0B;
     
@@ -123,16 +124,16 @@ body.catalogo-body {
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    background: #C97400;
+    background: #A35A00;
     color: white;
     padding: 0.6rem 1.15rem;
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
-    border: 1px solid #B86500;
+    border: 1px solid #8A4B00;
     transition: var(--transition);
-    box-shadow: 0 2px 8px rgba(201, 116, 0, 0.25);
+    box-shadow: 0 2px 8px rgba(163, 90, 0, 0.25);
 }
 
 .cart-top-btn svg {
@@ -143,8 +144,8 @@ body.catalogo-body {
 
 .cart-top-btn:hover {
     transform: translateY(-2px);
-    background: #B86500;
-    box-shadow: 0 4px 14px rgba(201, 116, 0, 0.35);
+    background: #8A4B00;
+    box-shadow: 0 4px 14px rgba(163, 90, 0, 0.35);
 }
 
 .cart-count-badge {
@@ -185,11 +186,13 @@ body.catalogo-body {
     transition: var(--transition);
 }
 
-.catalog-search-input:focus {
-    outline: none;
+.catalog-search-input:focus,
+.catalog-search-input:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
     border-color: var(--color-primary);
     background: white;
-    box-shadow: 0 0 0 3px rgba(201, 116, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(163, 90, 0, 0.15);
 }
 
 .catalog-search-icon {
@@ -446,6 +449,95 @@ body.catalogo-body {
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--color-dark);
+}
+
+/* Estoque e indisponibilidade */
+.card-stock-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(4px);
+}
+
+.card-stock-badge.esgotado {
+    background: rgba(254, 226, 226, 0.95);
+    color: #991B1B;
+    border: 1px solid #FCA5A5;
+}
+
+.card-stock-badge.baixo {
+    background: rgba(254, 243, 199, 0.95);
+    color: #92400E;
+    border: 1px solid #FCD34D;
+}
+
+.catalog-card--esgotado .card-img-area img {
+    opacity: 0.72;
+    filter: grayscale(0.25);
+}
+
+.catalog-card--esgotado:hover .card-img-area img {
+    transform: none;
+}
+
+.btn-add-cart:disabled,
+.btn-add-cart--disabled {
+    background: #E8E2D9;
+    color: #6E6359;
+    border-color: #E8E2D9;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    opacity: 1;
+}
+
+.btn-add-cart:disabled:hover,
+.btn-add-cart--disabled:hover {
+    background: #E8E2D9;
+    color: #6E6359;
+    border-color: #E8E2D9;
+    transform: none;
+    box-shadow: none;
+}
+
+.qty-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.qty-btn:disabled:hover {
+    background: none;
+    color: var(--color-dark);
+}
+
+/* Estado offline explícito do catálogo */
+.catalog-offline-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--color-text-muted);
+}
+
+.catalog-offline-state .btn-add-cart {
+    display: inline-flex;
+}
+
+.sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ==========================================================================
@@ -1569,4 +1661,65 @@ body.catalogo-body {
     color: var(--color-primary);
     white-space: nowrap;
     margin-left: 0.75rem;
+}
+
+.catalog-results-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding: 0.65rem 1rem;
+    border-radius: var(--radius-sm);
+    background: #FFFDF8;
+    border: 1px solid var(--color-border);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.catalog-results-status:empty {
+    display: none;
+}
+
+.catalog-results-status strong {
+    color: var(--color-dark);
+}
+
+.btn-clear-catalog-filter {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-clear-catalog-filter:hover {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+}
+
+.category-pill:focus-visible,
+.delivery-opt-card:focus-visible,
+.payment-opt-card:focus-visible,
+.checkout-preview-header:focus-visible,
+.catalog-card [role="button"]:focus-visible,
+.qty-btn:focus-visible,
+.btn-add-cart:focus-visible,
+.cart-top-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

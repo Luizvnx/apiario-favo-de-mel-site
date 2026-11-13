@@ -122,7 +122,13 @@ class CatalogoApp {
     async init() {
         this.limparExtensaoUrl();
         this.configurarEventosGlobais();
-        await this.carregarDadosDoServidor();
+        const carregou = await this.carregarDadosDoServidor();
+
+        // Só reconcilia o carrinho quando o catálogo veio da API (PostgreSQL ou
+        // cache do servidor). Em modo offline/cache do navegador os dados podem
+        // estar velhos, então não removemos itens por conta própria.
+        if (carregou) this.sincronizarCarrinhoComCatalogo();
+
         this.renderizarCategorias();
         this.renderizarProdutos();
         this.atualizarInterfaceCarrinho();
@@ -160,7 +166,7 @@ class CatalogoApp {
         const depois = this.assinaturaCatalogo;
         if (depois === antes) return;
 
-        // Preserva o carrinho, mas atualiza preços/nomes/fotos dos itens que mudaram
+        // Preserva o carrinho, mas reconcilia preços, estoque e itens removidos
         this.sincronizarCarrinhoComCatalogo();
 
         this.renderizarCategorias();
@@ -169,21 +175,141 @@ class CatalogoApp {
         this.atualizarModalAberto();
     }
 
-    sincronizarCarrinhoComCatalogo() {
+    // =========================================================================
+    // ESTOQUE E VÍNCULO COM AS LANDING PAGES
+    // =========================================================================
+    normalizarEstoque(valor) {
+        if (valor === null || valor === undefined || valor === '') return null;
+        const numero = parseInt(valor, 10);
+        return Number.isFinite(numero) ? numero : null;
+    }
+
+    escaparHtml(valor) {
+        return String(valor === null || valor === undefined ? '' : valor)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    estaEsgotado(prod) {
+        const estoque = this.normalizarEstoque(prod && prod.estoque);
+        return estoque !== null && estoque <= 0;
+    }
+
+    estoqueBaixo(prod) {
+        const estoque = this.normalizarEstoque(prod && prod.estoque);
+        return estoque !== null && estoque > 0 && estoque <= 5;
+    }
+
+    normalizarSlug(valor) {
+        return String(valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    // Resolve um produto por id, slug de landing page ou nome. Nunca usa
+    // tabelas fixas de IDs: se o produto não existir, retorna null.
+    encontrarProdutoPorReferencia(referencia) {
+        const chave = String(referencia || '').trim();
+        if (!chave) return null;
+
+        const porId = this.produtos.find(p => String(p.id) === chave);
+        if (porId) return porId;
+
+        const chaveSlug = this.normalizarSlug(chave);
+        if (!chaveSlug) return null;
+
+        return this.produtos.find(prod => {
+            const slugs = [
+                prod.landing_slug,
+                prod.slug,
+                this.normalizarSlug(prod.nome)
+            ].filter(Boolean).map(s => this.normalizarSlug(s));
+            return slugs.includes(chaveSlug);
+        }) || null;
+    }
+
+    encontrarProdutoAtual(item) {
+        if (!item) return null;
+        return this.produtos.find(p => String(p.id) === String(item.id)) || null;
+    }
+
+    // Reconcilia o carrinho com o catálogo atual: preço, nome, foto, estoque,
+    // quantidade máxima e remoção de itens que saíram do catálogo/estoque.
+    sincronizarCarrinhoComCatalogo(opcoes = {}) {
+        if (!Array.isArray(this.produtos) || this.produtos.length === 0) return;
+
+        const podeRemover = opcoes.removerIndisponiveis !== false;
+        const avisos = [];
         let alterou = false;
-        this.carrinho.forEach(item => {
-            const atual = this.produtos.find(p => String(p.id) === String(item.id));
-            if (!atual) return;
+
+        this.carrinho = this.carrinho.filter(item => {
+            const atual = this.encontrarProdutoAtual(item);
+
+            if (!atual) {
+                if (podeRemover) {
+                    avisos.push(`"${item.nome}" saiu do catálogo e foi removido do carrinho.`);
+                    alterou = true;
+                    return false;
+                }
+                return true;
+            }
+
+            if (atual.ativo === false) {
+                if (podeRemover) {
+                    avisos.push(`"${atual.nome}" não está mais disponível e foi removido do carrinho.`);
+                    alterou = true;
+                    return false;
+                }
+                return true;
+            }
+
+            const estoque = this.normalizarEstoque(atual.estoque);
+
+            if (podeRemover && estoque !== null && estoque <= 0) {
+                avisos.push(`"${atual.nome}" está esgotado e foi removido do carrinho.`);
+                alterou = true;
+                return false;
+            }
+
+            let quantidade = Math.max(1, parseInt(item.quantidade, 10) || 1);
+            if (estoque !== null && quantidade > estoque) {
+                if (estoque <= 0 && podeRemover) {
+                    avisos.push(`"${atual.nome}" está esgotado e foi removido do carrinho.`);
+                    alterou = true;
+                    return false;
+                }
+                quantidade = estoque;
+                avisos.push(`Ajustamos "${atual.nome}" para ${quantidade} unidade(s) disponível(is).`);
+                alterou = true;
+            }
+
             const novoPreco = parseFloat(atual.preco) || 0;
             const novaFoto = this.resolverFoto(atual);
-            if (item.preco !== novoPreco || item.nome !== atual.nome || item.foto !== novaFoto) {
+
+            if (item.preco !== novoPreco || item.nome !== atual.nome || item.foto !== novaFoto ||
+                item.estoque !== estoque || item.quantidade !== quantidade) {
                 item.preco = novoPreco;
                 item.nome = atual.nome;
                 item.foto = novaFoto;
+                item.estoque = estoque;
+                item.quantidade = quantidade;
                 alterou = true;
             }
+
+            return true;
         });
+
         if (alterou) this.salvarCarrinho();
+
+        if (avisos.length > 0 && opcoes.notificar !== false) {
+            this.mostrarStatusSincronizacao('aviso', avisos.join(' '), 9000);
+        }
     }
 
     atualizarModalAberto() {
@@ -201,10 +327,48 @@ class CatalogoApp {
         const titleEl = document.getElementById('productModalTitle');
         const priceEl = document.getElementById('productModalPrice');
         const descEl = document.getElementById('productModalDesc');
+        const badgeEl = document.getElementById('productModalBadge');
+        const btnAdd = document.getElementById('btnModalAddToCart');
+        const btnMais = document.getElementById('btnModalQtyPlus');
+
+        const preco = parseFloat(atual.preco || 0);
+        const precoFormatado = preco.toFixed(2).replace('.', ',');
+        const totalModal = (preco * Math.max(1, this.modalQtd)).toFixed(2).replace('.', ',');
+        const estoque = this.normalizarEstoque(atual.estoque);
+        const esgotado = this.estaEsgotado(atual);
+
         if (imgEl) imgEl.src = this.resolverFoto(atual);
         if (titleEl) titleEl.innerText = atual.nome;
-        if (priceEl) priceEl.innerText = parseFloat(atual.preco || 0).toFixed(2).replace('.', ',');
+        if (priceEl) priceEl.innerText = precoFormatado;
         if (descEl) descEl.innerText = atual.descricao || '';
+
+        if (badgeEl) {
+            badgeEl.classList.toggle('is-out', esgotado);
+            if (esgotado) {
+                badgeEl.innerText = 'Esgotado';
+                badgeEl.style.display = 'inline-block';
+            } else if (estoque !== null && estoque > 0 && estoque <= 5) {
+                badgeEl.innerText = `Últimas ${estoque} un.`;
+                badgeEl.style.display = 'inline-block';
+            } else if (atual.badge || atual.destaque) {
+                badgeEl.innerText = atual.badge || 'Puro & Orgânico';
+                badgeEl.style.display = 'inline-block';
+            } else {
+                badgeEl.style.display = 'none';
+            }
+        }
+
+        if (btnAdd) {
+            btnAdd.disabled = esgotado;
+            btnAdd.classList.toggle('btn-add-cart--disabled', esgotado);
+            btnAdd.innerHTML = esgotado
+                ? '<span>Produto esgotado</span>'
+                : `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                   <span>Adicionar • <strong id="productModalTotalPrice">R$ ${totalModal}</strong></span>`;
+        }
+
+        if (btnMais) btnMais.disabled = esgotado || (estoque !== null && this.modalQtd >= estoque);
+        if (esgotado) this.modalQtd = 1;
     }
 
     // Barra discreta de status da sincronização
@@ -359,9 +523,10 @@ class CatalogoApp {
     // REQUISIÇÃO DA API
     // =========================================================================
     getApiUrl(endpoint) {
-        const base = (window.FAVODEMEL_API_URL !== undefined && window.FAVODEMEL_API_URL !== null)
-            ? String(window.FAVODEMEL_API_URL).trim().replace(/\/$/, '')
-            : '';
+        const base = (this.apiBaseAtiva || window.FAVODEMEL_API_URL || '')
+            .toString()
+            .trim()
+            .replace(/\/$/, '');
         return `${base}${endpoint}`;
     }
 
@@ -391,7 +556,10 @@ class CatalogoApp {
                     throw new Error(`Resposta inválida de ${base} (não é JSON)`);
                 }
                 if (!res.ok) {
-                    throw new Error((data && data.erro) || `HTTP ${res.status}`);
+                    const erroHttp = new Error((data && data.erro) || `HTTP ${res.status}`);
+                    erroHttp.status = res.status;
+                    erroHttp.data = data;
+                    throw erroHttp;
                 }
                 this.apiBaseAtiva = base;
                 return data;
@@ -443,9 +611,9 @@ class CatalogoApp {
 
             const data = await this.fetchApi('/api/catalogo/produtos');
 
-            if (data.sucesso && Array.isArray(data.produtos) && data.produtos.length > 0) {
-                this.categorias = data.categorias || [];
-                this.produtos = data.produtos || [];
+            if (data.sucesso && Array.isArray(data.produtos)) {
+                this.categorias = Array.isArray(data.categorias) ? data.categorias : [];
+                this.produtos = data.produtos;
                 this.fonteDados = data.fonte || 'postgresql';
                 this.assinaturaCatalogo = this.assinaturaDosProdutos();
 
@@ -457,8 +625,14 @@ class CatalogoApp {
                     }));
                 } catch (_) {}
 
+                const catalogoVazio = this.produtos.length === 0;
+
                 if (data.pendente || this.fonteDados === 'local_json') {
                     this.mostrarStatusSincronizacao('aviso', 'Sincronização pendente com o banco de dados. Exibindo os últimos dados salvos.');
+                } else if (catalogoVazio) {
+                    if (!silencioso) {
+                        this.mostrarStatusSincronizacao('aviso', 'Nenhum produto publicado no catálogo no momento.', 6000);
+                    }
                 } else if (!silencioso) {
                     this.mostrarStatusSincronizacao('ok', 'Catálogo atualizado', 2500);
                 } else {
@@ -473,8 +647,18 @@ class CatalogoApp {
                 throw new Error(data.erro || 'Falha ao carregar catálogo da API');
             }
         } catch (err) {
-            console.warn('Utilizando catálogo integrado do Apiário Favo de Mel (Modo Resiliente):', err.message);
-            // 1. Tenta recuperar o cache local salvo anteriormente
+            console.warn('[Catálogo] API indisponível:', err.message);
+
+            // Já existe catálogo carregado nesta sessão: mantém os dados atuais
+            // em vez de apagar a vitrine por causa de uma falha temporária.
+            if (this.produtos.length > 0 && this.fonteDados !== 'indisponivel') {
+                if (!silencioso) {
+                    this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor. Exibindo o catálogo já carregado.', 6000);
+                }
+                return false;
+            }
+
+            // Tenta recuperar o último catálogo bom salvo neste dispositivo
             try {
                 const salvo = localStorage.getItem('favodemel_catalogo_cache');
                 if (salvo) {
@@ -484,49 +668,38 @@ class CatalogoApp {
                         this.produtos = parsed.produtos;
                         this.fonteDados = 'cache_local';
                         this.assinaturaCatalogo = this.assinaturaDosProdutos();
-                        this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor. Exibindo catálogo salvo neste dispositivo.');
+                        this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor. Exibindo o último catálogo salvo neste dispositivo.');
                         return false;
                     }
                 }
             } catch (_) {}
 
-            this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor. Exibindo catálogo de segurança.');
-
-            this.categorias = [
-                { id: "1", nome: "Méis & Acessórios" },
-                { id: "2", nome: "Cuidados Naturais e Própolis" },
-                { id: "3", nome: "Artesanais, Cera & Bebidas" }
-            ];
-
-            this.produtos = [
-                { id: 1, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Mel com Favo 500g", preco: 65.00, peso: "500g", descricao: "Pedaço genuíno de favo de mel imerso no mel puro.", estoque: 20, foto: "Mel-com-favo-500g.webp", ativo: true },
-                { id: 2, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Meleira com Mel", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro de alta qualidade acompanhada com mel puro.", estoque: 2, foto: "Meleira-com-mel-280g.jpeg", ativo: true },
-                { id: 3, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Pomada de Própolis (20g)", preco: 45.00, peso: "20g", descricao: "Pomada natural de própolis puro. Ação cicatrizante, anti-inflamatória e protetora.", estoque: 999, foto: "POMADA-DE-PROPOLIS-1794582053546.jpeg", ativo: true },
-                { id: 4, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Hidratante Labial", preco: 12.00, peso: "4g", descricao: "Hidratação duradoura para seus lábios à base de cera pura de abelha e mel.", estoque: 50, foto: "Kit-de-sabinete-terapeutico.webp", ativo: true },
-                { id: 5, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Kit Presente Favo de Mel", preco: 120.00, peso: "Kit", descricao: "Caixa rústica de madeira artesanal com mel nobre, vela aromática, própolis e doce da colmeia.", estoque: 10, foto: "Kit-presente.webp", ativo: true },
-                { id: 6, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Kit Sabonete Terapêutico", preco: 35.00, peso: "Kit", descricao: "Feito artesanalmente com própolis pura e mel. Hidratação profunda, ação cicatrizante e suave.", estoque: 25, foto: "Kit-de-sabinete-terapeutico.webp", ativo: true },
-                { id: 7, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Licor de Mel Nobre 250ml", preco: 35.00, peso: "250ml", descricao: "Fermentação artesanal com mel puro, água mineral e toque especial de especiarias naturais.", estoque: 18, foto: "Licor-de-mel-250ml.webp", ativo: true },
-                { id: 8, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Mel in Natura 500g", preco: 35.00, peso: "500g", descricao: "Mel puro de floradas silvestres brasileiras. Embalagem prática com bico dosador.", estoque: 50, foto: "Mel-in-natura-500g.webp", ativo: true },
-                { id: 9, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Meleira com Mel Nobre", preco: 60.00, peso: "280g", descricao: "Elegante meleira em vidro artesanal de alta qualidade, acompanhada com mel puro.", estoque: 20, foto: "Meleira-com-mel-280g.webp", ativo: true },
-                { id: 10, categoria_id: "2", categoria_nome: "Cuidados Naturais e Própolis", nome: "Pólen Apícola Desidratado (140g)", preco: 42.00, peso: "140g", descricao: "Superalimento natural das abelhas repleto de aminoácidos essenciais e minerais energizantes.", estoque: 25, foto: "Polen-apicola-140g.webp", ativo: true },
-                { id: 11, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Vinagre Nobre de Mel (315ml)", preco: 30.00, peso: "315ml", descricao: "Fermentação acética natural de hidromel com sabor aveludado e toque agridoce refinado.", estoque: 22, foto: "Vinagre-de-mel-315ml.webp", ativo: true },
-                { id: 12, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Formão Inox", preco: 40.00, peso: "Unidade", descricao: "Formão para apicultura em inox para manejo de colmeias.", estoque: 35, foto: "Formao.jpeg", ativo: true },
-                { id: 13, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "Cera Bruta de Apis (1kg)", preco: 95.00, peso: "1kg", descricao: "Bloco maciço de cera virgem de opérculo purificada.", estoque: 12, foto: "Cera-bruta-de-apis.webp", ativo: true },
-                { id: 14, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Acetato Pet", preco: 2.50, peso: "Unidade", descricao: "Acetato transparente para divisão de meliponário.", estoque: 28, foto: "Acetato-pet.jpeg", ativo: true },
-                { id: 15, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "Alimentador", preco: 14.00, peso: "Unidade", descricao: "Alimentador para caixa de apis.", estoque: 10, foto: "Alimentador.jpeg", ativo: true },
-                { id: 16, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "BOTA EM PVC", preco: 70.00, peso: "40-42", descricao: "Bota em PVC branca tam. 40 - 42.", estoque: 5, foto: "Bota-de-pvc.jpeg", ativo: true },
-                { id: 17, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "ATRATIVA PARA ABELHAS APIS", preco: 25.00, peso: "Frasco", descricao: "Atrativo para captura de abelha APIS.", estoque: 5, foto: "Atrativo.jpeg", ativo: true },
-                { id: 18, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CANECA", preco: 45.00, peso: "Unidade", descricao: "Caneca temática abelha em louça.", estoque: 2, foto: "Caneca-tematica-abelha.jpeg", ativo: true },
-                { id: 19, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "ATRATIVO MISTO", preco: 25.00, peso: "Frasco", descricao: "Atrativo misto para abelha nativa.", estoque: 3, foto: "Atrativo-misto-de-abelha-nativa.jpeg", ativo: true },
-                { id: 20, categoria_id: "1", categoria_nome: "Méis & Acessórios", nome: "FAVO DE MEL", preco: 130.00, peso: "Quadro", descricao: "Favo de mel em quadro.", estoque: 8, foto: "Captura-de-Tela-2026-05-29-as-14.02.58.png", ativo: true },
-                { id: 21, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CERA MISTA DE ABELHA NATIVA FOLHA", preco: 3.00, peso: "Folha", descricao: "Folha de cera mista para abelha nativa.", estoque: 25, foto: "Cera-mista-abelha-asf.jpeg", ativo: true },
-                { id: 22, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CERA BRUTA DE APIS 100G", preco: 10.00, peso: "100g", descricao: "Cera bruta de abelha apis fracionada.", estoque: 10, foto: "Cera-Bruta-de-Apis.png", ativo: true }
-            ];
-
-            this.fonteDados = 'hardcoded';
-            this.assinaturaCatalogo = this.assinaturaDosProdutos();
+            // Sem dados reais disponíveis: estado offline explícito, sem produtos fictícios.
+            this.categorias = [];
+            this.produtos = [];
+            this.fonteDados = 'indisponivel';
+            this.assinaturaCatalogo = '';
+            this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor e sem catálogo salvo. Verifique sua internet e tente novamente.');
             return false;
         }
+    }
+
+    async tentarNovamente() {
+        const gridEl = document.getElementById('catalogGrid');
+        if (gridEl) {
+            gridEl.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
+                    <div class="tracking-spinner" style="width: 36px; height: 36px; border: 3px solid #E8DFD3; border-top-color: #D98200; border-radius: 50%; margin: 0 auto 1rem auto; animation: spinTrack 0.8s linear infinite;"></div>
+                    <p style="font-weight: 500; font-size: 0.95rem;">Tentando reconectar ao catálogo...</p>
+                </div>
+            `;
+        }
+
+        const carregou = await this.carregarDadosDoServidor();
+        if (carregou) this.sincronizarCarrinhoComCatalogo();
+        this.renderizarCategorias();
+        this.renderizarProdutos();
+        this.atualizarInterfaceCarrinho();
     }
 
     // =========================================================================
@@ -536,8 +709,13 @@ class CatalogoApp {
         const wrap = document.getElementById('categoriesPills');
         if (!wrap) return;
 
+        if (this.categorias.length === 0 && this.produtos.length === 0) {
+            wrap.innerHTML = '';
+            return;
+        }
+
         let html = `
-            <button class="category-pill ${this.categoriaAtiva === 'todos' ? 'active' : ''}" data-cat="todos">
+            <button class="category-pill ${this.categoriaAtiva === 'todos' ? 'active' : ''}" data-cat="todos" role="tab" aria-selected="${this.categoriaAtiva === 'todos' ? 'true' : 'false'}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span>Todos (${this.produtos.length})</span>
             </button>
@@ -558,8 +736,9 @@ class CatalogoApp {
                 iconeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
             }
 
+            const isActive = this.categoriaAtiva === String(cat.id);
             html += `
-                <button class="category-pill ${this.categoriaAtiva === String(cat.id) ? 'active' : ''}" data-cat="${cat.id}">
+                <button class="category-pill ${isActive ? 'active' : ''}" data-cat="${cat.id}" role="tab" aria-selected="${isActive ? 'true' : 'false'}">
                     ${iconeSvg}<span>${nomeLimpo} (${count})</span>
                 </button>
             `;
@@ -569,8 +748,12 @@ class CatalogoApp {
 
         wrap.querySelectorAll('.category-pill').forEach(btn => {
             btn.addEventListener('click', () => {
-                wrap.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+                wrap.querySelectorAll('.category-pill').forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-selected', 'false');
+                });
                 btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
                 this.categoriaAtiva = btn.getAttribute('data-cat');
                 this.renderizarProdutos();
             });
@@ -648,6 +831,46 @@ class CatalogoApp {
         return this.comVersaoFoto(url, prod);
     }
 
+    limparFiltros() {
+        this.categoriaAtiva = 'todos';
+        this.termoBusca = '';
+        const searchInput = document.getElementById('catalogSearch');
+        if (searchInput) searchInput.value = '';
+        this.renderizarCategorias();
+        this.renderizarProdutos();
+    }
+
+    atualizarBarraResultados(filtradosCount) {
+        const statusEl = document.getElementById('catalogResultsStatus');
+        if (!statusEl) return;
+
+        const temBusca = this.termoBusca.trim().length > 0;
+        const temCategoria = this.categoriaAtiva !== 'todos';
+
+        if (!temBusca && !temCategoria) {
+            statusEl.innerHTML = '';
+            return;
+        }
+
+        const partes = [];
+        if (temCategoria) {
+            const cat = this.categorias.find(c => String(c.id) === String(this.categoriaAtiva));
+            if (cat && cat.nome) {
+                const nomeCat = cat.nome.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '').trim();
+                partes.push(`categoria <strong>${this.escaparHtml(nomeCat)}</strong>`);
+            }
+        }
+        if (temBusca) {
+            partes.push(`busca por <strong>"${this.escaparHtml(this.termoBusca.trim())}"</strong>`);
+        }
+
+        const labelQtd = filtradosCount === 1 ? '1 produto encontrado' : `${filtradosCount} produtos encontrados`;
+        statusEl.innerHTML = `
+            <span><strong>${labelQtd}</strong> em ${partes.join(' e ')}</span>
+            <button type="button" class="btn-clear-catalog-filter" onclick="catalogoApp.limparFiltros()">Limpar filtros</button>
+        `;
+    }
+
     renderizarProdutos() {
         const gridEl = document.getElementById('catalogGrid');
         if (!gridEl) return;
@@ -668,6 +891,35 @@ class CatalogoApp {
             );
         }
 
+        this.atualizarBarraResultados(filtrados.length);
+
+        if (this.produtos.length === 0) {
+            if (this.fonteDados === 'indisponivel') {
+                gridEl.innerHTML = `
+                    <div class="catalog-offline-state" role="status">
+                        <div style="margin-bottom: 1rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-primary);"><path d="M1 1l22 22"></path><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                        </div>
+                        <h3 style="margin-bottom: 0.5rem; color: #2C231C;">Catálogo indisponível no momento</h3>
+                        <p style="margin-bottom: 1.25rem;">Não foi possível conectar ao servidor e não há catálogo salvo neste dispositivo.</p>
+                        <button type="button" class="btn-add-cart" style="margin: 0 auto;" onclick="catalogoApp.tentarNovamente()">Tentar novamente</button>
+                    </div>
+                `;
+                return;
+            }
+
+            gridEl.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
+                    <div style="margin-bottom: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-primary);"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    </div>
+                    <h3 style="margin-bottom: 0.5rem; color: #2C231C;">Nenhum produto publicado</h3>
+                    <p>O catálogo está sendo atualizado. Volte em instantes.</p>
+                </div>
+            `;
+            return;
+        }
+
         if (filtrados.length === 0) {
             gridEl.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
@@ -685,36 +937,59 @@ class CatalogoApp {
             const precoFormatado = parseFloat(prod.preco || 0).toFixed(2).replace('.', ',');
             const itemNoCarrinho = this.carrinho.find(i => String(i.id) === String(prod.id));
             const qtdNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
-            
+
+            const estoque = this.normalizarEstoque(prod.estoque);
+            const esgotado = this.estaEsgotado(prod);
+            const estoqueBaixo = this.estoqueBaixo(prod);
+            const limiteAtingido = estoque !== null && qtdNoCarrinho >= estoque;
+
             const fotoUrl = this.resolverFoto(prod);
+            const nomeSeguro = this.escaparHtml(prod.nome);
+            const descricaoSegura = this.escaparHtml(prod.descricao || 'Produto natural de altíssima qualidade direto do apiário.');
             const catNomeLimpo = (prod.categoria_nome || 'Apiário Favo de Mel')
                 .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
                 .trim();
 
+            let estoqueBadge = '';
+            if (esgotado) {
+                estoqueBadge = '<span class="card-stock-badge esgotado">Esgotado</span>';
+            } else if (estoqueBaixo) {
+                estoqueBadge = `<span class="card-stock-badge baixo">Últimas ${estoque} un.</span>`;
+            }
+
+            let acaoHtml;
+            if (esgotado) {
+                acaoHtml = '<button class="btn-add-cart btn-add-cart--disabled" type="button" disabled aria-disabled="true">Esgotado</button>';
+            } else if (qtdNoCarrinho > 0) {
+                acaoHtml = `
+                    <div class="qty-stepper">
+                        <button class="qty-btn" type="button" aria-label="Diminuir quantidade" onclick="catalogoApp.alterarQuantidade('${prod.id}', -1)">−</button>
+                        <span class="qty-value">${qtdNoCarrinho}</span>
+                        <button class="qty-btn" type="button" aria-label="Aumentar quantidade" onclick="catalogoApp.alterarQuantidade('${prod.id}', 1)" ${limiteAtingido ? 'disabled aria-disabled="true"' : ''}>+</button>
+                    </div>
+                `;
+            } else {
+                acaoHtml = `
+                    <button class="btn-add-cart" type="button" onclick="catalogoApp.abrirModalProduto('${prod.id}')">
+                        <span>+</span> Adicionar
+                    </button>
+                `;
+            }
+
             return `
-                <div class="catalog-card" data-id="${prod.id}">
-                    <div class="card-img-area" onclick="catalogoApp.abrirModalProduto('${prod.id}')" style="cursor: pointer;" title="Clique para ver detalhes do produto">
-                        <img src="${fotoUrl}" alt="${prod.nome}" width="260" height="260" loading="lazy" decoding="async" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
+                <div class="catalog-card${esgotado ? ' catalog-card--esgotado' : ''}" data-id="${prod.id}">
+                    <div class="card-img-area" role="button" tabindex="0" aria-label="Ver detalhes de ${nomeSeguro}" onclick="catalogoApp.abrirModalProduto('${prod.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();catalogoApp.abrirModalProduto('${prod.id}');}" style="cursor: pointer;" title="Clique para ver detalhes do produto">
+                        <img src="${this.escaparHtml(fotoUrl)}" alt="${nomeSeguro}" width="260" height="260" loading="lazy" decoding="async" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
+                        ${estoqueBadge}
                     </div>
                     <div class="card-content">
-                        <span class="card-category-label">${catNomeLimpo}</span>
-                        <h3 class="card-title" onclick="catalogoApp.abrirModalProduto('${prod.id}')" style="cursor: pointer;" title="Clique para ver detalhes do produto">${prod.nome}</h3>
-                        <p class="card-desc">${prod.descricao || 'Produto natural de altíssima qualidade direto do apiário.'}</p>
+                        <span class="card-category-label">${this.escaparHtml(catNomeLimpo)}</span>
+                        <h3 class="card-title" role="button" tabindex="0" onclick="catalogoApp.abrirModalProduto('${prod.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();catalogoApp.abrirModalProduto('${prod.id}');}" style="cursor: pointer;" title="Clique para ver detalhes do produto">${nomeSeguro}</h3>
+                        <p class="card-desc">${descricaoSegura}</p>
                         
                         <div class="card-bottom-row">
                             <div class="card-price"><small>R$</small> ${precoFormatado}</div>
-                            
-                            ${qtdNoCarrinho > 0 ? `
-                                <div class="qty-stepper">
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${prod.id}', -1)">−</button>
-                                    <span class="qty-value">${qtdNoCarrinho}</span>
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${prod.id}', 1)">+</button>
-                                </div>
-                            ` : `
-                                <button class="btn-add-cart" onclick="catalogoApp.abrirModalProduto('${prod.id}')">
-                                    <span>+</span> Adicionar
-                                </button>
-                            `}
+                            ${acaoHtml}
                         </div>
                     </div>
                 </div>
@@ -746,6 +1021,8 @@ class CatalogoApp {
         const preco = parseFloat(prod.preco || 0);
         const precoFormatado = preco.toFixed(2).replace('.', ',');
         const fotoUrl = this.resolverFoto(prod);
+        const estoque = this.normalizarEstoque(prod.estoque);
+        const esgotado = this.estaEsgotado(prod);
         const catNomeLimpo = (prod.categoria_nome || 'Apiário Favo de Mel')
             .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
             .trim();
@@ -760,11 +1037,18 @@ class CatalogoApp {
         if (priceEl) priceEl.innerText = `R$ ${precoFormatado}`;
         if (descEl) descEl.innerText = prod.descricao || 'Produto nobre e puro do Apiário Favo de Mel, colhido de forma sustentável e artesanal.';
         if (obsEl) obsEl.value = '';
-        if (qtyEl) qtyEl.innerText = '1';
+        if (qtyEl) qtyEl.innerText = esgotado ? '0' : '1';
         if (totalEl) totalEl.innerText = `R$ ${precoFormatado}`;
 
         if (badgeEl) {
-            if (prod.badge || prod.destaque) {
+            badgeEl.classList.toggle('is-out', esgotado);
+            if (esgotado) {
+                badgeEl.innerText = 'Esgotado';
+                badgeEl.style.display = 'inline-block';
+            } else if (estoque !== null && estoque > 0 && estoque <= 5) {
+                badgeEl.innerText = `Últimas ${estoque} un.`;
+                badgeEl.style.display = 'inline-block';
+            } else if (prod.badge || prod.destaque) {
                 badgeEl.innerText = prod.badge || 'Puro & Orgânico';
                 badgeEl.style.display = 'inline-block';
             } else {
@@ -772,70 +1056,115 @@ class CatalogoApp {
             }
         }
 
+        const btnAdd = document.getElementById('btnModalAddToCart');
+        if (btnAdd) {
+            btnAdd.disabled = esgotado;
+            btnAdd.classList.toggle('btn-add-cart--disabled', esgotado);
+            btnAdd.innerHTML = esgotado
+                ? '<span>Produto esgotado</span>'
+                : `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                   <span>Adicionar • <strong id="productModalTotalPrice">R$ ${precoFormatado}</strong></span>`;
+        }
+
+        const btnMais = document.getElementById('btnModalQtyPlus');
+        if (btnMais) {
+            const limite = estoque !== null ? estoque : Infinity;
+            btnMais.disabled = esgotado || 1 >= limite;
+        }
+
         const detailsLinkEl = document.getElementById('productModalDetailsLink');
         if (detailsLinkEl) {
-            const slugMap = {
-                '1': '/mel-com-favo',
-                '2': '/mel-de-urucu',
-                '3': '/propolis-verde',
-                '4': '/propolis-vermelha',
-                '5': '/kit-presente',
-                '8': '/mel-silvestre',
-                '10': '/polen-apicola',
-                '14': '/mel-silvestre'
-            };
-            const slug = slugMap[String(prod.id)];
+            const slug = prod.landing_slug ? String(prod.landing_slug).trim().replace(/^\/+/, '') : '';
             if (slug) {
-                detailsLinkEl.href = slug;
+                detailsLinkEl.href = `/${slug}`;
                 detailsLinkEl.style.display = 'inline-flex';
             } else {
+                detailsLinkEl.removeAttribute('href');
                 detailsLinkEl.style.display = 'none';
             }
         }
 
         if (overlay) {
+            this.ultimoElementoFocado = document.activeElement;
             overlay.classList.add('active');
+            overlay.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('btnCloseProductModal')?.focus(), 50);
         }
     }
 
     fecharModalProduto() {
         const overlay = document.getElementById('productModalOverlay');
         if (overlay) {
+            const estavaAtivo = overlay.classList.contains('active');
             overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
+            if (estavaAtivo && this.ultimoElementoFocado && typeof this.ultimoElementoFocado.focus === 'function') {
+                this.ultimoElementoFocado.focus();
+            }
         }
         this.modalProduto = null;
         this.modalQtd = 1;
     }
 
     alterarQtdModal(delta) {
-        if (!this.modalProduto) return;
+        if (!this.modalProduto || this.estaEsgotado(this.modalProduto)) return;
+
+        const estoque = this.normalizarEstoque(this.modalProduto.estoque);
         const novaQtd = this.modalQtd + delta;
         if (novaQtd < 1) return;
+
+        if (estoque !== null && novaQtd > estoque) {
+            this.mostrarStatusSincronizacao('aviso', `Este produto tem apenas ${estoque} unidade(s) em estoque.`, 5000);
+            return;
+        }
 
         this.modalQtd = novaQtd;
         const qtyEl = document.getElementById('productModalQty');
         const totalEl = document.getElementById('productModalTotalPrice');
+        const btnMais = document.getElementById('btnModalQtyPlus');
 
         if (qtyEl) qtyEl.innerText = this.modalQtd;
         if (totalEl) {
             const subtotal = (this.modalQtd * parseFloat(this.modalProduto.preco || 0)).toFixed(2).replace('.', ',');
             totalEl.innerText = `R$ ${subtotal}`;
         }
+        if (btnMais && estoque !== null) btnMais.disabled = this.modalQtd >= estoque;
     }
 
     adicionarItemDoModal() {
         if (!this.modalProduto) return;
 
-        const obs = document.getElementById('productModalObs')?.value.trim() || '';
         const prod = this.modalProduto;
-        const qtd = this.modalQtd;
+
+        if (this.estaEsgotado(prod)) {
+            this.mostrarStatusSincronizacao('aviso', 'Este produto está esgotado no momento.', 5000);
+            return;
+        }
+
+        const obs = document.getElementById('productModalObs')?.value.trim() || '';
+        const estoque = this.normalizarEstoque(prod.estoque);
+        const jaNoCarrinho = this.carrinho
+            .filter(i => String(i.id) === String(prod.id))
+            .reduce((soma, i) => soma + (parseInt(i.quantidade, 10) || 0), 0);
+        const disponivel = estoque === null ? Infinity : Math.max(0, estoque - jaNoCarrinho);
+
+        if (disponivel <= 0) {
+            this.mostrarStatusSincronizacao('aviso', `Você já adicionou todo o estoque disponível de "${prod.nome}".`, 6000);
+            return;
+        }
+
+        const qtd = Math.max(1, Math.min(this.modalQtd, disponivel));
+        if (qtd < this.modalQtd) {
+            this.mostrarStatusSincronizacao('aviso', `Ajustamos a quantidade para ${qtd} unidade(s) disponível(is).`, 6000);
+        }
 
         // Se já existe no carrinho exatamente o mesmo produto com a mesma observação, incrementa
         const existente = this.carrinho.find(i => String(i.id) === String(prod.id) && (i.obs || '') === obs);
         if (existente) {
             existente.quantidade += qtd;
+            existente.estoque = estoque;
         } else {
             this.carrinho.push({
                 cartId: `cart_${prod.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`,
@@ -844,6 +1173,7 @@ class CatalogoApp {
                 preco: parseFloat(prod.preco),
                 foto: this.resolverFoto(prod),
                 quantidade: qtd,
+                estoque,
                 obs: obs
             });
         }
@@ -855,8 +1185,31 @@ class CatalogoApp {
         this.fecharModalProduto();
 
         // Abre automaticamente o drawer do carrinho para dar visibilidade ao usuário
-        document.getElementById('cartDrawerOverlay')?.classList.add('active');
-        document.getElementById('cartDrawer')?.classList.add('active');
+        this.abrirDrawerCarrinho();
+    }
+
+    abrirDrawerCarrinho() {
+        this.ultimoElementoFocado = document.activeElement;
+        const overlay = document.getElementById('cartDrawerOverlay');
+        const drawer = document.getElementById('cartDrawer');
+        overlay?.classList.add('active');
+        overlay?.setAttribute('aria-hidden', 'false');
+        drawer?.classList.add('active');
+        drawer?.setAttribute('aria-hidden', 'false');
+        setTimeout(() => document.getElementById('btnCloseDrawer')?.focus(), 50);
+    }
+
+    fecharDrawerCarrinho() {
+        const overlay = document.getElementById('cartDrawerOverlay');
+        const drawer = document.getElementById('cartDrawer');
+        const estavaAtivo = drawer?.classList.contains('active');
+        overlay?.classList.remove('active');
+        overlay?.setAttribute('aria-hidden', 'true');
+        drawer?.classList.remove('active');
+        drawer?.setAttribute('aria-hidden', 'true');
+        if (estavaAtivo && this.ultimoElementoFocado && typeof this.ultimoElementoFocado.focus === 'function') {
+            this.ultimoElementoFocado.focus();
+        }
     }
 
     // =========================================================================
@@ -866,9 +1219,25 @@ class CatalogoApp {
         const prod = this.produtos.find(p => String(p.id) === String(id));
         if (!prod) return;
 
+        if (this.estaEsgotado(prod)) {
+            this.mostrarStatusSincronizacao('aviso', 'Este produto está esgotado no momento.', 5000);
+            return;
+        }
+
+        const estoque = this.normalizarEstoque(prod.estoque);
         const existente = this.carrinho.find(i => String(i.id) === String(id) && !i.obs);
+        const jaNoCarrinho = this.carrinho
+            .filter(i => String(i.id) === String(prod.id))
+            .reduce((soma, i) => soma + (parseInt(i.quantidade, 10) || 0), 0);
+
+        if (estoque !== null && jaNoCarrinho >= estoque) {
+            this.mostrarStatusSincronizacao('aviso', `Você já adicionou todo o estoque disponível de "${prod.nome}".`, 6000);
+            return;
+        }
+
         if (existente) {
             existente.quantidade++;
+            existente.estoque = estoque;
         } else {
             this.carrinho.push({
                 cartId: `cart_${prod.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`,
@@ -877,6 +1246,7 @@ class CatalogoApp {
                 preco: parseFloat(prod.preco),
                 foto: this.resolverFoto(prod),
                 quantidade: 1,
+                estoque,
                 obs: ''
             });
         }
@@ -891,9 +1261,23 @@ class CatalogoApp {
         const index = this.carrinho.findIndex(i => String(i.cartId) === String(idOuCartId) || String(i.id) === String(idOuCartId));
         if (index === -1) return;
 
-        this.carrinho[index].quantidade += delta;
+        const item = this.carrinho[index];
+        const prodAtual = this.encontrarProdutoAtual(item);
+        const estoque = this.normalizarEstoque(prodAtual ? prodAtual.estoque : item.estoque);
 
-        if (this.carrinho[index].quantidade <= 0) {
+        if (delta > 0 && estoque !== null) {
+            const quantidadeNoCarrinho = this.carrinho
+                .filter(i => String(i.id) === String(item.id))
+                .reduce((soma, i) => soma + (parseInt(i.quantidade, 10) || 0), 0);
+            if (quantidadeNoCarrinho + delta > estoque) {
+                this.mostrarStatusSincronizacao('aviso', `Estoque máximo de "${item.nome}": ${estoque} unidade(s).`, 5000);
+                return;
+            }
+        }
+
+        item.quantidade += delta;
+
+        if (item.quantidade <= 0) {
             this.carrinho.splice(index, 1);
         }
 
@@ -993,29 +1377,45 @@ class CatalogoApp {
             if (footerEl) footerEl.style.display = 'block';
 
             listEl.innerHTML = this.carrinho.map(item => {
-                const sub = (item.quantidade * item.preco).toFixed(2).replace('.', ',');
-                const unit = item.preco.toFixed(2).replace('.', ',');
+                const precoUnitario = parseFloat(item.preco) || 0;
+                const sub = (item.quantidade * precoUnitario).toFixed(2).replace('.', ',');
+                const unit = precoUnitario.toFixed(2).replace('.', ',');
                 const fotoUrl = item.foto || '/assets/products/Mel-in-natura-500g.webp';
-                const obsHtml = item.obs ? `<div class="cart-item-obs" style="font-size: 0.78rem; color: #786C5E; font-style: italic; margin-top: 0.2rem;">Obs: ${item.obs}</div>` : '';
+                const obsHtml = item.obs ? `<div class="cart-item-obs" style="font-size: 0.78rem; color: #786C5E; font-style: italic; margin-top: 0.2rem;">Obs: ${this.escaparHtml(item.obs)}</div>` : '';
+
+                const prodAtual = this.encontrarProdutoAtual(item);
+                const estoque = this.normalizarEstoque(prodAtual ? prodAtual.estoque : item.estoque);
+                const esgotado = prodAtual ? this.estaEsgotado(prodAtual) : (estoque !== null && estoque <= 0);
+                const atingiuLimite = estoque !== null && item.quantidade >= estoque;
+
+                let estoqueNota = '';
+                if (esgotado) {
+                    estoqueNota = '<div class="cart-item-stock esgotado">Esgotado — remova este item</div>';
+                } else if (atingiuLimite) {
+                    estoqueNota = `<div class="cart-item-stock">Limite de ${estoque} unidade(s) em estoque</div>`;
+                } else if (estoque !== null && estoque <= 5) {
+                    estoqueNota = `<div class="cart-item-stock">Restam ${estoque} unidade(s)</div>`;
+                }
 
                 return `
                     <div class="cart-item-row">
-                        <img src="${fotoUrl}" alt="${item.nome}" class="cart-item-img" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
+                        <img src="${this.escaparHtml(fotoUrl)}" alt="${this.escaparHtml(item.nome)}" class="cart-item-img" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
                         <div class="cart-item-info">
-                            <div class="cart-item-name">${item.nome}</div>
+                            <div class="cart-item-name">${this.escaparHtml(item.nome)}</div>
                             ${obsHtml}
                             <div class="cart-item-unit-price">R$ ${unit} un</div>
+                            ${estoqueNota}
                             <div style="margin-top: 0.4rem;">
                                 <div class="qty-stepper">
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${item.cartId || item.id}', -1)">−</button>
+                                    <button class="qty-btn" type="button" aria-label="Diminuir quantidade" onclick="catalogoApp.alterarQuantidade('${item.cartId || item.id}', -1)">−</button>
                                     <span class="qty-value">${item.quantidade}</span>
-                                    <button class="qty-btn" onclick="catalogoApp.alterarQuantidade('${item.cartId || item.id}', 1)">+</button>
+                                    <button class="qty-btn" type="button" aria-label="Aumentar quantidade" onclick="catalogoApp.alterarQuantidade('${item.cartId || item.id}', 1)" ${(esgotado || atingiuLimite) ? 'disabled aria-disabled="true"' : ''}>+</button>
                                 </div>
                             </div>
                         </div>
                         <div class="cart-item-subtotal">
                             <div>R$ ${sub}</div>
-                            <button class="cart-item-remove" onclick="catalogoApp.removerItem('${item.cartId || item.id}')" title="Remover item" aria-label="Remover item">
+                            <button class="cart-item-remove" type="button" onclick="catalogoApp.removerItem('${item.cartId || item.id}')" title="Remover item" aria-label="Remover item">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
@@ -1042,15 +1442,8 @@ class CatalogoApp {
         }
 
         // Abertura e fechamento do Drawer
-        const abrirDrawer = () => {
-            document.getElementById('cartDrawerOverlay')?.classList.add('active');
-            document.getElementById('cartDrawer')?.classList.add('active');
-        };
-
-        const fecharDrawer = () => {
-            document.getElementById('cartDrawerOverlay')?.classList.remove('active');
-            document.getElementById('cartDrawer')?.classList.remove('active');
-        };
+        const abrirDrawer = () => this.abrirDrawerCarrinho();
+        const fecharDrawer = () => this.fecharDrawerCarrinho();
 
         document.getElementById('cartTopBtn')?.addEventListener('click', abrirDrawer);
         document.getElementById('floatingCartBar')?.addEventListener('click', abrirDrawer);
@@ -1075,39 +1468,63 @@ class CatalogoApp {
         });
 
         // Configuração de Entrega vs Retirada
-        document.querySelectorAll('.delivery-opt-card').forEach(card => {
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.delivery-opt-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                this.tipoEntrega = card.getAttribute('data-type');
+        const selecionarEntrega = (card) => {
+            document.querySelectorAll('.delivery-opt-card').forEach(c => {
+                c.classList.remove('active');
+                c.setAttribute('aria-checked', 'false');
+            });
+            card.classList.add('active');
+            card.setAttribute('aria-checked', 'true');
+            this.tipoEntrega = card.getAttribute('data-type');
 
-                const addressFields = document.getElementById('addressFieldsGroup');
-                if (addressFields) {
-                    addressFields.style.display = this.tipoEntrega === 'entrega' ? 'block' : 'none';
-                    if (this.tipoEntrega === 'entrega') {
-                        setTimeout(() => document.getElementById('checkoutCep')?.focus(), 150);
-                    }
+            const addressFields = document.getElementById('addressFieldsGroup');
+            if (addressFields) {
+                addressFields.style.display = this.tipoEntrega === 'entrega' ? 'block' : 'none';
+                if (this.tipoEntrega === 'entrega') {
+                    setTimeout(() => document.getElementById('checkoutCep')?.focus(), 150);
+                }
+            }
+        };
+
+        document.querySelectorAll('.delivery-opt-card').forEach(card => {
+            card.addEventListener('click', () => selecionarEntrega(card));
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selecionarEntrega(card);
                 }
             });
         });
 
         // Configuração de Formas de Pagamento
-        document.querySelectorAll('.payment-opt-card').forEach(card => {
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.payment-opt-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                this.formaPagamento = card.getAttribute('data-payment');
+        const selecionarPagamento = (card) => {
+            document.querySelectorAll('.payment-opt-card').forEach(c => {
+                c.classList.remove('active');
+                c.setAttribute('aria-checked', 'false');
+            });
+            card.classList.add('active');
+            card.setAttribute('aria-checked', 'true');
+            this.formaPagamento = card.getAttribute('data-payment');
 
-                const pixBox = document.getElementById('pixDetailsBox');
-                const trocoBox = document.getElementById('trocoGroup');
+            const pixBox = document.getElementById('pixDetailsBox');
+            const trocoBox = document.getElementById('trocoGroup');
 
-                if (pixBox) {
-                    pixBox.style.display = this.formaPagamento === 'pix' ? 'block' : 'none';
-                    if (this.formaPagamento === 'pix') {
-                        this.atualizarPixCheckout();
-                    }
+            if (pixBox) {
+                pixBox.style.display = this.formaPagamento === 'pix' ? 'block' : 'none';
+                if (this.formaPagamento === 'pix') {
+                    this.atualizarPixCheckout();
                 }
-                if (trocoBox) trocoBox.style.display = this.formaPagamento === 'dinheiro' ? 'block' : 'none';
+            }
+            if (trocoBox) trocoBox.style.display = this.formaPagamento === 'dinheiro' ? 'block' : 'none';
+        };
+
+        document.querySelectorAll('.payment-opt-card').forEach(card => {
+            card.addEventListener('click', () => selecionarPagamento(card));
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selecionarPagamento(card);
+                }
             });
         });
 
@@ -1224,16 +1641,47 @@ class CatalogoApp {
         });
 
         // Alternância do Acordeão de Itens no Checkout (Estilo Trem Delivery)
-        document.getElementById('checkoutPreviewHeader')?.addEventListener('click', () => {
+        const previewHeader = document.getElementById('checkoutPreviewHeader');
+        previewHeader?.addEventListener('click', () => {
             this.togglePreviewItens();
         });
+        previewHeader?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.togglePreviewItens();
+            }
+        });
 
-        // Fechamento de modais com a tecla ESC
+        // Fechamento de modais com a tecla ESC e Focus Trap com Tab
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.fecharModalProduto();
                 this.fecharModalCheckout();
                 fecharDrawer();
+                return;
+            }
+            if (e.key === 'Tab') {
+                const containerAtivo =
+                    document.querySelector('#productModalOverlay.active .product-modal-box') ||
+                    document.querySelector('#checkoutModalOverlay.active .checkout-modal-box') ||
+                    document.querySelector('#cartDrawer.active');
+                if (!containerAtivo) return;
+
+                const focaveis = Array.from(containerAtivo.querySelectorAll(
+                    'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )).filter(el => el.offsetParent !== null);
+
+                if (focaveis.length === 0) return;
+                const primeiro = focaveis[0];
+                const ultimo = focaveis[focaveis.length - 1];
+
+                if (e.shiftKey && document.activeElement === primeiro) {
+                    e.preventDefault();
+                    ultimo.focus();
+                } else if (!e.shiftKey && document.activeElement === ultimo) {
+                    e.preventDefault();
+                    primeiro.focus();
+                }
             }
         });
     }
@@ -1354,14 +1802,24 @@ class CatalogoApp {
         this.atualizarPreviewItensCheckout();
         this.atualizarPixCheckout();
 
-        document.getElementById('checkoutModalOverlay')?.classList.add('active');
+        this.ultimoElementoFocado = document.activeElement;
+        const overlay = document.getElementById('checkoutModalOverlay');
+        overlay?.classList.add('active');
+        overlay?.setAttribute('aria-hidden', 'false');
         document.getElementById('checkoutFormView')?.style.setProperty('display', 'block');
         document.getElementById('checkoutReviewView')?.style.setProperty('display', 'none');
         document.getElementById('checkoutSuccessView')?.style.setProperty('display', 'none');
+        setTimeout(() => document.getElementById('checkoutNome')?.focus(), 50);
     }
 
     fecharModalCheckout() {
-        document.getElementById('checkoutModalOverlay')?.classList.remove('active');
+        const overlay = document.getElementById('checkoutModalOverlay');
+        const estavaAtivo = overlay?.classList.contains('active');
+        overlay?.classList.remove('active');
+        overlay?.setAttribute('aria-hidden', 'true');
+        if (estavaAtivo && this.ultimoElementoFocado && typeof this.ultimoElementoFocado.focus === 'function') {
+            this.ultimoElementoFocado.focus();
+        }
     }
 
     atualizarPreviewItensCheckout() {
@@ -1377,12 +1835,12 @@ class CatalogoApp {
         }
 
         listEl.innerHTML = this.carrinho.map(item => {
-            const sub = (item.quantidade * item.preco).toFixed(2).replace('.', ',');
-            const obsHtml = item.obs ? `<div style="font-size: 0.75rem; color: #786C5E; font-style: italic;">Obs: ${item.obs}</div>` : '';
+            const sub = (item.quantidade * (parseFloat(item.preco) || 0)).toFixed(2).replace('.', ',');
+            const obsHtml = item.obs ? `<div style="font-size: 0.75rem; color: #786C5E; font-style: italic;">Obs: ${this.escaparHtml(item.obs)}</div>` : '';
             return `
                 <div class="checkout-preview-item">
                     <div class="checkout-preview-item-name">
-                        <span>${item.quantidade}x ${item.nome}</span>
+                        <span>${item.quantidade}x ${this.escaparHtml(item.nome)}</span>
                         ${obsHtml}
                     </div>
                     <div class="checkout-preview-item-price">R$ ${sub}</div>
@@ -1394,16 +1852,56 @@ class CatalogoApp {
     togglePreviewItens() {
         const listEl = document.getElementById('checkoutPreviewList');
         const chevron = document.getElementById('checkoutPreviewChevron');
+        const headerEl = document.getElementById('checkoutPreviewHeader');
         if (!listEl) return;
 
         const isOpen = listEl.style.display !== 'none';
         if (isOpen) {
             listEl.style.display = 'none';
             if (chevron) chevron.style.transform = 'rotate(0deg)';
+            headerEl?.setAttribute('aria-expanded', 'false');
         } else {
             listEl.style.display = 'flex';
             if (chevron) chevron.style.transform = 'rotate(180deg)';
+            headerEl?.setAttribute('aria-expanded', 'true');
         }
+    }
+
+    // Valida o carrinho contra o catálogo carregado antes de avançar/confirmar.
+    validarCarrinhoComEstoqueAtual() {
+        const erros = [];
+        if (this.carrinho.length === 0) {
+            erros.push('Seu carrinho está vazio.');
+            return erros;
+        }
+
+        // Sem catálogo carregado (offline), não bloqueia: o backend/fallback
+        // ainda fará a validação quando houver conexão.
+        if (!Array.isArray(this.produtos) || this.produtos.length === 0) return erros;
+
+        for (const item of this.carrinho) {
+            const prod = this.encontrarProdutoAtual(item);
+
+            if (!prod) {
+                erros.push(`"${item.nome}" não está mais no catálogo.`);
+                continue;
+            }
+            if (prod.ativo === false) {
+                erros.push(`"${prod.nome}" não está mais disponível.`);
+                continue;
+            }
+
+            const estoque = this.normalizarEstoque(prod.estoque);
+            if (estoque !== null && estoque <= 0) {
+                erros.push(`"${prod.nome}" está esgotado.`);
+                continue;
+            }
+            if (estoque !== null && item.quantidade > estoque) {
+                erros.push(`"${prod.nome}" tem apenas ${estoque} unidade(s) em estoque (você escolheu ${item.quantidade}).`);
+            }
+        }
+
+        return erros;
     }
 
     // =========================================================================
@@ -1412,8 +1910,15 @@ class CatalogoApp {
     // =========================================================================
     // 1. ETAPA DE REVISÃO DO PEDIDO (Valida campos e abre tela de confirmação)
     // =========================================================================
-    processarPedido(e) {
+    async processarPedido(e) {
         e.preventDefault();
+
+        const errosCatalogo = this.validarCarrinhoComEstoqueAtual();
+        if (errosCatalogo.length > 0) {
+            alert(`Não foi possível continuar:\n\n${errosCatalogo.join('\n')}\n\nO catálogo será atualizado agora.`);
+            await this.tentarNovamente();
+            return;
+        }
 
         const nome = document.getElementById('checkoutNome')?.value.trim();
         const telefone = document.getElementById('checkoutTelefone')?.value.trim();
@@ -1516,12 +2021,12 @@ class CatalogoApp {
 
         if (revList) {
             revList.innerHTML = this.carrinho.map(item => {
-                const sub = (item.quantidade * item.preco).toFixed(2).replace('.', ',');
-                const obsStr = item.obs ? `<div style="font-size: 0.72rem; color: #786C5E; font-style: italic;">Obs: ${item.obs}</div>` : '';
+                const sub = (item.quantidade * (parseFloat(item.preco) || 0)).toFixed(2).replace('.', ',');
+                const obsStr = item.obs ? `<div style="font-size: 0.72rem; color: #786C5E; font-style: italic;">Obs: ${this.escaparHtml(item.obs)}</div>` : '';
                 return `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 0.35rem 0; border-bottom: 1px dashed #EDE5DA;">
                         <div>
-                            <span style="font-weight: 600; color: var(--color-dark);">${item.quantidade}x ${item.nome}</span>
+                            <span style="font-weight: 600; color: var(--color-dark);">${item.quantidade}x ${this.escaparHtml(item.nome)}</span>
                             ${obsStr}
                         </div>
                         <span style="font-weight: 600; color: var(--color-dark); white-space: nowrap; margin-left: 0.5rem;">R$ ${sub}</span>
@@ -1545,7 +2050,25 @@ class CatalogoApp {
     async confirmarEFinalizarPedido() {
         if (!this.pendingOrderPayload || this.carrinho.length === 0) return;
 
+        const errosCatalogo = this.validarCarrinhoComEstoqueAtual();
+        if (errosCatalogo.length > 0) {
+            alert(`Não foi possível concluir o pedido:\n\n${errosCatalogo.join('\n')}\n\nO catálogo será atualizado agora.`);
+            await this.tentarNovamente();
+            return;
+        }
+
         const btnFinal = document.getElementById('btnFinalConfirmOrder');
+        const restaurarBotaoFinal = () => {
+            if (!btnFinal) return;
+            btnFinal.disabled = false;
+            btnFinal.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Confirmar e Finalizar Pedido</span>
+            `;
+        };
+
         if (btnFinal) {
             btnFinal.disabled = true;
             btnFinal.innerHTML = `
@@ -1557,7 +2080,22 @@ class CatalogoApp {
             `;
         }
 
-        const payload = this.pendingOrderPayload;
+        // Reenvia os dados atuais do carrinho (preço/estoque podem ter mudado).
+        const totalAtual = this.calcularTotal();
+        const payload = {
+            ...this.pendingOrderPayload,
+            itens: this.carrinho.map(item => ({
+                id: item.id,
+                nome: item.nome,
+                preco: parseFloat(item.preco) || 0,
+                quantidade: parseInt(item.quantidade, 10) || 1,
+                obs: item.obs || '',
+                foto: item.foto || ''
+            })),
+            subtotal: totalAtual,
+            total: totalAtual
+        };
+        this.pendingOrderPayload = payload;
 
         try {
             const res = await fetch(this.getApiUrl('/api/catalogo/pedidos'), {
@@ -1566,29 +2104,57 @@ class CatalogoApp {
                 body: JSON.stringify(payload)
             });
 
-            const data = await res.json();
+            const texto = await res.text();
+            let data = {};
+            try {
+                data = texto ? JSON.parse(texto) : {};
+            } catch (_) {
+                throw new Error('O servidor retornou uma resposta inválida.');
+            }
 
-            if (data.sucesso && data.codigo_pedido) {
-                try {
-                    localStorage.setItem('favodemel_ultimo_pedido', JSON.stringify({
-                        codigo_pedido: data.codigo_pedido,
-                        token_acesso: data.token_acesso,
-                        pedido: data.pedido || payload,
-                        whatsapp_url: data.whatsapp_url,
-                        criado_em: new Date().toISOString()
-                    }));
-                } catch (_) {}
+            if (!res.ok) {
+                const erroHttp = new Error(data.erro || `HTTP ${res.status}`);
+                erroHttp.status = res.status;
+                erroHttp.data = data;
+                throw erroHttp;
+            }
 
-                this.limparCarrinho();
-
-                // Redireciona DIRETAMENTE para a página de rastreio no próprio site!
-                const urlToken = data.token_acesso ? `&token=${encodeURIComponent(data.token_acesso)}` : '';
-                window.location.href = `/pedido?codigo=${encodeURIComponent(data.codigo_pedido)}${urlToken}`;
-                return;
-            } else {
+            if (!data.sucesso || !data.codigo_pedido) {
                 throw new Error(data.erro || 'Erro ao registrar pedido.');
             }
+
+            try {
+                localStorage.setItem('favodemel_ultimo_pedido', JSON.stringify({
+                    codigo_pedido: data.codigo_pedido,
+                    token_acesso: data.token_acesso,
+                    pedido: data.pedido || payload,
+                    whatsapp_url: data.whatsapp_url,
+                    criado_em: new Date().toISOString()
+                }));
+            } catch (_) {}
+
+            this.limparCarrinho();
+
+            // Redireciona DIRETAMENTE para a página de rastreio no próprio site!
+            const urlToken = data.token_acesso ? `&token=${encodeURIComponent(data.token_acesso)}` : '';
+            window.location.href = `/pedido?codigo=${encodeURIComponent(data.codigo_pedido)}${urlToken}`;
+            return;
         } catch (err) {
+            // Erro de validação do catálogo (produto inativo, esgotado, preço ou
+            // estoque divergente): NÃO cria pedido local. Atualiza e pede revisão.
+            if (err.status >= 400 && err.status < 500) {
+                restaurarBotaoFinal();
+                this.pendingOrderPayload = null;
+                this.fecharModalCheckout();
+
+                const detalhes = err.data && Array.isArray(err.data.erros) && err.data.erros.length > 0
+                    ? err.data.erros.join('\n')
+                    : err.message;
+                alert(`Não foi possível concluir o pedido:\n\n${detalhes}\n\nO catálogo foi atualizado. Revise seu carrinho e tente novamente.`);
+                await this.tentarNovamente();
+                return;
+            }
+
             console.warn('Backend indisponível ou offline, gerando pedido resiliente com rastreio local:', err.message);
 
             const codigoPedido = `FD-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
@@ -1597,6 +2163,7 @@ class CatalogoApp {
 
             const fallbackData = {
                 sucesso: true,
+                offline: true,
                 codigo_pedido: codigoPedido,
                 token_acesso: tokenAcesso,
                 pedido: {
@@ -1604,6 +2171,7 @@ class CatalogoApp {
                     codigo_pedido: codigoPedido,
                     token_acesso: tokenAcesso,
                     status: 'novo',
+                    offline: true,
                     criado_em: new Date().toISOString()
                 }
             };
@@ -1622,44 +2190,67 @@ class CatalogoApp {
     // =========================================================================
     verificarParametroAutoAdd() {
         try {
-            const params = new URLSearchParams(window.location.search);
-            const addParam = params.get('add');
+            const url = new URL(window.location.href);
+            const addParam = url.searchParams.get('add');
             if (!addParam) return;
 
-            const slugMap = {
-                'mel-com-favo': 1,
-                'mel-de-urucu': 2,
-                'propolis-verde': 3,
-                'propolis-vermelha': 4,
-                'kit-presente': 5,
-                'sabonete': 6,
-                'licor-de-mel': 7,
-                'mel-silvestre': 8,
-                'polen-apicola': 10
+            const limparParametro = () => {
+                url.searchParams.delete('add');
+                window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : '') + url.hash);
             };
 
-            const targetId = slugMap[addParam.toLowerCase()] || parseInt(addParam, 10);
-            if (!targetId) return;
+            if (!Array.isArray(this.produtos) || this.produtos.length === 0) {
+                this.mostrarStatusSincronizacao('aviso', 'O catálogo ainda não foi carregado. Tente novamente em instantes.', 6000);
+                limparParametro();
+                return;
+            }
 
-            const prod = this.produtos.find(p => p.id === targetId);
-            if (!prod) return;
+            // Aceita id, slug da landing page ou nome do produto — sempre
+            // resolvido contra o catálogo real, nunca por tabela fixa de IDs.
+            const prod = this.encontrarProdutoPorReferencia(addParam);
+            if (!prod) {
+                this.mostrarStatusSincronizacao('aviso', `O produto do link "${addParam}" não está disponível no catálogo.`, 8000);
+                limparParametro();
+                return;
+            }
 
-            // Se ainda não está no carrinho, adiciona
-            const existente = this.carrinho.find(i => i.id === prod.id);
-            if (!existente) {
+            if (this.estaEsgotado(prod)) {
+                this.mostrarStatusSincronizacao('aviso', `"${prod.nome}" está esgotado no momento.`, 7000);
+                limparParametro();
+                return;
+            }
+
+            const estoque = this.normalizarEstoque(prod.estoque);
+            const jaNoCarrinho = this.carrinho
+                .filter(i => String(i.id) === String(prod.id))
+                .reduce((soma, i) => soma + (parseInt(i.quantidade, 10) || 0), 0);
+
+            if (estoque !== null && jaNoCarrinho >= estoque) {
+                this.mostrarStatusSincronizacao('aviso', `Você já adicionou todo o estoque disponível de "${prod.nome}".`, 6000);
+                limparParametro();
+                return;
+            }
+
+            const existente = this.carrinho.find(i => String(i.id) === String(prod.id) && !i.obs);
+            if (existente) {
+                existente.quantidade += 1;
+                existente.estoque = estoque;
+            } else {
                 this.carrinho.push({
-                    cartId: `cart_${prod.id}_${Date.now()}`,
+                    cartId: `cart_${prod.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`,
                     id: prod.id,
                     nome: prod.nome,
                     preco: parseFloat(prod.preco),
                     foto: this.resolverFoto(prod),
                     quantidade: 1,
+                    estoque,
                     obs: ''
                 });
-                this.salvarCarrinho();
-                this.atualizarInterfaceCarrinho();
-                this.renderizarProdutos();
             }
+
+            this.salvarCarrinho();
+            this.atualizarInterfaceCarrinho();
+            this.renderizarProdutos();
 
             // Abre o Drawer do Carrinho suavemente para o cliente
             setTimeout(() => {
@@ -1667,8 +2258,7 @@ class CatalogoApp {
                 document.getElementById('cartDrawer')?.classList.add('active');
             }, 300);
 
-            // Limpa o parâmetro da URL sem recarregar a página
-            window.history.replaceState({}, document.title, window.location.pathname);
+            limparParametro();
         } catch (e) {
             console.warn('Erro ao processar parâmetro auto add:', e.message);
         }
