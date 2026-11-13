@@ -1,0 +1,184 @@
+/* ==========================================================================
+   APIARIO FAVO DE MEL — DESIGN TOKENS (3-Layer Architecture)
+   Layer 1: Primitives | Layer 2: Semantic | Layer 3: Component
+   Identidade: Sergipe • Mata Atlantica & Caatinga • Cera & Mel Cru
+   ========================================================================== */
+
+:root {
+    /* ----------------------------------------------------------------------
+       LAYER 1: PRIMITIVES
+       ---------------------------------------------------------------------- */
+
+    /* Neutros quentes (linho cru, pergaminho, madeira escura) */
+    --primitive-cream-50: #FCF9F4;
+    --primitive-cream-100: #F5EFE6;
+    --primitive-cream-200: #EBE2D4;
+    --primitive-wax-100: #FBF4E4;
+    --primitive-white: #FFFFFF;
+
+    --primitive-earth-950: #140F0A;
+    --primitive-earth-900: #1A130D;
+    --primitive-earth-800: #271E16;
+    --primitive-earth-700: #3D3126;
+    --primitive-earth-600: #574B40;
+    --primitive-earth-500: #6E6359;
+    --primitive-earth-400: #9C8E82;
+    --primitive-earth-200: #E8DFD3;
+
+    /* Âmbar e Mel (escurecidos no texto/botão para WCAG AA >= 4.5:1) */
+    --primitive-honey-900: #6E3B00;
+    --primitive-honey-800: #8A4B00;
+    --primitive-honey-700: #A35A00;
+    --primitive-honey-500: #D98200;
+    --primitive-honey-400: #F59E0B;
+    --primitive-honey-100: #FFF8EC;
+
+    /* Mata & Caatinga (contraste botânico autêntico de Sergipe) */
+    --primitive-mata-950: #12241A;
+    --primitive-mata-900: #1B3325;
+    --primitive-mata-800: #21402E;
+    --primitive-mata-700: #2C543D;
+    --primitive-mata-200: #C8DDD0;
+    --primitive-mata-100: #EDF4EF;
+
+    /* Estados */
+    --primitive-green-700: #15803D;
+    --primitive-green-100: #ECFDF3;
+    --primitive-red-700: #B91C1C;
+    --primitive-red-100: #FEF2F2;
+
+    /* Tipografia */
+    --font-heading: 'Lora', Georgia, serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Escala Tipográfica Fluida */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: clamp(1.35rem, 2.2vw, 1.75rem);
+    --text-3xl: clamp(1.75rem, 3vw, 2.35rem);
+    --text-4xl: clamp(2.1rem, 3.8vw, 2.85rem);
+    --text-hero: clamp(2.35rem, 4.6vw, 3.55rem);
+
+    /* Escala de Espaçamento (base 4px) */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+    --space-24: 6rem;
+
+    /* Raios */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* Sombras (tom orgânico terroso) */
+    --shadow-sm: 0 2px 8px rgba(26, 19, 13, 0.05);
+    --shadow-md: 0 8px 24px rgba(26, 19, 13, 0.08);
+    --shadow-lg: 0 16px 40px rgba(26, 19, 13, 0.14);
+
+    /* Z-Index */
+    --z-base: 1;
+    --z-sticky: 90;
+    --z-header: 1000;
+    --z-backdrop: 1040;
+    --z-drawer: 1050;
+    --z-modal: 1100;
+    --z-toast: 1200;
+
+    /* Movimento GPU-safe */
+    --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 160ms;
+    --duration-base: 260ms;
+    --duration-reveal: 520ms;
+
+    /* ----------------------------------------------------------------------
+       LAYER 2: SEMANTIC ALIASES
+       ---------------------------------------------------------------------- */
+    --color-primary: var(--primitive-honey-700);
+    --color-primary-hover: var(--primitive-honey-800);
+    --color-primary-active: var(--primitive-honey-900);
+    --color-amber-bright: var(--primitive-honey-500);
+    --color-primary-light: var(--primitive-honey-100);
+    --color-gold: var(--primitive-honey-400);
+    --color-gold-glow: rgba(245, 158, 11, 0.25);
+
+    --color-mata: var(--primitive-mata-900);
+    --color-mata-dark: var(--primitive-mata-950);
+    --color-mata-hover: var(--primitive-mata-800);
+    --color-mata-muted: var(--primitive-mata-700);
+    --color-mata-soft: var(--primitive-mata-100);
+    --color-mata-border: var(--primitive-mata-200);
+
+    --color-dark: var(--primitive-earth-900);
+    --color-dark-deep: var(--primitive-earth-950);
+    --color-dark-surface: var(--primitive-earth-800);
+    --color-dark-muted: var(--primitive-earth-700);
+
+    --color-bg: var(--primitive-cream-50);
+    --color-bg-alt: var(--primitive-cream-100);
+    --color-bg-warm: var(--primitive-wax-100);
+    --color-surface: var(--primitive-white);
+    --color-white: var(--primitive-white);
+
+    --color-text: #2C231C;
+    --color-text-muted: var(--primitive-earth-500);
+    --color-text-light: var(--primitive-earth-400);
+    --color-border: var(--primitive-earth-200);
+    --color-border-strong: #D6C9B8;
+    --color-border-focus: var(--primitive-honey-700);
+
+    --color-success: var(--primitive-green-700);
+    --color-success-soft: var(--primitive-green-100);
+    --color-danger: var(--primitive-red-700);
+    --color-danger-soft: var(--primitive-red-100);
+
+    --focus-ring-color: var(--primitive-honey-800);
+    --focus-ring-width: 3px;
+    --focus-ring-offset: 2px;
+
+    --container-max: 1200px;
+
+    /* Transição segura (sem `all`, priorizando GPU compositing) */
+    --transition:
+        transform var(--duration-base) var(--ease-standard),
+        opacity var(--duration-base) var(--ease-standard),
+        background-color var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease,
+        box-shadow var(--duration-base) ease;
+
+    /* ----------------------------------------------------------------------
+       LAYER 3: COMPONENT TOKENS
+       ---------------------------------------------------------------------- */
+    --btn-radius: var(--radius-sm);
+    --btn-primary-bg: var(--color-primary);
+    --btn-primary-hover-bg: var(--color-primary-hover);
+    --btn-primary-fg: var(--color-white);
+    --btn-mata-bg: var(--color-mata);
+    --btn-mata-hover-bg: var(--color-mata-dark);
+    --btn-mata-fg: var(--color-white);
+
+    --card-bg: var(--color-surface);
+    --card-border: var(--color-border);
+    --card-radius: var(--radius-lg);
+    --card-shadow: var(--shadow-sm);
+    --card-shadow-hover: var(--shadow-md);
+
+    --badge-radius: var(--radius-xs);
+    --drawer-bg: var(--color-surface);
+    --header-height: 76px;
+}

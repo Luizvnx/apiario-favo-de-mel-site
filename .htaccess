@@ -30,6 +30,8 @@ RewriteRule ^mel-silvestre/?$ mel-silvestre.html [L]
 RewriteRule ^kit-presente/?$ kit-presente.html [L]
 RewriteRule ^resgate-de-abelhas/?$ resgate-de-abelhas.html [L]
 RewriteRule ^consultoria-apicola/?$ consultoria-apicola.html [L]
+RewriteRule ^privacidade/?$ privacidade.html [L]
+RewriteRule ^trocas-e-devolucoes/?$ trocas-e-devolucoes.html [L]
 
 # 4. Fallback genérico para qualquer página .html sem extensão
 RewriteCond %{DOCUMENT_ROOT}/$1.html -f

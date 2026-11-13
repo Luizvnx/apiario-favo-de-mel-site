@@ -3,39 +3,10 @@
    Estilo: Trem Delivery / Mobile-First / Modern E-Commerce
    ========================================================================== */
 
-:root {
-    --color-primary: #A35A00;
-    --color-primary-hover: #8A4B00;
-    --color-amber-bright: #D98200;
-    --color-primary-light: #FFF8EC;
-    --color-gold: #F59E0B;
-    
-    --color-dark: #1A130D;
-    --color-dark-surface: #271E16;
-    
-    --color-bg: #F8F5F0;
-    --color-surface: #FFFFFF;
-    
-    --color-text: #2C231C;
-    --color-text-muted: #6E6359;
-    --color-border: #E8DFD3;
-    
-    --font-heading: 'Lora', Georgia, serif;
-    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --radius-full: 9999px;
-    
-    --shadow-sm: 0 2px 8px rgba(30, 20, 10, 0.05);
-    --shadow-md: 0 8px 24px rgba(30, 20, 10, 0.08);
-    --shadow-lg: 0 16px 36px rgba(30, 20, 10, 0.14);
-    
-    --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* Tokens principais definidos em css/tokens.css */
 
 body.catalogo-body {
+    --color-bg: #F8F5F0;
     background-color: var(--color-bg);
     color: var(--color-text);
     padding-bottom: 90px; /* Espaço para barra flutuante mobile */
@@ -1128,7 +1099,7 @@ body.catalogo-body {
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     background: #FAF7F2;
-    transition: all 0.2s ease;
+    transition: background-color var(--duration-fast, 160ms) ease, color var(--duration-fast, 160ms) ease, border-color var(--duration-fast, 160ms) ease;
 }
 
 .admin-access-link:hover {
@@ -1196,7 +1167,7 @@ body.catalogo-body {
 .form-control.highlight-success {
     border-color: #10B981 !important;
     background-color: #F0FDF4 !important;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
 .form-control.highlight-focus:focus {
@@ -1706,13 +1677,179 @@ body.catalogo-body {
 .category-pill:focus-visible,
 .delivery-opt-card:focus-visible,
 .payment-opt-card:focus-visible,
+.delivery-opt-card:focus-within,
+.payment-opt-card:focus-within,
 .checkout-preview-header:focus-visible,
 .catalog-card [role="button"]:focus-visible,
 .qty-btn:focus-visible,
 .btn-add-cart:focus-visible,
-.cart-top-btn:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+.cart-top-btn:focus-visible,
+.catalog-sort-select:focus-visible {
+    outline: var(--focus-ring-width, 3px) solid var(--focus-ring-color, #8A4B00);
+    outline-offset: var(--focus-ring-offset, 2px);
+}
+
+/* Busca + Ordenação no Catálogo */
+.catalog-search-sort-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.catalog-search-sort-row .catalog-search-wrap {
+    margin: 0;
+    max-width: none;
+    width: 100%;
+}
+
+.catalog-sort-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.catalog-sort-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--color-primary);
+    pointer-events: none;
+}
+
+.catalog-sort-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.72rem 2.2rem 0.72rem 2.35rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-dark);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236E6359' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    min-width: 215px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.catalog-sort-select:hover {
+    border-color: var(--color-primary);
+}
+
+/* Regras transparentes antes do checkout */
+.catalog-rules-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-md);
+    background: var(--color-mata-soft, #EDF4EF);
+    border: 1px solid var(--color-mata-border, #C8DDD0);
+    color: var(--color-mata-dark, #12241A);
+    font-size: 0.86rem;
+}
+
+.catalog-rule-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.catalog-rule-item svg {
+    color: var(--color-mata, #1B3325);
+    flex-shrink: 0;
+}
+
+/* Tabular numbers e ações no card */
+.card-price,
+.cart-top-btn,
+.floating-cart-total {
+    font-variant-numeric: tabular-nums;
+}
+
+.card-stock-badge.destaque {
+    background: var(--color-mata, #1B3325);
+    color: #FFFFFF;
+}
+
+.card-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+/* Erros inline de checkout */
+.checkout-inline-error {
+    display: none;
+    background: var(--color-danger-soft, #FEF2F2);
+    color: var(--color-danger, #B91C1C);
+    border: 1px solid #FECACA;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 0.95rem;
+    font-size: 0.86rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.checkout-inline-error.visible {
+    display: block;
+}
+
+.field-error-text {
+    display: none;
+    color: var(--color-danger, #B91C1C);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+}
+
+.field-error-text.visible {
+    display: block;
+}
+
+.form-control.is-invalid {
+    border-color: var(--color-danger, #B91C1C) !important;
+    background-color: #FFFBFB;
+}
+
+/* Links rodapé catálogo */
+.catalog-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem 1.4rem;
+}
+
+.catalog-footer-links a {
+    color: var(--color-text);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.catalog-footer-links a:hover {
+    color: var(--color-primary);
+}
+
+@media (max-width: 720px) {
+    .catalog-search-sort-row {
+        grid-template-columns: 1fr;
+    }
+
+    .catalog-sort-select {
+        width: 100%;
+    }
+
+    .catalog-rules-banner {
+        justify-content: flex-start;
+        font-size: 0.82rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

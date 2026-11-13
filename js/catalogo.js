@@ -83,6 +83,7 @@ class CatalogoApp {
         this.categorias = [];
         this.categoriaAtiva = 'todos';
         this.termoBusca = '';
+        this.ordenacao = 'relevancia';
         this.carrinho = this.carregarCarrinho();
         
         this.tipoEntrega = 'entrega';
@@ -129,11 +130,99 @@ class CatalogoApp {
         // estar velhos, então não removemos itens por conta própria.
         if (carregou) this.sincronizarCarrinhoComCatalogo();
 
+        this.carregarEstadoUrl();
         this.renderizarCategorias();
         this.renderizarProdutos();
         this.atualizarInterfaceCarrinho();
         this.verificarParametroAutoAdd();
         this.configurarAtualizacaoAutomatica();
+    }
+
+    formatarTituloExibicao(nome) {
+        const texto = String(nome || '').trim();
+        if (!texto) return '';
+
+        const letras = texto.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+        if (!letras) return texto;
+
+        const maiusculas = (letras.match(/[A-ZÀ-Ý]/g) || []).length;
+        if (maiusculas / letras.length < 0.65) {
+            return texto;
+        }
+
+        const conectivos = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'com', 'para', 'no', 'na', 'nos', 'nas', 'por', 'a', 'o']);
+        const siglas = new Set(['PVC', 'INPA', 'PET', 'PIX']);
+
+        return texto
+            .split(/\s+/)
+            .map((palavra, indice) => {
+                const limpa = palavra.replace(/[^\wÀ-ÿ]/g, '').toUpperCase();
+                if (siglas.has(limpa)) return palavra.toUpperCase();
+                if (/^\d+(G|KG|ML|L)$/i.test(palavra)) return palavra.toLowerCase();
+                const lower = palavra.toLowerCase();
+                if (indice > 0 && conectivos.has(lower)) return lower;
+                return lower.charAt(0).toUpperCase() + lower.slice(1);
+            })
+            .join(' ');
+    }
+
+    carregarEstadoUrl() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const q = params.get('q');
+            if (q) {
+                this.termoBusca = q;
+                const searchInput = document.getElementById('catalogSearch');
+                if (searchInput) searchInput.value = q;
+            }
+
+            const sortVal = params.get('sort');
+            const sortsValidos = new Set(['relevancia', 'disponiveis', 'menor-preco', 'maior-preco', 'nome-az']);
+            if (sortVal && sortsValidos.has(sortVal)) {
+                this.ordenacao = sortVal;
+                const sortEl = document.getElementById('catalogSort');
+                if (sortEl) sortEl.value = sortVal;
+            }
+
+            const catParam = params.get('cat');
+            if (catParam && catParam !== 'todos') {
+                const catNorm = catParam.toLowerCase().trim();
+                const match = this.categorias.find(c =>
+                    String(c.id) === catParam.trim() ||
+                    String(c.nome || '').toLowerCase().includes(catNorm)
+                );
+                if (match) {
+                    this.categoriaAtiva = String(match.id);
+                }
+            }
+        } catch (_) {}
+    }
+
+    atualizarEstadoUrl() {
+        try {
+            const url = new URL(window.location.href);
+            if (this.categoriaAtiva && this.categoriaAtiva !== 'todos') {
+                url.searchParams.set('cat', this.categoriaAtiva);
+            } else {
+                url.searchParams.delete('cat');
+            }
+
+            const q = this.termoBusca.trim();
+            if (q) {
+                url.searchParams.set('q', q);
+            } else {
+                url.searchParams.delete('q');
+            }
+
+            if (this.ordenacao && this.ordenacao !== 'relevancia') {
+                url.searchParams.set('sort', this.ordenacao);
+            } else {
+                url.searchParams.delete('sort');
+            }
+
+            const novaUrl = url.pathname + (url.search ? url.search : '') + url.hash;
+            window.history.replaceState({}, document.title, novaUrl);
+        } catch (_) {}
     }
 
     // Mantém o catálogo sincronizado com o painel admin sem o cliente recarregar a página.
@@ -755,6 +844,7 @@ class CatalogoApp {
                 btn.classList.add('active');
                 btn.setAttribute('aria-selected', 'true');
                 this.categoriaAtiva = btn.getAttribute('data-cat');
+                this.atualizarEstadoUrl();
                 this.renderizarProdutos();
             });
         });
@@ -834,8 +924,12 @@ class CatalogoApp {
     limparFiltros() {
         this.categoriaAtiva = 'todos';
         this.termoBusca = '';
+        this.ordenacao = 'relevancia';
         const searchInput = document.getElementById('catalogSearch');
         if (searchInput) searchInput.value = '';
+        const sortSelect = document.getElementById('catalogSort');
+        if (sortSelect) sortSelect.value = 'relevancia';
+        this.atualizarEstadoUrl();
         this.renderizarCategorias();
         this.renderizarProdutos();
     }
@@ -846,8 +940,9 @@ class CatalogoApp {
 
         const temBusca = this.termoBusca.trim().length > 0;
         const temCategoria = this.categoriaAtiva !== 'todos';
+        const temOrdenacao = this.ordenacao && this.ordenacao !== 'relevancia';
 
-        if (!temBusca && !temCategoria) {
+        if (!temBusca && !temCategoria && !temOrdenacao) {
             statusEl.innerHTML = '';
             return;
         }
@@ -863,8 +958,17 @@ class CatalogoApp {
         if (temBusca) {
             partes.push(`busca por <strong>"${this.escaparHtml(this.termoBusca.trim())}"</strong>`);
         }
+        if (temOrdenacao && partes.length === 0) {
+            const rotulos = {
+                'disponiveis': 'em estoque primeiro',
+                'menor-preco': 'menor preço',
+                'maior-preco': 'maior preço',
+                'nome-az': 'ordem alfabética (A–Z)'
+            };
+            partes.push(`ordenação por <strong>${rotulos[this.ordenacao] || 'destaques'}</strong>`);
+        }
 
-        const labelQtd = filtradosCount === 1 ? '1 produto encontrado' : `${filtradosCount} produtos encontrados`;
+        const labelQtd = filtradosCount === 1 ? '1 produto' : `${filtradosCount} produtos`;
         statusEl.innerHTML = `
             <span><strong>${labelQtd}</strong> em ${partes.join(' e ')}</span>
             <button type="button" class="btn-clear-catalog-filter" onclick="catalogoApp.limparFiltros()">Limpar filtros</button>
@@ -875,7 +979,7 @@ class CatalogoApp {
         const gridEl = document.getElementById('catalogGrid');
         if (!gridEl) return;
 
-        let filtrados = this.produtos;
+        let filtrados = [...this.produtos];
 
         // Filtro por Categoria
         if (this.categoriaAtiva !== 'todos') {
@@ -885,10 +989,28 @@ class CatalogoApp {
         // Filtro por Busca
         if (this.termoBusca.trim().length > 0) {
             const busca = this.termoBusca.toLowerCase().trim();
-            filtrados = filtrados.filter(p => 
+            filtrados = filtrados.filter(p =>
                 (p.nome && p.nome.toLowerCase().includes(busca)) ||
                 (p.descricao && p.descricao.toLowerCase().includes(busca))
             );
+        }
+
+        // Ordenação
+        if (this.ordenacao === 'menor-preco') {
+            filtrados.sort((a, b) => (parseFloat(a.preco) || 0) - (parseFloat(b.preco) || 0));
+        } else if (this.ordenacao === 'maior-preco') {
+            filtrados.sort((a, b) => (parseFloat(b.preco) || 0) - (parseFloat(a.preco) || 0));
+        } else if (this.ordenacao === 'nome-az') {
+            filtrados.sort((a, b) =>
+                this.formatarTituloExibicao(a.nome).localeCompare(this.formatarTituloExibicao(b.nome), 'pt-BR')
+            );
+        } else if (this.ordenacao === 'disponiveis') {
+            filtrados.sort((a, b) => {
+                const dispA = this.estaEsgotado(a) ? 1 : 0;
+                const dispB = this.estaEsgotado(b) ? 1 : 0;
+                if (dispA !== dispB) return dispA - dispB;
+                return (Number(a.id) || 0) - (Number(b.id) || 0);
+            });
         }
 
         this.atualizarBarraResultados(filtrados.length);
@@ -924,10 +1046,11 @@ class CatalogoApp {
             gridEl.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
                     <div style="margin-bottom: 1rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-primary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <svg width="48" height="48" style="color: var(--color-primary);" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-search"></use></svg>
                     </div>
                     <h3 style="margin-bottom: 0.5rem; color: #2C231C;">Nenhum produto encontrado</h3>
-                    <p>Tente buscar por outro termo ou selecione outra categoria.</p>
+                    <p style="margin-bottom: 1.25rem;">Tente buscar por outro termo ou selecione outra categoria.</p>
+                    <button type="button" class="btn-add-cart" style="margin: 0 auto;" onclick="catalogoApp.limparFiltros()">Limpar filtros e mostrar todos</button>
                 </div>
             `;
             return;
@@ -944,7 +1067,8 @@ class CatalogoApp {
             const limiteAtingido = estoque !== null && qtdNoCarrinho >= estoque;
 
             const fotoUrl = this.resolverFoto(prod);
-            const nomeSeguro = this.escaparHtml(prod.nome);
+            const nomeExibicao = this.formatarTituloExibicao(prod.nome);
+            const nomeSeguro = this.escaparHtml(nomeExibicao);
             const descricaoSegura = this.escaparHtml(prod.descricao || 'Produto natural de altíssima qualidade direto do apiário.');
             const catNomeLimpo = (prod.categoria_nome || 'Apiário Favo de Mel')
                 .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
@@ -955,6 +1079,8 @@ class CatalogoApp {
                 estoqueBadge = '<span class="card-stock-badge esgotado">Esgotado</span>';
             } else if (estoqueBaixo) {
                 estoqueBadge = `<span class="card-stock-badge baixo">Últimas ${estoque} un.</span>`;
+            } else if (prod.destaque) {
+                estoqueBadge = '<span class="card-stock-badge destaque">Destaque</span>';
             }
 
             let acaoHtml;
@@ -963,14 +1089,14 @@ class CatalogoApp {
             } else if (qtdNoCarrinho > 0) {
                 acaoHtml = `
                     <div class="qty-stepper">
-                        <button class="qty-btn" type="button" aria-label="Diminuir quantidade" onclick="catalogoApp.alterarQuantidade('${prod.id}', -1)">−</button>
+                        <button class="qty-btn" type="button" aria-label="Diminuir quantidade de ${nomeSeguro}" onclick="catalogoApp.alterarQuantidade('${prod.id}', -1)">−</button>
                         <span class="qty-value">${qtdNoCarrinho}</span>
-                        <button class="qty-btn" type="button" aria-label="Aumentar quantidade" onclick="catalogoApp.alterarQuantidade('${prod.id}', 1)" ${limiteAtingido ? 'disabled aria-disabled="true"' : ''}>+</button>
+                        <button class="qty-btn" type="button" aria-label="Aumentar quantidade de ${nomeSeguro}" onclick="catalogoApp.alterarQuantidade('${prod.id}', 1)" ${limiteAtingido ? 'disabled aria-disabled="true"' : ''}>+</button>
                     </div>
                 `;
             } else {
                 acaoHtml = `
-                    <button class="btn-add-cart" type="button" onclick="catalogoApp.abrirModalProduto('${prod.id}')">
+                    <button class="btn-add-cart" type="button" aria-label="Adicionar ${nomeSeguro} ao carrinho" onclick="catalogoApp.adicionarItem('${prod.id}')">
                         <span>+</span> Adicionar
                     </button>
                 `;
@@ -978,13 +1104,13 @@ class CatalogoApp {
 
             return `
                 <div class="catalog-card${esgotado ? ' catalog-card--esgotado' : ''}" data-id="${prod.id}">
-                    <div class="card-img-area" role="button" tabindex="0" aria-label="Ver detalhes de ${nomeSeguro}" onclick="catalogoApp.abrirModalProduto('${prod.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();catalogoApp.abrirModalProduto('${prod.id}');}" style="cursor: pointer;" title="Clique para ver detalhes do produto">
+                    <div class="card-img-area" role="button" tabindex="0" aria-label="Ver detalhes e observações de ${nomeSeguro}" onclick="catalogoApp.abrirModalProduto('${prod.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();catalogoApp.abrirModalProduto('${prod.id}');}" title="Clique para ver detalhes e observações">
                         <img src="${this.escaparHtml(fotoUrl)}" alt="${nomeSeguro}" width="260" height="260" loading="lazy" decoding="async" onerror="window.handleCatalogImgError && window.handleCatalogImgError(this)">
                         ${estoqueBadge}
                     </div>
                     <div class="card-content">
                         <span class="card-category-label">${this.escaparHtml(catNomeLimpo)}</span>
-                        <h3 class="card-title" role="button" tabindex="0" onclick="catalogoApp.abrirModalProduto('${prod.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();catalogoApp.abrirModalProduto('${prod.id}');}" style="cursor: pointer;" title="Clique para ver detalhes do produto">${nomeSeguro}</h3>
+                        <h3 class="card-title" role="button" tabindex="0" onclick="catalogoApp.abrirModalProduto('${prod.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();catalogoApp.abrirModalProduto('${prod.id}');}" title="Clique para ver detalhes">${nomeSeguro}</h3>
                         <p class="card-desc">${descricaoSegura}</p>
                         
                         <div class="card-bottom-row">
@@ -1027,12 +1153,13 @@ class CatalogoApp {
             .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
             .trim();
 
+        const nomeExibicao = this.formatarTituloExibicao(prod.nome);
         if (imgEl) {
             imgEl.src = fotoUrl;
-            imgEl.alt = prod.nome;
+            imgEl.alt = nomeExibicao;
             imgEl.onerror = function() { window.handleCatalogImgError && window.handleCatalogImgError(this); };
         }
-        if (titleEl) titleEl.innerText = prod.nome;
+        if (titleEl) titleEl.innerText = nomeExibicao;
         if (catEl) catEl.innerText = catNomeLimpo;
         if (priceEl) priceEl.innerText = `R$ ${precoFormatado}`;
         if (descEl) descEl.innerText = prod.descricao || 'Produto nobre e puro do Apiário Favo de Mel, colhido de forma sustentável e artesanal.';
@@ -1437,6 +1564,17 @@ class CatalogoApp {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.termoBusca = e.target.value;
+                this.atualizarEstadoUrl();
+                this.renderizarProdutos();
+            });
+        }
+
+        // Ordenação
+        const sortSelect = document.getElementById('catalogSort');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', (e) => {
+                this.ordenacao = e.target.value || 'relevancia';
+                this.atualizarEstadoUrl();
                 this.renderizarProdutos();
             });
         }
@@ -1467,15 +1605,15 @@ class CatalogoApp {
             }
         });
 
-        // Configuração de Entrega vs Retirada
-        const selecionarEntrega = (card) => {
+        // Configuração de Entrega vs Retirada (radios nativos dentro dos cards)
+        const aplicarEntrega = (tipo) => {
+            this.tipoEntrega = tipo || 'entrega';
             document.querySelectorAll('.delivery-opt-card').forEach(c => {
-                c.classList.remove('active');
-                c.setAttribute('aria-checked', 'false');
+                const match = c.getAttribute('data-type') === this.tipoEntrega;
+                c.classList.toggle('active', match);
+                const radio = c.querySelector('input[type="radio"]');
+                if (radio) radio.checked = match;
             });
-            card.classList.add('active');
-            card.setAttribute('aria-checked', 'true');
-            this.tipoEntrega = card.getAttribute('data-type');
 
             const addressFields = document.getElementById('addressFieldsGroup');
             if (addressFields) {
@@ -1486,25 +1624,19 @@ class CatalogoApp {
             }
         };
 
-        document.querySelectorAll('.delivery-opt-card').forEach(card => {
-            card.addEventListener('click', () => selecionarEntrega(card));
-            card.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    selecionarEntrega(card);
-                }
-            });
+        document.querySelectorAll('input[name="tipoEntrega"]').forEach(radio => {
+            radio.addEventListener('change', () => aplicarEntrega(radio.value));
         });
 
-        // Configuração de Formas de Pagamento
-        const selecionarPagamento = (card) => {
+        // Configuração de Formas de Pagamento (radios nativos dentro dos cards)
+        const aplicarPagamento = (pagamento) => {
+            this.formaPagamento = pagamento || 'pix';
             document.querySelectorAll('.payment-opt-card').forEach(c => {
-                c.classList.remove('active');
-                c.setAttribute('aria-checked', 'false');
+                const match = c.getAttribute('data-payment') === this.formaPagamento;
+                c.classList.toggle('active', match);
+                const radio = c.querySelector('input[type="radio"]');
+                if (radio) radio.checked = match;
             });
-            card.classList.add('active');
-            card.setAttribute('aria-checked', 'true');
-            this.formaPagamento = card.getAttribute('data-payment');
 
             const pixBox = document.getElementById('pixDetailsBox');
             const trocoBox = document.getElementById('trocoGroup');
@@ -1518,14 +1650,12 @@ class CatalogoApp {
             if (trocoBox) trocoBox.style.display = this.formaPagamento === 'dinheiro' ? 'block' : 'none';
         };
 
-        document.querySelectorAll('.payment-opt-card').forEach(card => {
-            card.addEventListener('click', () => selecionarPagamento(card));
-            card.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    selecionarPagamento(card);
-                }
-            });
+        document.querySelectorAll('input[name="formaPagamento"]').forEach(radio => {
+            radio.addEventListener('change', () => aplicarPagamento(radio.value));
+        });
+
+        ['checkoutNome', 'checkoutTelefone', 'checkoutRua', 'checkoutNumero'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', () => this.limparErrosCheckout());
         });
 
         // Botão de Copiar Código PIX Copia e Cola Oficial
@@ -1793,6 +1923,8 @@ class CatalogoApp {
     }
 
     abrirModalCheckout() {
+        this.limparErrosCheckout();
+
         const total = this.calcularTotal();
         const totalFormatado = total.toFixed(2).replace('.', ',');
         const checkoutTotalDisplay = document.getElementById('checkoutTotalDisplay');
@@ -1907,15 +2039,62 @@ class CatalogoApp {
     // =========================================================================
     // PROCESSAMENTO DO PEDIDO (POST /api/catalogo/pedidos)
     // =========================================================================
+    limparErrosCheckout() {
+        const banner = document.getElementById('checkoutFormError');
+        if (banner) {
+            banner.textContent = '';
+            banner.classList.remove('visible');
+        }
+        ['checkoutNome', 'checkoutTelefone', 'checkoutRua', 'checkoutNumero'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('is-invalid');
+                el.removeAttribute('aria-invalid');
+            }
+        });
+        ['checkoutNomeErr', 'checkoutTelefoneErr'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '';
+                el.classList.remove('visible');
+            }
+        });
+    }
+
+    exibirErroCheckout(mensagem, campoId, fieldErrId) {
+        const banner = document.getElementById('checkoutFormError');
+        if (banner) {
+            banner.textContent = mensagem;
+            banner.classList.add('visible');
+        }
+        if (fieldErrId) {
+            const fieldErr = document.getElementById(fieldErrId);
+            if (fieldErr) {
+                fieldErr.textContent = mensagem;
+                fieldErr.classList.add('visible');
+            }
+        }
+        const campo = campoId ? document.getElementById(campoId) : null;
+        if (campo) {
+            campo.classList.add('is-invalid');
+            campo.setAttribute('aria-invalid', 'true');
+            campo.focus();
+            campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (banner) {
+            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
     // =========================================================================
     // 1. ETAPA DE REVISÃO DO PEDIDO (Valida campos e abre tela de confirmação)
     // =========================================================================
     async processarPedido(e) {
         e.preventDefault();
+        this.limparErrosCheckout();
 
         const errosCatalogo = this.validarCarrinhoComEstoqueAtual();
         if (errosCatalogo.length > 0) {
-            alert(`Não foi possível continuar:\n\n${errosCatalogo.join('\n')}\n\nO catálogo será atualizado agora.`);
+            this.exibirErroCheckout(`Revise os itens do carrinho: ${errosCatalogo.join(' ')}`);
             await this.tentarNovamente();
             return;
         }
@@ -1924,16 +2103,14 @@ class CatalogoApp {
         const telefone = document.getElementById('checkoutTelefone')?.value.trim();
         const obs = document.getElementById('checkoutObs')?.value.trim() || '';
 
-        if (!nome) {
-            alert('Por favor, informe seu nome.');
-            document.getElementById('checkoutNome')?.focus();
+        if (!nome || nome.length < 2) {
+            this.exibirErroCheckout('Por favor, informe seu nome completo.', 'checkoutNome', 'checkoutNomeErr');
             return;
         }
 
         const telDigitos = telefone ? telefone.replace(/\D/g, '') : '';
-        if (telDigitos.length < 8) {
-            alert('Por favor, informe um número de WhatsApp válido para contato e acompanhamento.');
-            document.getElementById('checkoutTelefone')?.focus();
+        if (telDigitos.length < 10) {
+            this.exibirErroCheckout('Informe um número de WhatsApp válido com DDD para contato e rastreio.', 'checkoutTelefone', 'checkoutTelefoneErr');
             return;
         }
 
@@ -1942,9 +2119,8 @@ class CatalogoApp {
             const rua = document.getElementById('checkoutRua')?.value.trim() || '';
             const numero = document.getElementById('checkoutNumero')?.value.trim() || '';
             if (!rua || !numero) {
-                alert('Por favor, informe a Rua e o Número da sua residência para a entrega.');
-                if (!rua) document.getElementById('checkoutRua')?.focus();
-                else document.getElementById('checkoutNumero')?.focus();
+                const alvo = !rua ? 'checkoutRua' : 'checkoutNumero';
+                this.exibirErroCheckout('Informe a Rua e o Número do seu endereço para entrega.', alvo);
                 return;
             }
 

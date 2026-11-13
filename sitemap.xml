@@ -5,13 +5,13 @@
     <!-- Página Inicial Institucional & Loja -->
     <url>
         <loc>https://www.apiariofavodemel.com.br/</loc>
-        <lastmod>2026-10-19</lastmod>
+        <lastmod>2026-11-13</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
         <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/images/kit-presente-1024x790.webp</image:loc>
-            <image:title>Kit Especial Apiário Favo de Mel</image:title>
-            <image:caption>Kit rústico com méis nobres, própolis e favo de mel artesanal</image:caption>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/images/hero-favo-origem.webp</image:loc>
+            <image:title>Apiário Favo de Mel em Sergipe</image:title>
+            <image:caption>Quadro de favo de mel cru operculado direto do apiário</image:caption>
         </image:image>
         <image:image>
             <image:loc>https://www.apiariofavodemel.com.br/assets/images/logo-favo-de-mel.webp</image:loc>
@@ -129,11 +129,11 @@
     <!-- SERVIÇO 1: Resgate e Captura Ecológica de Abelhas -->
     <url>
         <loc>https://www.apiariofavodemel.com.br/resgate-de-abelhas</loc>
-        <lastmod>2026-10-19</lastmod>
+        <lastmod>2026-11-13</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.95</priority>
         <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/images/Captura-de-Tela-2026-05-29-as-14.02.51.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/images/servico-resgate.webp</image:loc>
             <image:title>Resgate Ecológico de Abelhas em Sergipe</image:title>
             <image:caption>Remoção técnica de enxames sem defensivos químicos e com segurança</image:caption>
         </image:image>
@@ -142,13 +142,27 @@
     <!-- SERVIÇO 2: Consultoria e Implantação de Apiários -->
     <url>
         <loc>https://www.apiariofavodemel.com.br/consultoria-apicola</loc>
-        <lastmod>2026-10-19</lastmod>
+        <lastmod>2026-11-13</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.95</priority>
         <image:image>
-            <image:loc>https://www.apiariofavodemel.com.br/assets/images/Captura-de-Tela-2026-05-29-as-14.02.58.webp</image:loc>
+            <image:loc>https://www.apiariofavodemel.com.br/assets/products/Foto-no-apiario.webp</image:loc>
             <image:title>Consultoria Apícola e Meliponicultura em Sergipe</image:title>
             <image:caption>Assessoria técnica zootécnica para instalação e manejo de apiários</image:caption>
         </image:image>
+    </url>
+
+    <!-- Páginas Institucionais & Políticas -->
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/privacidade</loc>
+        <lastmod>2026-11-13</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://www.apiariofavodemel.com.br/trocas-e-devolucoes</loc>
+        <lastmod>2026-11-13</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.4</priority>
     </url>
 </urlset>

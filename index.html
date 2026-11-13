@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://www.apiariofavodemel.com.br/">
     <meta name="author" content="Apiário Favo de Mel">
     <meta name="keywords" content="mel puro, favo de mel, mel de uruçu, própolis verde, própolis vermelha, apicultura sergipe, mel artesanal aracaju, meliponicultura, cosméticos apícolas, resgate de abelhas">
-    <meta name="theme-color" content="#D98200">
+    <meta name="theme-color" content="#1B3325">
 
     <!-- Open Graph / Redes Sociais (WhatsApp, Instagram, Facebook, LinkedIn) -->
     <meta property="og:locale" content="pt_BR">
@@ -22,10 +22,10 @@
     <meta property="og:title" content="Apiário Favo de Mel | Méis Nobres, Própolis e Produtos Naturais">
     <meta property="og:description" content="Méis puros e nobres, mel de abelhas nativas sem ferrão, própolis verde e vermelha com laudo e serviços apícolas em Sergipe. Compre direto do produtor!">
     <meta property="og:url" content="https://www.apiariofavodemel.com.br/">
-    <meta property="og:image" content="https://www.apiariofavodemel.com.br/assets/images/kit-presente-1024x790.webp">
-    <meta property="og:image:secure_url" content="https://www.apiariofavodemel.com.br/assets/images/kit-presente-1024x790.webp">
-    <meta property="og:image:width" content="1024">
-    <meta property="og:image:height" content="790">
+    <meta property="og:image" content="https://www.apiariofavodemel.com.br/assets/images/hero-favo-origem.webp">
+    <meta property="og:image:secure_url" content="https://www.apiariofavodemel.com.br/assets/images/hero-favo-origem.webp">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="896">
     <meta property="og:image:type" content="image/webp">
     <meta property="og:image:alt" content="Méis Nobres e Própolis do Apiário Favo de Mel">
 
@@ -33,7 +33,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Apiário Favo de Mel | Méis Nobres & Naturais">
     <meta name="twitter:description" content="Méis puros, mel de abelhas nativas, própolis verde e vermelha e serviços apícolas em Sergipe. Peça online!">
-    <meta name="twitter:image" content="https://www.apiariofavodemel.com.br/assets/images/kit-presente-1024x790.webp">
+    <meta name="twitter:image" content="https://www.apiariofavodemel.com.br/assets/images/hero-favo-origem.webp">
 
     <!-- SEO Local & Geo-Targeting (Aracaju / Sergipe / Brasil) -->
     <meta name="geo.region" content="BR-SE">
@@ -179,10 +179,9 @@
     <!-- Favicon -->
     <link rel="icon" type="image/webp" href="/assets/images/logo-favo-de-mel.webp">
 
-    <!-- Preload Hero LCP Image -->
-        <!-- Preload Hero LCP Image Responsivo (Mobile: 25KB, Desktop: 101KB) -->
-    <link rel="preload" as="image" href="/assets/images/kit-presente-500w.webp" media="(max-width: 600px)" fetchpriority="high">
-    <link rel="preload" as="image" href="/assets/images/kit-presente-1024x790.webp" media="(min-width: 601px)" fetchpriority="high">
+    <!-- Preload Hero LCP Image Responsivo -->
+    <link rel="preload" as="image" href="/assets/images/hero-favo-origem-640w.webp" media="(max-width: 600px)" fetchpriority="high">
+    <link rel="preload" as="image" href="/assets/images/hero-favo-origem.webp" media="(min-width: 601px)" fetchpriority="high">
 
     <!-- Google Fonts com Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -190,7 +189,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
     <!-- CSS Institucional -->
-    <link rel="stylesheet" href="/css/style.css?v=8.0">
+    <link rel="stylesheet" href="/css/tokens.css?v=9.0">
+    <link rel="stylesheet" href="/css/style.css?v=9.0">
 </head>
 
 <body>
@@ -242,81 +242,54 @@
     <section id="inicio" class="hero">
         <div class="container hero-wrapper">
             <div class="hero-content">
-                <span class="section-tag">Pureza & Tradição Apícola</span>
-                <h1>O Verdadeiro Sabor e Saúde da Natureza em <span>Sua Mesa</span></h1>
+                <span class="section-tag">Origem em Sergipe · Apicultura Artesanal</span>
+                <h1>Da Florada em Sergipe para a <em>Sua Mesa</em></h1>
                 <p class="hero-subtitle">
-                    Méis nobres silvestres e de abelhas nativas (Uruçu), própolis verde e vermelha de alta potência,
-                    cosméticos naturais e delícias artesanais colhidos com rigor, amor e sustentabilidade.
+                    Méis nobres silvestres e de abelhas nativas (Uruçu), própolis verde e vermelha concentradas, favo cru
+                    e derivados colhidos diretamente nos apiários com rastreabilidade e extração a frio.
                 </p>
 
                 <div class="hero-buttons">
-                    <a href="/catalogo" class="btn btn-primary" style="padding: 0.95rem 2rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <path d="M16 10a4 4 0 0 1-8 0"></path>
-                        </svg>
-                        <span>Fazer Pedido Online</span>
+                    <a href="/catalogo" class="btn btn-primary">
+                        <svg class="icon-svg" width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-bag"></use></svg>
+                        <span>Explorar Catálogo</span>
                     </a>
                     <a href="https://wa.me/557988125726?text=Ol%C3%A1%21%20Gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20os%20produtos%20do%20Api%C3%A1rio%20Favo%20de%20Mel"
-                        target="_blank" class="btn btn-whatsapp-outline" style="padding: 0.95rem 1.8rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                            fill="currentColor">
-                            <path
-                                d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z" />
-                        </svg>
+                        target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp-outline">
+                        <svg class="icon-svg" width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-whatsapp"></use></svg>
                         <span>Falar no WhatsApp</span>
                     </a>
                 </div>
 
                 <div class="hero-badges">
                     <div class="hero-badge-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            <path d="m9 12 2 2 4-4"></path>
-                        </svg>
-                        <span>100% Puro & Cru</span>
+                        <svg class="icon-svg" width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-shield"></use></svg>
+                        <span>Mel Cru Não Pasteurizado</span>
                     </div>
                     <div class="hero-badge-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="8" r="7"></circle>
-                            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                        </svg>
+                        <svg class="icon-svg" width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-hive"></use></svg>
                         <span>Manejo Sustentável</span>
                     </div>
                     <div class="hero-badge-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="1" y="3" width="15" height="13"></rect>
-                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                        </svg>
-                        <span>Entrega Rápida</span>
+                        <svg class="icon-svg" width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-truck"></use></svg>
+                        <span>Entrega em SE e Brasil</span>
                     </div>
                 </div>
             </div>
 
             <div class="hero-image-wrap">
                 <picture>
-                    <source media="(max-width: 600px)" srcset="/assets/images/kit-presente-500w.webp" type="image/webp">
-                    <source media="(min-width: 601px)" srcset="/assets/images/kit-presente-1024x790.webp" type="image/webp">
-                    <img src="/assets/images/kit-presente-1024x790.webp" alt="Produtos Favo de Mel" width="520" height="400" fetchpriority="high" decoding="async">
+                    <source media="(max-width: 600px)" srcset="/assets/images/hero-favo-origem-640w.webp" type="image/webp">
+                    <source media="(min-width: 601px)" srcset="/assets/images/hero-favo-origem.webp" type="image/webp">
+                    <img src="/assets/images/hero-favo-origem.webp" alt="Apicultor segurando quadro de madeira com favo de mel cru translúcido em Sergipe" width="1200" height="896" fetchpriority="high" decoding="async">
                 </picture>
                 <div class="hero-float-card">
                     <div class="hero-float-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 14 14"></polyline>
-                        </svg>
+                        <svg width="22" height="22" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-hive"></use></svg>
                     </div>
                     <div>
-                        <div class="hero-float-title">Colheita Selecionada</div>
-                        <div class="hero-float-sub">Direto do produtor sem intermediários</div>
+                        <div class="hero-float-title">Colheita Direta na Origem</div>
+                        <div class="hero-float-sub">Do apicultor sergipano ao pote, sem intermediários</div>
                     </div>
                 </div>
             </div>
@@ -324,25 +297,29 @@
     </section>
 
     <!-- ==========================================================================
-         CONTADORES
+         PILARES DE ORIGEM E PRODUÇÃO
          ========================================================================== -->
-    <section class="stats-section">
+    <section class="stats-section" aria-label="Compromissos de Origem">
         <div class="container stats-grid">
-            <div class="stat-item">
-                <div class="stat-number" data-target="+10">+10</div>
-                <div class="stat-label">Anos de Tradição e Cuidado</div>
+            <div class="stat-item" data-reveal>
+                <span class="pillar-index">01</span>
+                <h2 class="pillar-heading">Floradas de Sergipe</h2>
+                <div class="stat-label">Méis silvestres e própolis colhidos em áreas de mata nativa e manguezal.</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number" data-target="100%">100%</div>
-                <div class="stat-label">Pureza Natural Garantida</div>
+            <div class="stat-item" data-reveal>
+                <span class="pillar-index">02</span>
+                <h2 class="pillar-heading">100% Cru e Íntegro</h2>
+                <div class="stat-label">Extração a frio que preserva enzimas, aromas e bioativos da colmeia.</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number" data-target="+2500">+2.500</div>
-                <div class="stat-label">Famílias e Clientes Felizes</div>
+            <div class="stat-item" data-reveal>
+                <span class="pillar-index">03</span>
+                <h2 class="pillar-heading">Do Produtor a Você</h2>
+                <div class="stat-label">Compra direta pelo catálogo ou atendimento técnico com apicultores reais.</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number" data-target="+50">+50</div>
-                <div class="stat-label">Colmeias Preservadas</div>
+            <div class="stat-item" data-reveal>
+                <span class="pillar-index">04</span>
+                <h2 class="pillar-heading">Retirada ou Envio Seguro</h2>
+                <div class="stat-label">Retirada programada em Aracaju/SE ou envio com proteção reforçada.</div>
             </div>
         </div>
     </section>
@@ -352,60 +329,66 @@
          ========================================================================== -->
     <section id="quem-somos" class="about-section">
         <div class="container about-wrapper">
-            <div class="about-image-wrap">
-                <img src="/assets/images/WhatsApp-Image-2026-05-06-at-11.10.07-768x1024.webp"
-                    alt="Apicultor Apiário Favo de Mel" width="480" height="640" loading="lazy" decoding="async">
+            <div class="about-image-wrap" data-reveal>
+                <img class="about-image-main" src="/assets/products/Foto-no-apiario.webp"
+                    alt="Apicultor do Apiário Favo de Mel em atividade de campo junto à colmeia em Sergipe" width="540" height="675" loading="lazy" decoding="async">
+                <div class="about-hex-inset" aria-hidden="true">
+                    <img src="/assets/images/WhatsApp-Image-2026-05-06-at-11.10.07-768x1024.webp"
+                        alt="Prateleira hexagonal com produtos do Apiário Favo de Mel na loja" width="168" height="188" loading="lazy" decoding="async">
+                </div>
                 <div class="about-badge-exp">
-                    <strong>+10</strong>
-                    <span>Anos no Campo</span>
+                    <strong>Sergipe</strong>
+                    <span>Apiário &amp; Loja Física</span>
                 </div>
             </div>
 
-            <div class="about-content">
+            <div class="about-content" data-reveal>
                 <span class="section-tag">Quem Somos</span>
-                <h2>Apaixonados pelo universo das abelhas</h2>
+                <h2>Manejo ético da mata ao pote de vidro</h2>
                 <p class="about-p">
-                    O <strong>Apiário Favo de Mel</strong> nasceu do respeito profundo pela natureza e pelo papel
-                    insubstituível que as abelhas exercem na polinização e na vida do planeta.
+                    O <strong>Apiário Favo de Mel</strong> nasceu do respeito profundo às abelhas e à biodiversidade
+                    sergipana, unindo o trabalho técnico de campo à venda direta para quem busca alimentos genuínos.
                 </p>
                 <p class="about-p">
-                    Trabalhamos na produção de méis silvestres nobres, preservação de abelhas nativas sem ferrão (como a
-                    lendária abelha <em>Uruçu</em>), além da extração ética de própolis verde e vermelha com altíssima
-                    concentração de bioativos.
+                    Produzimos méis silvestres, preservamos colônias nativas sem ferrão (como a abelha <em>Uruçu</em>) e
+                    extraímos própolis verde e vermelha sem adição de açúcar, corantes ou aquecimento destrutivo.
                 </p>
+
+                <ol class="about-process-list">
+                    <li>
+                        <span class="about-process-step">01</span>
+                        <span><strong>Florada &amp; Maturação:</strong> Colheita somente após a operculação natural do favo.</span>
+                    </li>
+                    <li>
+                        <span class="about-process-step">02</span>
+                        <span><strong>Centrifugação a Frio:</strong> Filtração grossa que conserva grãos de pólen e enzimas.</span>
+                    </li>
+                    <li>
+                        <span class="about-process-step">03</span>
+                        <span><strong>Envase na Origem:</strong> Lotes pequenos com frescor de safra direto para sua casa.</span>
+                    </li>
+                </ol>
 
                 <div class="about-pillars">
                     <div class="about-pillar-card">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            <path d="m9 12 2 2 4-4"></path>
-                        </svg>
+                        <svg width="22" height="22" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-shield"></use></svg>
                         <div>
-                            <h4>Pureza Absoluta</h4>
-                            <p>Mel cru, sem aquecimento industrial, preservando enzimas e propriedades terapêuticas.</p>
+                            <h4>Pureza Garantida</h4>
+                            <p>Mel cru em estado natural, com cristalização espontânea conforme florada.</p>
                         </div>
                     </div>
                     <div class="about-pillar-card">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="8" r="7"></circle>
-                            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                        </svg>
+                        <svg width="22" height="22" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-award"></use></svg>
                         <div>
-                            <h4>Amor às Abelhas</h4>
-                            <p>Manejo respeitoso focado na saúde e longevidade dos enxames nativos e apícolas.</p>
+                            <h4>Preservação Ativa</h4>
+                            <p>Manejo racional e resgate ecológico de enxames em áreas urbanas e rurais.</p>
                         </div>
                     </div>
                 </div>
 
                 <a href="/catalogo" class="btn btn-primary">
                     <span>Conheça Nossa Produção no Catálogo</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
+                    <svg width="16" height="16" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-arrow-right"></use></svg>
                 </a>
             </div>
         </div>
@@ -416,10 +399,16 @@
          ========================================================================== -->
     <section id="produtos" class="featured-products">
         <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Nossos Produtos</span>
-                <h2>Da colmeia para a sua mesa</h2>
-                <p>Méis nobres, própolis concentradas e delícias terapêuticas produzidas de forma 100% natural.</p>
+            <div class="section-header-split" data-reveal>
+                <div class="section-header-copy">
+                    <span class="section-tag">Seleção da Colmeia</span>
+                    <h2>Da colmeia para a sua mesa</h2>
+                    <p>Méis nobres, própolis concentradas e derivados sincronizados em tempo real com o nosso estoque.</p>
+                </div>
+                <a href="/catalogo" class="btn btn-outline">
+                    <span>Ver Catálogo Completo</span>
+                    <svg width="16" height="16" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-arrow-right"></use></svg>
+                </a>
             </div>
 
             <div class="products-grid">
@@ -577,19 +566,14 @@
             </div>
 
             <!-- Caixa de CTA para Catálogo Completo -->
-            <div class="catalog-cta-box">
+            <div class="catalog-cta-box" data-reveal>
                 <span class="section-tag">Catálogo Completo</span>
                 <h3 id="homeCatalogCtaTitle">Deseja conferir todos os produtos do nosso catálogo?</h3>
                 <p>Navegue pelo nosso catálogo digital interativo com carrinho integrado, adicione seus produtos
                     favoritos e envie seu pedido diretamente no WhatsApp!</p>
-                <a href="/catalogo" class="btn btn-primary" style="padding: 0.95rem 2.2rem; font-size: 1rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <path d="M16 10a4 4 0 0 1-8 0"></path>
-                    </svg>
-                    <span>Abrir Catálogo Completo & Fazer Pedido</span>
+                <a href="/catalogo" class="btn btn-primary">
+                    <svg width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-bag"></use></svg>
+                    <span>Abrir Catálogo Completo &amp; Fazer Pedido</span>
                 </a>
             </div>
         </div>
@@ -600,20 +584,21 @@
          ========================================================================== -->
     <section id="servicos" class="services-section">
         <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Nossos Serviços</span>
+            <div class="section-header" data-reveal>
+                <span class="section-tag">Serviços Técnicos</span>
                 <h2>Muito além do mel</h2>
-                <p>Serviços técnicos especializados em apicultura e meliponicultura, com foco em segurança e preservação
-                    ambiental.</p>
+                <p>Atuação técnica especializada em apicultura e meliponicultura em Sergipe, com foco em segurança e
+                    preservação dos enxames.</p>
             </div>
 
             <div class="services-grid">
                 <!-- Serviço 1 -->
-                <div class="service-card">
+                <article class="service-card" data-reveal>
                     <div class="service-img-wrap">
-                        <a href="/resgate-de-abelhas" style="display:contents;">
-                            <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.02.51.webp"
-                                alt="Resgate e Captura de Abelhas" width="400" height="260" loading="lazy" decoding="async">
+                        <span class="service-step-num" aria-hidden="true">01</span>
+                        <a href="/resgate-de-abelhas" class="product-img-link">
+                            <img src="/assets/images/servico-resgate.webp"
+                                alt="Apicultor realizando resgate ecológico de enxame de abelhas em beiral de madeira" width="800" height="597" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="service-body">
@@ -621,22 +606,18 @@
                         <p>Retirada segura e ecológica de enxames em áreas urbanas ou rurais, preservando a colmeia e realocando em áreas protegidas sem venenos.</p>
                         <a href="/resgate-de-abelhas" class="service-link">
                             <span>Conhecer Protocolo de Resgate</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
+                            <svg width="16" height="16" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-arrow-right"></use></svg>
                         </a>
                     </div>
-                </div>
+                </article>
 
                 <!-- Serviço 2 -->
-                <div class="service-card">
+                <article class="service-card" data-reveal>
                     <div class="service-img-wrap">
-                        <a href="/consultoria-apicola" style="display:contents;">
-                            <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.02.58.webp"
-                                alt="Consultoria para Iniciação de Apiário" width="400" height="260" loading="lazy" decoding="async">
+                        <span class="service-step-num" aria-hidden="true">02</span>
+                        <a href="/consultoria-apicola" class="product-img-link">
+                            <img src="/assets/products/Foto-no-apiario.webp"
+                                alt="Apicultor em vestimenta protetora realizando consultoria e inspeção de campo no apiário" width="600" height="450" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="service-body">
@@ -644,21 +625,17 @@
                         <p>Orientação técnica completa para quem quer começar a produzir mel com segurança: escolha de local, aquisição de caixas e manejo inicial.</p>
                         <a href="/consultoria-apicola" class="service-link">
                             <span>Ver Detalhes da Consultoria</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
+                            <svg width="16" height="16" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-arrow-right"></use></svg>
                         </a>
                     </div>
-                </div>
+                </article>
 
                 <!-- Serviço 3 -->
-                <div class="service-card">
+                <article class="service-card" data-reveal>
                     <div class="service-img-wrap">
-                        <a href="/consultoria-apicola" style="display:contents;">
-                            <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.03.06.webp" alt="Manejo Apícola" width="400" height="260" loading="lazy" decoding="async">
+                        <span class="service-step-num" aria-hidden="true">03</span>
+                        <a href="/consultoria-apicola" class="product-img-link">
+                            <img src="/assets/products/Favo-de-mel-em-quadro.webp" alt="Quadro apícola operculado exibido para revisão e colheita limpa" width="526" height="700" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="service-body">
@@ -666,38 +643,29 @@
                         <p>Acompanhamento periódico de colmeias existentes, controle sanitário, troca de cera, alimentação de entressafra e colheita limpa.</p>
                         <a href="/consultoria-apicola" class="service-link">
                             <span>Consultoria de Manejo</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
+                            <svg width="16" height="16" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-arrow-right"></use></svg>
                         </a>
                     </div>
-                </div>
+                </article>
 
                 <!-- Serviço 4 -->
-                <div class="service-card">
+                <article class="service-card" data-reveal>
                     <div class="service-img-wrap">
-                        <a href="/resgate-de-abelhas" style="display:contents;">
-                            <img src="/assets/images/Captura-de-Tela-2026-05-29-as-14.03.23.webp"
-                                alt="Transferência de Abelhas" width="400" height="260" loading="lazy" decoding="async">
+                        <span class="service-step-num" aria-hidden="true">04</span>
+                        <a href="/resgate-de-abelhas" class="product-img-link">
+                            <img src="/assets/products/Caixa-de-abelha-nativa-urucu.webp"
+                                alt="Caixa racional padrão INPA em madeira para criação de abelhas nativas sem ferrão Uruçu" width="526" height="700" loading="lazy" decoding="async">
                         </a>
                     </div>
                     <div class="service-body">
-                        <h3><a href="/resgate-de-abelhas">Transferência de Abelhas</a></h3>
-                        <p>Transferência técnica de ninhos de abelhas nativas de troncos ou caixas provisórias para caixas racionais INPA padronizadas.</p>
+                        <h3><a href="/resgate-de-abelhas">Abelhas Nativas &amp; Transferência</a></h3>
+                        <p>Transferência técnica de ninhos de abelhas nativas sem ferrão (<em>Uruçu</em>) de troncos ou iscas para caixas racionais INPA padronizadas.</p>
                         <a href="/resgate-de-abelhas" class="service-link">
                             <span>Transferência Segura</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
+                            <svg width="16" height="16" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-arrow-right"></use></svg>
                         </a>
                     </div>
-                </div>
+                </article>
             </div>
         </div>
     </section>
@@ -808,17 +776,17 @@
                     <h3>Envie uma Mensagem Rápida</h3>
                     <p>Preencha os campos abaixo para iniciar uma conversa no WhatsApp:</p>
 
-                    <form id="contactForm">
+                    <form id="contactForm" novalidate>
                         <div class="form-group">
                             <label for="cfNome">Seu Nome *</label>
                             <input type="text" id="cfNome" class="form-control" placeholder="Como podemos te chamar?"
-                                required>
+                                autocomplete="name" required>
                         </div>
 
                         <div class="form-group">
                             <label for="cfTelefone">WhatsApp com DDD *</label>
                             <input type="tel" id="cfTelefone" class="form-control" placeholder="(79) 99999-9999"
-                                required>
+                                autocomplete="tel" required>
                         </div>
 
                         <div class="form-group">
@@ -838,12 +806,10 @@
                                 placeholder="Escreva sua mensagem ou lista de produtos desejados..."></textarea>
                         </div>
 
-                        <button type="submit" class="btn btn-whatsapp" style="width: 100%;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                fill="currentColor">
-                                <path
-                                    d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z" />
-                            </svg>
+                        <div id="cfError" class="form-error-msg" role="alert" aria-live="polite"></div>
+
+                        <button type="submit" class="btn btn-whatsapp btn-block">
+                            <svg width="18" height="18" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-whatsapp"></use></svg>
                             <span>Enviar no WhatsApp da Loja</span>
                         </button>
                     </form>
@@ -860,8 +826,8 @@
             <div class="footer-brand">
                 <img src="/assets/images/logo-favo-de-mel.webp" alt="Apiário Favo de Mel" width="160" height="46" loading="lazy" decoding="async">
                 <p>
-                    Compromisso com a pureza, saúde e preservação da vida. Méis nobres e produtos apícolas colhidos com
-                    amor e respeito ao meio ambiente.
+                    Apicultura artesanal e meliponicultura em Sergipe. Méis crus, favo de mel e própolis verde e
+                    vermelha diretamente do produtor para a sua casa.
                 </p>
             </div>
 
@@ -870,6 +836,7 @@
                 <ul class="footer-links">
                     <li><a href="/">Início</a></li>
                     <li><a href="/catalogo">Catálogo Completo</a></li>
+                    <li><a href="/pedido">Acompanhar Pedido</a></li>
                     <li><a href="/resgate-de-abelhas">Resgate de Abelhas</a></li>
                     <li><a href="/consultoria-apicola">Consultoria Apícola</a></li>
                     <li><a href="#contato">Fale Conosco</a></li>
@@ -877,7 +844,7 @@
             </div>
 
             <div class="footer-col">
-                <h4>Méis & Própolis</h4>
+                <h4>Méis &amp; Própolis</h4>
                 <ul class="footer-links">
                     <li><a href="/mel-com-favo">Mel com Favo 500g</a></li>
                     <li><a href="/mel-de-urucu">Mel de Uruçu (Nativa)</a></li>
@@ -890,11 +857,12 @@
             </div>
 
             <div class="footer-col">
-                <h4>Atendimento</h4>
+                <h4>Atendimento &amp; Retirada</h4>
                 <ul class="footer-links">
-                    <li><a href="https://wa.me/557988125726" target="_blank">WhatsApp: (79) 98812-5726</a></li>
-                    <li><a href="https://wa.me/557999380327" target="_blank">Suporte: (79) 99938-0327</a></li>
-                    <li><a href="https://www.instagram.com/favodemel_apis/" target="_blank">Instagram: @favodemel_apis</a></li>
+                    <li><a href="https://wa.me/557988125726" target="_blank" rel="noopener noreferrer">WhatsApp: (79) 98812-5726</a></li>
+                    <li><a href="https://wa.me/557999380327" target="_blank" rel="noopener noreferrer">Suporte: (79) 99938-0327</a></li>
+                    <li><a href="https://www.instagram.com/favodemel_apis/" target="_blank" rel="noopener noreferrer">Instagram: @favodemel_apis</a></li>
+                    <li><span>Sergipe, Brasil • Seg a Sáb, 08h–18h</span></li>
                 </ul>
             </div>
         </div>
@@ -903,24 +871,22 @@
             <div>
                 © 2026 Apiário Favo de Mel. Todos os direitos reservados.
             </div>
-            <div>
-                Feito com dedicação e respeito à natureza.
+            <div class="footer-legal-links">
+                <a href="/privacidade">Política de Privacidade</a>
+                <a href="/trocas-e-devolucoes">Trocas e Devoluções</a>
             </div>
         </div>
     </footer>
 
     <!-- Botão Flutuante WhatsApp -->
     <a href="https://wa.me/557988125726?text=Ol%C3%A1%21%20Vim%20pelo%20site%20do%20Api%C3%A1rio%20Favo%20de%20Mel"
-        target="_blank" class="whatsapp-float" aria-label="Falar no WhatsApp">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-            <path
-                d="M17.472 14.382c-.301-.15-1.78-.879-2.056-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.181-.176.2-.352.226-.653.076-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.501-1.786-1.677-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.352.452-.528.15-.176.2-.301.301-.502.101-.2.05-.376-.025-.527-.075-.15-.678-1.633-.929-2.239-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.201 0-.527.075-.803.376s-1.054 1.03-1.054 2.511 1.08 2.912 1.23 3.113c.15.2 2.126 3.246 5.15 4.553.719.311 1.281.497 1.719.636.723.23 1.381.197 1.902.12.58-.087 1.78-.728 2.031-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351zM12.04 2C6.52 2 2.03 6.49 2.03 12c0 1.98.58 3.82 1.58 5.37L2 22l4.77-1.55c1.49.92 3.24 1.45 5.27 1.45 5.52 0 10.01-4.49 10.01-10S17.56 2 12.04 2zm0 18.25c-1.74 0-3.37-.5-4.75-1.36l-.34-.21-2.82.92.94-2.75-.23-.37a8.217 8.217 0 0 1-1.26-4.48c0-4.57 3.72-8.29 8.29-8.29 4.57 0 8.29 3.72 8.29 8.29 0 4.57-3.72 8.29-8.29 8.29z" />
-        </svg>
+        target="_blank" rel="noopener noreferrer" class="whatsapp-float" aria-label="Falar no WhatsApp">
+        <svg width="28" height="28" aria-hidden="true"><use href="/assets/icons/sprite.svg#icon-whatsapp"></use></svg>
     </a>
 
     <!-- Scripts -->
-    <script src="/config.js?v=8.0" defer></script>
-    <script src="/js/main.js?v=8.0" defer></script>
+    <script src="/config.js?v=9.0" defer></script>
+    <script src="/js/main.js?v=9.0" defer></script>
 </body>
 
 </html>

@@ -15,6 +15,40 @@
             .replace(/'/g, '&#39;');
     }
 
+    function formatarTituloExibicao(nome) {
+        const texto = String(nome || '').trim();
+        if (!texto) return '';
+
+        const letras = texto.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+        if (!letras) return texto;
+
+        const maiusculas = (letras.match(/[A-ZÀ-Ý]/g) || []).length;
+        if (maiusculas / letras.length < 0.65) {
+            return texto;
+        }
+
+        const conectivos = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'com', 'para', 'no', 'na', 'nos', 'nas', 'por', 'a', 'o']);
+        const siglas = new Set(['PVC', 'INPA', 'PET', 'PIX']);
+
+        return texto
+            .split(/\s+/)
+            .map((palavra, indice) => {
+                const limpa = palavra.replace(/[^\wÀ-ÿ]/g, '').toUpperCase();
+                if (siglas.has(limpa)) {
+                    return palavra.toUpperCase();
+                }
+                if (/^\d+(G|KG|ML|L)$/i.test(palavra)) {
+                    return palavra.toLowerCase();
+                }
+                const lower = palavra.toLowerCase();
+                if (indice > 0 && conectivos.has(lower)) {
+                    return lower;
+                }
+                return lower.charAt(0).toUpperCase() + lower.slice(1);
+            })
+            .join(' ');
+    }
+
     function obterBasesApi() {
         if (typeof window.getFavodemelApiBases === 'function') {
             return window.getFavodemelApiBases();
@@ -158,8 +192,9 @@
         grid.innerHTML = destaques.map(prod => {
             const precoFormatado = Number(prod.preco || 0).toFixed(2).replace('.', ',');
             const fotoUrl = resolverFotoHome(prod, apiBase);
-            const nomeSeguro = escaparHtml(prod.nome);
-            const descSegura = escaparHtml(prod.descricao || 'Produto natural de altíssima qualidade direto do Apiário Favo de Mel.');
+            const nomeExibicao = formatarTituloExibicao(prod.nome);
+            const nomeSeguro = escaparHtml(nomeExibicao);
+            const descSegura = escaparHtml(prod.descricao || 'Produto natural colhido em Sergipe pelo Apiário Favo de Mel.');
             const catLimpa = escaparHtml(
                 String(prod.categoria_nome || 'Apiário Favo de Mel')
                     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2300}-\u{23FF}]/gu, '')
@@ -170,12 +205,13 @@
             const esgotado = estoque !== null && !Number.isNaN(estoque) && estoque <= 0;
             const baixo = estoque !== null && !Number.isNaN(estoque) && estoque > 0 && estoque <= 5;
 
-            const badgeTexto = escaparHtml(prod.badge || (prod.landing_slug ? 'Destaque' : 'Artesanal'));
-            let stockBadgeHtml = '';
+            let badgeHtml = '';
             if (esgotado) {
-                stockBadgeHtml = '<span class="product-stock-badge esgotado">Esgotado</span>';
+                badgeHtml = '<span class="product-badge esgotado">Esgotado</span>';
             } else if (baixo) {
-                stockBadgeHtml = `<span class="product-stock-badge baixo">Últimas ${estoque} un.</span>`;
+                badgeHtml = `<span class="product-badge baixo">Últimas ${estoque} un.</span>`;
+            } else if (prod.destaque || prod.landing_slug) {
+                badgeHtml = '<span class="product-badge">Destaque</span>';
             }
 
             const slugLanding = prod.landing_slug ? String(prod.landing_slug).trim().replace(/^\/+/, '') : '';
@@ -184,14 +220,13 @@
                 : (esgotado ? '/catalogo' : `/catalogo?add=${encodeURIComponent(prod.id)}`);
             const labelBotao = slugLanding
                 ? 'Ver Detalhes'
-                : (esgotado ? 'Ver no Catálogo' : 'Comprar');
+                : (esgotado ? 'Indisponível' : 'Comprar');
 
             return `
                 <div class="product-card" data-product-id="${escaparHtml(prod.id)}">
                     <div class="product-img-box">
-                        <span class="product-badge">${badgeTexto}</span>
-                        ${stockBadgeHtml}
-                        <a href="${escaparHtml(hrefDestino)}" style="display:contents;">
+                        ${badgeHtml}
+                        <a href="${escaparHtml(hrefDestino)}" class="product-img-link">
                             <img src="${escaparHtml(fotoUrl)}" alt="${nomeSeguro}" width="300" height="300" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/assets/products/Mel-in-natura-500g.webp';">
                         </a>
                     </div>
@@ -338,10 +373,47 @@
             }
         }
 
+        // 3.5 Revelação sutil em camada única (respeitando prefers-reduced-motion)
+        const revealItems = Array.from(document.querySelectorAll('[data-reveal]'));
+        if (revealItems.length > 0 && !prefereMovimentoReduzido && 'IntersectionObserver' in window) {
+            document.documentElement.classList.add('js-motion');
+            const revealObserver = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-revealed');
+                        obs.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+
+            revealItems.forEach((el, idx) => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top < window.innerHeight * 0.94) {
+                    el.classList.add('is-revealed');
+                } else {
+                    el.style.transitionDelay = `${Math.min((idx % 4) * 55, 165)}ms`;
+                    revealObserver.observe(el);
+                }
+            });
+        } else {
+            revealItems.forEach(el => el.classList.add('is-revealed'));
+        }
+
         // 4. Máscara de Telefone e Formulário de Contato Direto para WhatsApp
         const cfTel = document.getElementById('cfTelefone');
+        const cfNome = document.getElementById('cfNome');
+        const cfError = document.getElementById('cfError');
+        const limparErroContato = () => {
+            if (cfError) {
+                cfError.textContent = '';
+                cfError.classList.remove('visible');
+            }
+        };
+
+        if (cfNome) cfNome.addEventListener('input', limparErroContato);
         if (cfTel) {
             cfTel.addEventListener('input', (e) => {
+                limparErroContato();
                 let v = e.target.value.replace(/\D/g, '');
                 if (v.length > 11) v = v.slice(0, 11);
                 if (v.length > 6) {
@@ -358,17 +430,37 @@
         if (contactForm) {
             contactForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const nome = document.getElementById('cfNome').value.trim();
-                const tel = document.getElementById('cfTelefone').value.trim();
+                limparErroContato();
+                const nome = cfNome ? cfNome.value.trim() : '';
+                const tel = cfTel ? cfTel.value.trim() : '';
+                const telDigitos = tel.replace(/\D/g, '');
                 const assunto = document.getElementById('cfAssunto').value;
                 const mensagem = document.getElementById('cfMensagem').value.trim();
+
+                if (nome.length < 2) {
+                    if (cfError) {
+                        cfError.textContent = 'Por favor, informe seu nome completo para atendimento.';
+                        cfError.classList.add('visible');
+                    }
+                    if (cfNome) cfNome.focus();
+                    return;
+                }
+
+                if (telDigitos.length < 10) {
+                    if (cfError) {
+                        cfError.textContent = 'Informe um WhatsApp válido com DDD (ex.: 79 98812-5726).';
+                        cfError.classList.add('visible');
+                    }
+                    if (cfTel) cfTel.focus();
+                    return;
+                }
 
                 const textoMsg =
 `*CONTATO VIA SITE - APIÁRIO FAVO DE MEL*
 *Nome:* ${nome}
 *Telefone:* ${tel}
 *Assunto:* ${assunto}
-*Mensagem:* ${mensagem}`;
+*Mensagem:* ${mensagem || 'Olá! Gostaria de mais informações.'}`;
 
                 const numeroLoja = '557988125726';
                 const url = `https://wa.me/${numeroLoja}?text=${encodeURIComponent(textoMsg)}`;

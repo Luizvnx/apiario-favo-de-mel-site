@@ -208,7 +208,7 @@
 .price-installment {
     margin-top: 0.5rem;
     font-size: 0.9rem;
-    color: #199447;
+    color: var(--color-success, #15803D);
     font-weight: 600;
     display: flex;
     align-items: center;
