@@ -3,46 +3,78 @@
  * Versão: 2.0 (Desacoplado, Reativo, Zero WordPress)
  */
 
-window.handleCatalogImgError = function(img) {
-    if (!img) return;
-    const currentSrc = img.src || img.getAttribute('src') || '';
-    if (!currentSrc) return;
+// Bases candidatas da API. O catálogo funciona mesmo se a URL configurada falhar:
+// 1) URL configurada em config.js  2) mesma origem  3) VPS de produção.
+window.getCatalogApiBases = function () {
+    if (typeof window.getFavodemelApiBases === 'function') {
+        return window.getFavodemelApiBases();
+    }
+    const bases = [];
+    const add = (value) => {
+        const base = String(value || '').trim().replace(/\/+$/, '');
+        if (base && !bases.includes(base)) bases.push(base);
+    };
 
-    // Se falhou ao carregar da API remota (VPS), tenta carregar diretamente da origem local
-    const apiBase = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
-    if (apiBase && currentSrc.startsWith(apiBase)) {
-        const localPath = currentSrc.replace(apiBase, '');
-        img.onerror = function() {
-            window.handleCatalogImgError(img);
-        };
+    add(window.FAVODEMEL_API_URL);
+
+    try {
+        if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+            add(window.location.origin);
+        }
+    } catch (_) {}
+
+    add('https://favodemel.137.131.164.202.sslip.io');
+    return bases;
+};
+
+window.handleCatalogImgError = function (img) {
+    if (!img) return;
+
+    const rawSrc = img.getAttribute('src') || img.src || '';
+    if (!rawSrc) return;
+
+    // Separa caminho e query string (?v=...) para trocar a extensão corretamente
+    const partes = rawSrc.split('?');
+    const pathPart = partes[0];
+    const queryPart = partes.length > 1 ? '?' + partes.slice(1).join('?') : '';
+
+    // Já está na imagem de segurança: evita loop infinito
+    if (/\/assets\/products\/Mel-in-natura-500g\.(webp|jpe?g|png)$/i.test(pathPart)) {
+        img.onerror = null;
+        return;
+    }
+
+    const finalFallback = () => {
+        img.onerror = null;
+        img.src = '/assets/products/Mel-in-natura-500g.webp';
+    };
+
+    // Imagem remota (VPS) indisponível: tenta a cópia local do Hostinger
+    const bases = window.getCatalogApiBases ? window.getCatalogApiBases() : [];
+    const baseRemota = bases.find(b => pathPart.startsWith(b));
+    if (baseRemota) {
+        const localPath = pathPart.slice(baseRemota.length) || pathPart;
+        img.onerror = finalFallback;
         img.src = localPath;
         return;
     }
 
-    // Tenta alternar extensões caso arquivo físico seja .png ou .jpeg
-    if (currentSrc.endsWith('.webp')) {
-        img.onerror = function() {
-            img.onerror = function() {
-                img.onerror = null;
-                img.src = '/assets/products/Mel-in-natura-500g.webp';
-            };
-            img.src = currentSrc.replace(/\.webp$/i, '.jpeg');
-        };
-        img.src = currentSrc.replace(/\.webp$/i, '.png');
-        return;
+    // Alterna extensões (webp → jpeg/png e vice-versa) antes do fallback final
+    const tentar = (novoPath) => {
+        if (!novoPath || novoPath === pathPart) return false;
+        img.onerror = finalFallback;
+        img.src = novoPath + queryPart;
+        return true;
+    };
+
+    if (/\.webp$/i.test(pathPart)) {
+        if (tentar(pathPart.replace(/\.webp$/i, '.jpeg'))) return;
+        if (tentar(pathPart.replace(/\.webp$/i, '.png'))) return;
+    } else if (/\.(png|jpe?g)$/i.test(pathPart)) {
+        if (tentar(pathPart.replace(/\.(png|jpe?g)$/i, '.webp'))) return;
     }
 
-    if (currentSrc.endsWith('.png') || currentSrc.endsWith('.jpeg') || currentSrc.endsWith('.jpg')) {
-        img.onerror = function() {
-            img.onerror = null;
-            img.src = '/assets/products/Mel-in-natura-500g.webp';
-        };
-        img.src = currentSrc.replace(/\.(png|jpeg|jpg)$/i, '.webp');
-        return;
-    }
-
-    img.onerror = null;
-    img.src = '/assets/products/Mel-in-natura-500g.webp';
+    finalFallback();
 };
 
 class CatalogoApp {
@@ -75,6 +107,15 @@ class CatalogoApp {
         };
 
         this.pendingOrderPayload = null;
+
+        // Controle de sincronização com o painel admin
+        this.apiBaseAtiva = '';
+        this.fonteDados = 'desconhecida';
+        this.assinaturaCatalogo = '';
+        this.ultimaAtualizacao = 0;
+        this.timerAtualizacao = null;
+        this.statusEl = null;
+
         this.init();
     }
 
@@ -86,6 +127,124 @@ class CatalogoApp {
         this.renderizarProdutos();
         this.atualizarInterfaceCarrinho();
         this.verificarParametroAutoAdd();
+        this.configurarAtualizacaoAutomatica();
+    }
+
+    // Mantém o catálogo sincronizado com o painel admin sem o cliente recarregar a página.
+    configurarAtualizacaoAutomatica() {
+        const atualizar = () => {
+            if (document.visibilityState === 'hidden') return;
+            this.atualizarCatalogoEmSegundoPlano();
+        };
+
+        // Atualiza a cada 60 segundos
+        if (this.timerAtualizacao) clearInterval(this.timerAtualizacao);
+        this.timerAtualizacao = setInterval(atualizar, 60000);
+
+        // Atualiza ao voltar para a aba / focar a janela
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') atualizar();
+        });
+        window.addEventListener('focus', atualizar);
+    }
+
+    async atualizarCatalogoEmSegundoPlano() {
+        const agora = Date.now();
+        if (agora - this.ultimaAtualizacao < 15000) return; // evita rajadas
+        this.ultimaAtualizacao = agora;
+
+        const antes = this.assinaturaCatalogo;
+        const carregou = await this.carregarDadosDoServidor({ silencioso: true });
+        if (!carregou) return;
+
+        const depois = this.assinaturaCatalogo;
+        if (depois === antes) return;
+
+        // Preserva o carrinho, mas atualiza preços/nomes/fotos dos itens que mudaram
+        this.sincronizarCarrinhoComCatalogo();
+
+        this.renderizarCategorias();
+        this.renderizarProdutos();
+        this.atualizarInterfaceCarrinho();
+        this.atualizarModalAberto();
+    }
+
+    sincronizarCarrinhoComCatalogo() {
+        let alterou = false;
+        this.carrinho.forEach(item => {
+            const atual = this.produtos.find(p => String(p.id) === String(item.id));
+            if (!atual) return;
+            const novoPreco = parseFloat(atual.preco) || 0;
+            const novaFoto = this.resolverFoto(atual);
+            if (item.preco !== novoPreco || item.nome !== atual.nome || item.foto !== novaFoto) {
+                item.preco = novoPreco;
+                item.nome = atual.nome;
+                item.foto = novaFoto;
+                alterou = true;
+            }
+        });
+        if (alterou) this.salvarCarrinho();
+    }
+
+    atualizarModalAberto() {
+        if (!this.modalProduto) return;
+        const overlay = document.getElementById('productModalOverlay');
+        if (!overlay || !overlay.classList.contains('active')) return;
+
+        const atual = this.produtos.find(p => String(p.id) === String(this.modalProduto.id));
+        if (!atual) {
+            this.fecharModalProduto();
+            return;
+        }
+        this.modalProduto = atual;
+        const imgEl = document.getElementById('productModalImg');
+        const titleEl = document.getElementById('productModalTitle');
+        const priceEl = document.getElementById('productModalPrice');
+        const descEl = document.getElementById('productModalDesc');
+        if (imgEl) imgEl.src = this.resolverFoto(atual);
+        if (titleEl) titleEl.innerText = atual.nome;
+        if (priceEl) priceEl.innerText = parseFloat(atual.preco || 0).toFixed(2).replace('.', ',');
+        if (descEl) descEl.innerText = atual.descricao || '';
+    }
+
+    // Barra discreta de status da sincronização
+    mostrarStatusSincronizacao(tipo, mensagem, autoOcultarMs) {
+        if (!this.statusEl) {
+            const el = document.createElement('div');
+            el.id = 'catalogoSyncStatus';
+            el.style.cssText = [
+                'position:fixed', 'left:16px', 'bottom:16px', 'z-index:9999',
+                'display:flex', 'align-items:center', 'gap:8px',
+                'padding:10px 14px', 'border-radius:999px',
+                'font-family:inherit', 'font-size:0.8rem', 'font-weight:600',
+                'box-shadow:0 6px 18px rgba(0,0,0,0.18)',
+                'transition:opacity .3s ease', 'max-width:calc(100vw - 32px)'
+            ].join(';');
+            document.body.appendChild(el);
+            this.statusEl = el;
+        }
+
+        const estilos = {
+            ok: { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' },
+            aviso: { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' },
+            erro: { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FCA5A5' }
+        };
+        const estilo = estilos[tipo] || estilos.ok;
+        const el = this.statusEl;
+        el.style.background = estilo.background;
+        el.style.color = estilo.color;
+        el.style.border = estilo.border;
+        el.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:0 0 auto;"></span><span>${mensagem}</span>`;
+        el.style.opacity = '1';
+        el.style.display = 'flex';
+
+        if (el._timer) clearTimeout(el._timer);
+        if (autoOcultarMs) {
+            el._timer = setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => { if (el.style.opacity === '0') el.style.display = 'none'; }, 350);
+            }, autoOcultarMs);
+        }
     }
 
     limparExtensaoUrl() {
@@ -206,14 +365,63 @@ class CatalogoApp {
         return `${base}${endpoint}`;
     }
 
-    async carregarDadosDoServidor() {
-        // Carrega configurações da loja e do PIX com cache buster
+    // Faz a requisição tentando as bases disponíveis e validando que a resposta é JSON.
+    // Evita que uma página 404 HTML do Hostinger seja interpretada como catálogo vazio.
+    async fetchApi(endpoint, options = {}) {
+        const bases = window.getCatalogApiBases();
+        const sep = endpoint.includes('?') ? '&' : '?';
+        let ultimoErro = null;
+
+        for (const base of bases) {
+            const url = `${base}${endpoint}${sep}_t=${Date.now()}`;
+            const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            const timeout = controller ? setTimeout(() => controller.abort(), 12000) : null;
+
+            try {
+                const res = await fetch(url, {
+                    ...options,
+                    cache: 'no-store',
+                    signal: controller ? controller.signal : options.signal
+                });
+                const texto = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(texto);
+                } catch (_) {
+                    throw new Error(`Resposta inválida de ${base} (não é JSON)`);
+                }
+                if (!res.ok) {
+                    throw new Error((data && data.erro) || `HTTP ${res.status}`);
+                }
+                this.apiBaseAtiva = base;
+                return data;
+            } catch (err) {
+                ultimoErro = err;
+                console.warn(`[Catálogo] API indisponível em ${base}:`, err.message);
+            } finally {
+                if (timeout) clearTimeout(timeout);
+            }
+        }
+
+        throw ultimoErro || new Error('API do catálogo indisponível');
+    }
+
+    assinaturaDosProdutos() {
+        return (this.produtos || []).map(p => [
+            p.id, p.nome, p.preco, p.estoque, p.ativo,
+            p.foto, p.categoria_id, p.atualizado_em
+        ].join('|')).join(';');
+    }
+
+    async carregarDadosDoServidor(opcoes = {}) {
+        const silencioso = opcoes.silencioso === true;
+
+        // Carrega configurações da loja e do PIX
         try {
-            const resCfg = await fetch(this.getApiUrl(`/api/catalogo/config?_t=${Date.now()}`), { cache: 'no-store' });
-            const dataCfg = await resCfg.json();
+            const dataCfg = await this.fetchApi('/api/catalogo/config');
             if (dataCfg.sucesso && dataCfg.config) {
                 this.config = { ...this.config, ...dataCfg.config };
-                
+
                 // Atualiza texto de status na barra superior se existir
                 const statusText = document.querySelector('.store-status-pill .status-text');
                 if (statusText && this.config.status_texto) {
@@ -224,7 +432,7 @@ class CatalogoApp {
 
         try {
             const gridEl = document.getElementById('catalogGrid');
-            if (gridEl) {
+            if (!silencioso && gridEl) {
                 gridEl.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #6E6359;">
                         <div class="tracking-spinner" style="width: 36px; height: 36px; border: 3px solid #E8DFD3; border-top-color: #D98200; border-radius: 50%; margin: 0 auto 1rem auto; animation: spinTrack 0.8s linear infinite;"></div>
@@ -233,12 +441,14 @@ class CatalogoApp {
                 `;
             }
 
-            const res = await fetch(this.getApiUrl(`/api/catalogo/produtos?_t=${Date.now()}`), { cache: 'no-store' });
-            const data = await res.json();
+            const data = await this.fetchApi('/api/catalogo/produtos');
 
             if (data.sucesso && Array.isArray(data.produtos) && data.produtos.length > 0) {
                 this.categorias = data.categorias || [];
                 this.produtos = data.produtos || [];
+                this.fonteDados = data.fonte || 'postgresql';
+                this.assinaturaCatalogo = this.assinaturaDosProdutos();
+
                 try {
                     localStorage.setItem('favodemel_catalogo_cache', JSON.stringify({
                         categorias: this.categorias,
@@ -246,7 +456,19 @@ class CatalogoApp {
                         salvo_em: Date.now()
                     }));
                 } catch (_) {}
-                return;
+
+                if (data.pendente || this.fonteDados === 'local_json') {
+                    this.mostrarStatusSincronizacao('aviso', 'Sincronização pendente com o banco de dados. Exibindo os últimos dados salvos.');
+                } else if (!silencioso) {
+                    this.mostrarStatusSincronizacao('ok', 'Catálogo atualizado', 2500);
+                } else {
+                    // Em atualização silenciosa bem-sucedida, esconde qualquer aviso antigo
+                    if (this.statusEl) {
+                        this.statusEl.style.opacity = '0';
+                        setTimeout(() => { if (this.statusEl && this.statusEl.style.opacity === '0') this.statusEl.style.display = 'none'; }, 350);
+                    }
+                }
+                return true;
             } else {
                 throw new Error(data.erro || 'Falha ao carregar catálogo da API');
             }
@@ -260,12 +482,16 @@ class CatalogoApp {
                     if (Array.isArray(parsed.produtos) && parsed.produtos.length > 0) {
                         this.categorias = parsed.categorias || [];
                         this.produtos = parsed.produtos;
-                        return;
+                        this.fonteDados = 'cache_local';
+                        this.assinaturaCatalogo = this.assinaturaDosProdutos();
+                        this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor. Exibindo catálogo salvo neste dispositivo.');
+                        return false;
                     }
                 }
             } catch (_) {}
 
-            // 2. Fallback com catálogo sincronizado e autêntico do Apiário Favo de Mel
+            this.mostrarStatusSincronizacao('erro', 'Sem conexão com o servidor. Exibindo catálogo de segurança.');
+
             this.categorias = [
                 { id: "1", nome: "Méis & Acessórios" },
                 { id: "2", nome: "Cuidados Naturais e Própolis" },
@@ -296,6 +522,10 @@ class CatalogoApp {
                 { id: 21, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CERA MISTA DE ABELHA NATIVA FOLHA", preco: 3.00, peso: "Folha", descricao: "Folha de cera mista para abelha nativa.", estoque: 25, foto: "Cera-mista-abelha-asf.jpeg", ativo: true },
                 { id: 22, categoria_id: "3", categoria_nome: "Artesanais, Cera & Bebidas", nome: "CERA BRUTA DE APIS 100G", preco: 10.00, peso: "100g", descricao: "Cera bruta de abelha apis fracionada.", estoque: 10, foto: "Cera-Bruta-de-Apis.png", ativo: true }
             ];
+
+            this.fonteDados = 'hardcoded';
+            this.assinaturaCatalogo = this.assinaturaDosProdutos();
+            return false;
         }
     }
 
@@ -350,9 +580,19 @@ class CatalogoApp {
     // =========================================================================
     // RENDERIZAÇÃO DA VITRINE DE PRODUTOS
     // =========================================================================
+    // Acrescenta a versão da última atualização na URL da imagem, forçando o navegador
+    // a baixar a nova foto imediatamente após uma edição no painel admin.
+    comVersaoFoto(url, prod) {
+        if (!url || String(url).startsWith('data:')) return url;
+        const marca = prod && (prod.atualizado_em || prod.criado_em);
+        const versao = marca ? String(marca).replace(/[^0-9]/g, '') : '';
+        if (!versao) return url;
+        return `${url}${url.includes('?') ? '&' : '?'}v=${versao}`;
+    }
+
     resolverFoto(prod) {
-        // Obtém a base da API (VPS) para imagens enviadas via admin
-        const apiBase = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
+        // Prefere a base que respondeu à API; senão, a URL configurada
+        const apiBase = (this.apiBaseAtiva || window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
 
         let foto = (prod && prod.foto) ? String(prod.foto).trim() : '';
 
@@ -361,47 +601,51 @@ class CatalogoApp {
             return foto;
         }
 
-        // 2. Foto é uma URL absoluta (já tem protocolo) — retorna direto
+        // 2. Foto é uma URL absoluta (já tem protocolo)
         if (foto.startsWith('http://') || foto.startsWith('https://')) {
-            return foto;
+            return this.comVersaoFoto(foto, prod);
         }
 
         // 3. Foto vazia, nula, ou genérica → usa fallback por nome do produto
         if (!foto || foto === 'null' || foto === 'undefined' || foto.includes('avatar-favo-de-mel')) {
             const nomeNorm = (prod && prod.nome ? prod.nome : '').toLowerCase();
-            if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu')) return `${apiBase}/assets/products/Mel-in-natura-280g.webp`;
-            if (nomeNorm.includes('favo')) return `${apiBase}/assets/products/Mel-com-favo-500g.webp`;
-            if (nomeNorm.includes('verde')) return `${apiBase}/assets/products/Propolis-verde-20ml.webp`;
-            if (nomeNorm.includes('vermelha')) return `${apiBase}/assets/products/Propolis-vermelha-20ml.webp`;
-            if (nomeNorm.includes('sabonete') || nomeNorm.includes('labial') || nomeNorm.includes('hidratante')) return `${apiBase}/assets/products/Kit-de-sabinete-terapeutico.webp`;
-            if (nomeNorm.includes('licor') || nomeNorm.includes('hidromel')) return `${apiBase}/assets/products/Licor-de-mel-250ml.webp`;
-            if (nomeNorm.includes('meleira')) return `${apiBase}/assets/products/Meleira-com-mel-280g.webp`;
-            if (nomeNorm.includes('presente')) return `${apiBase}/assets/products/Kit-presente.webp`;
-            if (nomeNorm.includes('polen') || nomeNorm.includes('pólen')) return `${apiBase}/assets/products/Polen-apicola-140g.webp`;
-            if (nomeNorm.includes('vinagre')) return `${apiBase}/assets/products/Vinagre-de-mel-315ml.webp`;
-            if (nomeNorm.includes('vela')) return `${apiBase}/assets/products/Velas-artesanais-de-cera-de-abelha.webp`;
-            if (nomeNorm.includes('alveolada')) return `${apiBase}/assets/products/Cera-alveolada.webp`;
-            if (nomeNorm.includes('cera') || nomeNorm.includes('pasta')) return `${apiBase}/assets/products/Cera-bruta-de-apis.webp`;
-            if (nomeNorm.includes('desmoldante')) return `${apiBase}/assets/products/Desmoldante-de-forma.webp`;
-            if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) return `${apiBase}/assets/products/Formao.webp`;
-            if (nomeNorm.includes('fumigador')) return `${apiBase}/assets/products/Fumigador.webp`;
-            if (nomeNorm.includes('pomada')) return `${apiBase}/assets/products/Propolis-verde-20ml.webp`;
-            if (nomeNorm.includes('1400g')) return `${apiBase}/assets/products/Mel-in-Natura-1400g.webp`;
-            return `${apiBase}/assets/products/Mel-in-natura-500g.webp`;
+            let arquivo = 'Mel-in-natura-500g.webp';
+            if (nomeNorm.includes('uruçú') || nomeNorm.includes('urucu')) arquivo = 'Mel-in-natura-280g.webp';
+            else if (nomeNorm.includes('favo')) arquivo = 'Mel-com-favo-500g.webp';
+            else if (nomeNorm.includes('verde')) arquivo = 'Propolis-verde-20ml.webp';
+            else if (nomeNorm.includes('vermelha')) arquivo = 'Propolis-vermelha-20ml.webp';
+            else if (nomeNorm.includes('sabonete') || nomeNorm.includes('labial') || nomeNorm.includes('hidratante')) arquivo = 'Kit-de-sabinete-terapeutico.webp';
+            else if (nomeNorm.includes('licor') || nomeNorm.includes('hidromel')) arquivo = 'Licor-de-mel-250ml.webp';
+            else if (nomeNorm.includes('meleira')) arquivo = 'Meleira-com-mel-280g.webp';
+            else if (nomeNorm.includes('presente')) arquivo = 'Kit-presente.webp';
+            else if (nomeNorm.includes('polen') || nomeNorm.includes('pólen')) arquivo = 'Polen-apicola-140g.webp';
+            else if (nomeNorm.includes('vinagre')) arquivo = 'Vinagre-de-mel-315ml.webp';
+            else if (nomeNorm.includes('vela')) arquivo = 'Velas-artesanais-de-cera-de-abelha.webp';
+            else if (nomeNorm.includes('alveolada')) arquivo = 'Cera-alveolada.webp';
+            else if (nomeNorm.includes('desmoldante')) arquivo = 'Desmoldante-de-forma.webp';
+            else if (nomeNorm.includes('formão') || nomeNorm.includes('formao')) arquivo = 'Formao.webp';
+            else if (nomeNorm.includes('fumigador')) arquivo = 'Fumigador.webp';
+            else if (nomeNorm.includes('pomada')) arquivo = 'Propolis-verde-20ml.webp';
+            else if (nomeNorm.includes('1400g')) arquivo = 'Mel-in-Natura-1400g.webp';
+            else if (nomeNorm.includes('cera') || nomeNorm.includes('pasta')) arquivo = 'Cera-bruta-de-apis.webp';
+
+            const urlFallback = apiBase ? `${apiBase}/assets/products/${arquivo}` : `/assets/products/${arquivo}`;
+            return this.comVersaoFoto(urlFallback, prod);
         }
 
         // 4. Foto já é um caminho absoluto no servidor (/assets/...)
         if (foto.startsWith('/assets/')) {
-            return apiBase ? `${apiBase}${foto}` : foto;
+            return this.comVersaoFoto(apiBase ? `${apiBase}${foto}` : foto, prod);
         }
         if (foto.startsWith('assets/')) {
-            return apiBase ? `${apiBase}/${foto}` : `/${foto}`;
+            return this.comVersaoFoto(apiBase ? `${apiBase}/${foto}` : `/${foto}`, prod);
         }
 
         // 5. É apenas um nome de arquivo (ex: "Meleira-com-mel-280g.jpeg")
         // Monta URL completa apontando para o VPS onde a imagem realmente está
         const fileName = foto.split('/').pop();
-        return apiBase ? `${apiBase}/assets/products/${fileName}` : `/assets/products/${fileName}`;
+        const url = apiBase ? `${apiBase}/assets/products/${fileName}` : `/assets/products/${fileName}`;
+        return this.comVersaoFoto(url, prod);
     }
 
     renderizarProdutos() {

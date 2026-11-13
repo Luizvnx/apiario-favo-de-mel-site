@@ -4,39 +4,56 @@
  * Regras: ZERO EMOJIS, SVGs Oficiais, Resiliência Local
  */
 
-window.handleAdminImgError = function(img) {
+window.handleAdminImgError = function (img) {
     if (!img) return;
-    const currentSrc = img.getAttribute('src') || '';
-    if (!currentSrc) return;
 
-    if (currentSrc.endsWith('.webp')) {
-        img.onerror = function() {
-            img.onerror = function() {
-                img.onerror = null;
-                img.src = '/assets/products/Mel-in-natura-500g.webp';
-            };
-            img.src = currentSrc.replace(/\.webp$/i, '.jpeg');
-        };
-        img.src = currentSrc.replace(/\.webp$/i, '.png');
+    const rawSrc = img.getAttribute('src') || img.src || '';
+    if (!rawSrc) return;
+
+    const partes = rawSrc.split('?');
+    const pathPart = partes[0];
+    const queryPart = partes.length > 1 ? '?' + partes.slice(1).join('?') : '';
+
+    if (/\/assets\/products\/Mel-in-natura-500g\.(webp|jpe?g|png)$/i.test(pathPart)) {
+        img.onerror = null;
         return;
     }
 
-    if (currentSrc.endsWith('.png')) {
-        img.onerror = function() {
-            img.onerror = null;
-            img.src = '/assets/products/Mel-in-natura-500g.webp';
-        };
-        img.src = currentSrc.replace(/\.png$/i, '.webp');
+    const finalFallback = () => {
+        img.onerror = null;
+        img.src = '/assets/products/Mel-in-natura-500g.webp';
+    };
+
+    const bases = (window.getFavodemelApiBases ? window.getFavodemelApiBases() : []);
+    const baseRemota = bases.find(b => pathPart.startsWith(b));
+    if (baseRemota) {
+        const localPath = pathPart.slice(baseRemota.length) || pathPart;
+        img.onerror = finalFallback;
+        img.src = localPath;
         return;
     }
 
-    img.onerror = null;
-    img.src = '/assets/products/Mel-in-natura-500g.webp';
+    const tentar = (novoPath) => {
+        if (!novoPath || novoPath === pathPart) return false;
+        img.onerror = finalFallback;
+        img.src = novoPath + queryPart;
+        return true;
+    };
+
+    if (/\.webp$/i.test(pathPart)) {
+        if (tentar(pathPart.replace(/\.webp$/i, '.jpeg'))) return;
+        if (tentar(pathPart.replace(/\.webp$/i, '.png'))) return;
+    } else if (/\.(png|jpe?g)$/i.test(pathPart)) {
+        if (tentar(pathPart.replace(/\.(png|jpe?g)$/i, '.webp'))) return;
+    }
+
+    finalFallback();
 };
 
 class AdminApp {
     constructor() {
         this.token = sessionStorage.getItem('favodemel_admin_token') || null;
+        this.apiBaseAtiva = '';
         this.produtos = [];
         this.categorias = [];
         this.pedidos = [];
@@ -83,6 +100,94 @@ class AdminApp {
     getApiUrl(endpoint) {
         const base = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
         return `${base}${endpoint}`;
+    }
+
+    // Bases candidatas: URL configurada, mesma origem e VPS de produção.
+    getApiBases() {
+        if (typeof window.getFavodemelApiBases === 'function') {
+            return window.getFavodemelApiBases();
+        }
+        const bases = [];
+        const add = (value) => {
+            const base = String(value || '').trim().replace(/\/+$/, '');
+            if (base && !bases.includes(base)) bases.push(base);
+        };
+        add(window.FAVODEMEL_API_URL);
+        try {
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                add(window.location.origin);
+            }
+        } catch (_) {}
+        add('https://favodemel.137.131.164.202.sslip.io');
+        return bases;
+    }
+
+    // Requisição resiliente com validação de JSON e fallback de base.
+    async fetchApi(endpoint, options = {}) {
+        const bases = this.getApiBases();
+        const timeoutMs = options.timeoutMs || 15000;
+        const opcoesFetch = { ...options };
+        delete opcoesFetch.timeoutMs;
+        let ultimoErro = null;
+
+        for (const base of bases) {
+            const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+            try {
+                const res = await fetch(`${base}${endpoint}`, {
+                    ...opcoesFetch,
+                    cache: 'no-store',
+                    signal: controller ? controller.signal : opcoesFetch.signal
+                });
+                const texto = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(texto);
+                } catch (_) {
+                    throw new Error(`Resposta inválida de ${base} (não é JSON)`);
+                }
+                if (!res.ok) {
+                    throw new Error((data && data.erro) || `HTTP ${res.status}`);
+                }
+                this.apiBaseAtiva = base;
+                return data;
+            } catch (err) {
+                ultimoErro = err;
+                console.warn(`[Admin] API indisponível em ${base}:`, err.message);
+            } finally {
+                if (timeout) clearTimeout(timeout);
+            }
+        }
+
+        throw ultimoErro || new Error('API do painel indisponível');
+    }
+
+    mostrarAvisoSincronizacao(mensagem, tipo = 'aviso') {
+        let el = document.getElementById('adminSyncAviso');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'adminSyncAviso';
+            el.style.cssText = [
+                'position:fixed', 'right:18px', 'bottom:18px', 'z-index:99999',
+                'max-width:380px', 'padding:12px 16px', 'border-radius:10px',
+                'font-size:0.82rem', 'font-weight:600', 'line-height:1.35',
+                'box-shadow:0 10px 25px rgba(0,0,0,0.18)', 'display:none'
+            ].join(';');
+            document.body.appendChild(el);
+        }
+        const estilos = {
+            ok: { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' },
+            aviso: { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' },
+            erro: { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FCA5A5' }
+        };
+        const estilo = estilos[tipo] || estilos.aviso;
+        el.style.background = estilo.background;
+        el.style.color = estilo.color;
+        el.style.border = estilo.border;
+        el.innerText = mensagem;
+        el.style.display = 'block';
+        if (el._timer) clearTimeout(el._timer);
+        el._timer = setTimeout(() => { el.style.display = 'none'; }, tipo === 'ok' ? 4000 : 10000);
     }
 
     // =========================================================================
@@ -276,8 +381,7 @@ class AdminApp {
 
     async carregarCategorias() {
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/categorias'));
-            const data = await res.json();
+            const data = await this.fetchApi('/api/admin/categorias');
             if (data.sucesso && Array.isArray(data.categorias)) {
                 this.categorias = data.categorias;
             } else {
@@ -297,8 +401,7 @@ class AdminApp {
 
     async carregarImagensGaleria() {
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/imagens'));
-            const data = await res.json();
+            const data = await this.fetchApi('/api/admin/imagens');
             if (data.sucesso && Array.isArray(data.imagens)) {
                 this.imagensDisponiveis = data.imagens;
             }
@@ -316,11 +419,14 @@ class AdminApp {
 
     async carregarProdutos() {
         try {
-            const res = await fetch(this.getApiUrl(`/api/admin/produtos?_t=${Date.now()}`), { cache: 'no-store' });
-            const data = await res.json();
+            const data = await this.fetchApi(`/api/admin/produtos?_t=${Date.now()}`);
             if (data.sucesso && Array.isArray(data.produtos)) {
                 this.produtos = data.produtos;
                 localStorage.setItem('favodemel_produtos_cache', JSON.stringify(this.produtos));
+
+                if (data.pendente || data.fonte === 'local_json') {
+                    this.mostrarAvisoSincronizacao('Atenção: existem alterações salvas localmente aguardando sincronização com o banco. Elas já aparecem no catálogo e serão enviadas automaticamente ao reconectar.', 'aviso');
+                }
             } else {
                 throw new Error(data.erro || 'Falha ao carregar produtos');
             }
@@ -329,6 +435,7 @@ class AdminApp {
             if (salvo) {
                 try { this.produtos = JSON.parse(salvo); } catch (_) {}
             }
+            this.mostrarAvisoSincronizacao('Sem conexão com o servidor. Exibindo a última lista salva neste dispositivo.', 'erro');
         }
 
         this.renderizarTabelaProdutos();
@@ -382,7 +489,7 @@ class AdminApp {
             const cat = this.categorias.find(c => String(c.id) === String(p.categoria_id));
             const catNome = cat ? cat.nome : 'Geral';
             const precoFormatado = parseFloat(p.preco || 0).toFixed(2).replace('.', ',');
-            const fotoPath = this.resolverCaminhoFoto(p.foto);
+            const fotoPath = this.resolverCaminhoFoto(p.foto, p.atualizado_em || p.criado_em);
 
             const statusDot = p.ativo !== false 
                 ? `<span class="status-indicator"><span class="status-dot green"></span> Ativo</span>`
@@ -391,7 +498,7 @@ class AdminApp {
             return `
                 <tr>
                     <td>
-                        <img src="${fotoPath}" alt="${p.nome}" class="table-product-thumb" onerror="this.src='assets/products/Mel-in-Natura-500g.png'">
+                        <img src="${fotoPath}" alt="${p.nome}" class="table-product-thumb" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                     </td>
                     <td>
                         <div class="table-product-name">${p.nome}</div>
@@ -438,19 +545,29 @@ class AdminApp {
         });
     }
 
-    resolverCaminhoFoto(foto) {
-        const apiBase = (window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
-        if (!foto) return `${apiBase}/assets/products/Mel-in-natura-500g.webp`;
-        foto = String(foto).trim();
-        // Data URI (base64) — retorna direto
-        if (foto.startsWith('data:image/')) return foto;
-        // URL absoluta — retorna direto
-        if (foto.startsWith('http://') || foto.startsWith('https://')) return foto;
-        // Já é caminho absoluto de asset
-        if (foto.startsWith('/assets/')) return apiBase ? `${apiBase}${foto}` : foto;
-        if (foto.startsWith('assets/')) return apiBase ? `${apiBase}/${foto}` : `/${foto}`;
-        // Nome de arquivo simples — aponta para o VPS
-        return `${apiBase}/assets/products/${foto}`;
+    resolverCaminhoFoto(foto, versao) {
+        const apiBase = (this.apiBaseAtiva || window.FAVODEMEL_API_URL || '').replace(/\/$/, '');
+        let url;
+        if (!foto) {
+            url = `${apiBase}/assets/products/Mel-in-natura-500g.webp`;
+        } else {
+            foto = String(foto).trim();
+            // Data URI (base64) — retorna direto
+            if (foto.startsWith('data:image/')) return foto;
+            // URL absoluta — retorna direto
+            if (foto.startsWith('http://') || foto.startsWith('https://')) url = foto;
+            // Já é caminho absoluto de asset
+            else if (foto.startsWith('/assets/')) url = apiBase ? `${apiBase}${foto}` : foto;
+            else if (foto.startsWith('assets/')) url = apiBase ? `${apiBase}/${foto}` : `/${foto}`;
+            // Nome de arquivo simples — aponta para o VPS
+            else url = `${apiBase}/assets/products/${foto}`;
+        }
+
+        if (versao) {
+            const marca = String(versao).replace(/[^0-9]/g, '');
+            if (marca) url += `${url.includes('?') ? '&' : '?'}v=${marca}`;
+        }
+        return url;
     }
 
     // =========================================================================
@@ -604,7 +721,7 @@ class AdminApp {
 
         const fotoName = prod.foto || 'Mel-in-natura-500g.webp';
         document.getElementById('prodFotoInput').value = fotoName;
-        document.getElementById('imagePreviewImg').src = this.resolverCaminhoFoto(fotoName);
+        document.getElementById('imagePreviewImg').src = this.resolverCaminhoFoto(fotoName, prod.atualizado_em || prod.criado_em);
 
         const statusEl = document.getElementById('prodUploadStatusMsg');
         if (statusEl) {
@@ -654,16 +771,15 @@ class AdminApp {
                 reader.readAsDataURL(file);
             });
 
-            const res = await fetch(this.getApiUrl('/api/admin/upload-imagem'), {
+            const data = await this.fetchApi('/api/admin/upload-imagem', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                timeoutMs: 60000,
                 body: JSON.stringify({
                     nome: file.name,
                     base64: base64Data
                 })
             });
-
-            const data = await res.json();
             if (data.sucesso && data.arquivo) {
                 const nomeArquivo = data.arquivo;
                 const caminhoCompleto = data.caminho || this.resolverCaminhoFoto(nomeArquivo);
@@ -732,42 +848,61 @@ class AdminApp {
         btnSave.disabled = true;
         btnSave.innerText = 'Salvando...';
 
+        let salvou = false;
+        let pendente = false;
+
         try {
+            let data;
             if (id) {
                 // Atualização
-                const res = await fetch(this.getApiUrl(`/api/admin/produtos/${id}`), {
+                data = await this.fetchApi(`/api/admin/produtos/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                if (data.sucesso) {
-                    const idx = this.produtos.findIndex(p => p.id === parseInt(id, 10));
-                    if (idx !== -1) this.produtos[idx] = data.produto;
-                } else {
+                if (!data.sucesso) {
                     throw new Error(data.erro || 'Falha ao atualizar produto no servidor');
                 }
+                const idx = this.produtos.findIndex(p => String(p.id) === String(id));
+                if (idx !== -1) this.produtos[idx] = data.produto;
             } else {
                 // Criação
-                const res = await fetch(this.getApiUrl('/api/admin/produtos'), {
+                data = await this.fetchApi('/api/admin/produtos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                if (data.sucesso) {
-                    this.produtos.unshift(data.produto);
-                } else {
+                if (!data.sucesso) {
                     throw new Error(data.erro || 'Falha ao criar produto no servidor');
                 }
+                this.produtos.unshift(data.produto);
+            }
+
+            salvou = true;
+            pendente = data.pendente === true || data.fonte === 'local_json';
+
+            // Recarrega a lista do servidor para garantir que o painel mostre exatamente
+            // o que o catálogo público vai exibir (preço, foto, estoque e id reais).
+            await this.carregarProdutos();
+
+            if (pendente) {
+                this.mostrarAvisoSincronizacao('Produto salvo localmente e enfileirado. Ele já aparece no catálogo e será enviado ao banco automaticamente.', 'aviso');
+            } else {
+                this.mostrarAvisoSincronizacao('Produto salvo e sincronizado com o catálogo público.', 'ok');
             }
         } catch (err) {
             console.error('[Admin] Erro ao salvar produto:', err.message);
-            alert('Erro ao salvar produto: ' + err.message);
+            // Mantém o modal aberto para o usuário corrigir e tentar novamente
+            this.mostrarAvisoSincronizacao('Erro ao salvar produto: ' + err.message, 'erro');
+            alert('Não foi possível salvar o produto.\n\n' + err.message + '\n\nO formulário continua aberto para nova tentativa.');
         } finally {
             btnSave.disabled = false;
             btnSave.innerText = 'Salvar Produto';
-            document.getElementById('modalProdutoOverlay')?.classList.remove('active');
+
+            if (salvou) {
+                document.getElementById('modalProdutoOverlay')?.classList.remove('active');
+            }
+
             localStorage.setItem('favodemel_produtos_cache', JSON.stringify(this.produtos));
             this.renderizarTabelaProdutos();
         }
@@ -782,14 +917,27 @@ class AdminApp {
         }
 
         try {
-            await fetch(this.getApiUrl(`/api/admin/produtos/${id}`), {
-                method: 'DELETE'
-            });
-        } catch (_) {}
+            const data = await this.fetchApi(`/api/admin/produtos/${id}`, { method: 'DELETE' });
+            if (!data.sucesso) {
+                throw new Error(data.erro || 'O servidor não confirmou a exclusão.');
+            }
 
-        this.produtos = this.produtos.filter(p => p.id !== id);
-        localStorage.setItem('favodemel_produtos_cache', JSON.stringify(this.produtos));
-        this.renderizarTabelaProdutos();
+            this.produtos = this.produtos.filter(p => String(p.id) !== String(id));
+            localStorage.setItem('favodemel_produtos_cache', JSON.stringify(this.produtos));
+            this.renderizarTabelaProdutos();
+
+            if (data.pendente || data.fonte === 'local_json') {
+                this.mostrarAvisoSincronizacao('Produto removido localmente. A exclusão será aplicada ao banco automaticamente.', 'aviso');
+            } else {
+                this.mostrarAvisoSincronizacao('Produto excluído do catálogo.', 'ok');
+            }
+        } catch (err) {
+            console.error('[Admin] Erro ao excluir produto:', err.message);
+            this.mostrarAvisoSincronizacao('Erro ao excluir produto: ' + err.message, 'erro');
+            alert('Não foi possível excluir o produto.\n\n' + err.message);
+            // Recarrega para refletir o estado real do servidor
+            await this.carregarProdutos();
+        }
     }
 
     // =========================================================================
@@ -809,23 +957,23 @@ class AdminApp {
                 const payload = { id, nome, icone };
 
                 try {
-                    const res = await fetch(this.getApiUrl('/api/admin/categorias'), {
+                    const data = await this.fetchApi('/api/admin/categorias', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    const data = await res.json();
                     if (data.sucesso && data.categorias) {
                         this.categorias = data.categorias;
-                    }
-                } catch (_) {
-                    if (id) {
-                        const idx = this.categorias.findIndex(c => String(c.id) === String(id));
-                        if (idx !== -1) this.categorias[idx] = { id, nome, icone };
+                        if (data.pendente) {
+                            this.mostrarAvisoSincronizacao('Categoria salva localmente e enfileirada para sincronizar.', 'aviso');
+                        }
                     } else {
-                        const novoId = String(this.categorias.length + 1);
-                        this.categorias.push({ id: novoId, nome, icone });
+                        throw new Error(data.erro || 'Falha ao salvar categoria.');
                     }
+                } catch (err) {
+                    this.mostrarAvisoSincronizacao('Erro ao salvar categoria: ' + err.message, 'erro');
+                    alert('Não foi possível salvar a categoria.\n\n' + err.message);
+                    return;
                 }
 
                 formCat.reset();
@@ -882,10 +1030,16 @@ class AdminApp {
                 if (!confirm('Deseja excluir esta categoria? Os produtos vinculados a ela permanecerão no sistema.')) return;
 
                 try {
-                    await fetch(this.getApiUrl(`/api/admin/categorias/${id}`), { method: 'DELETE' });
-                } catch (_) {}
+                    const data = await this.fetchApi(`/api/admin/categorias/${id}`, { method: 'DELETE' });
+                    if (!data.sucesso) throw new Error(data.erro || 'O servidor não confirmou a exclusão.');
+                    this.categorias = data.categorias || this.categorias.filter(c => String(c.id) !== String(id));
+                } catch (err) {
+                    this.mostrarAvisoSincronizacao('Erro ao excluir categoria: ' + err.message, 'erro');
+                    alert('Não foi possível excluir a categoria.\n\n' + err.message);
+                    await this.carregarCategorias();
+                    return;
+                }
 
-                this.categorias = this.categorias.filter(c => String(c.id) !== String(id));
                 this.renderizarTabelaCategorias();
                 this.atualizarSelectCategorias();
             });
@@ -1405,8 +1559,7 @@ class AdminApp {
         ];
 
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/landing-pages'));
-            const data = await res.json();
+            const data = await this.fetchApi('/api/admin/landing-pages');
             if (data.sucesso && Array.isArray(data.paginas) && data.paginas.length > 0) {
                 this.landingPages = data.paginas;
             } else {
@@ -1613,7 +1766,7 @@ class AdminApp {
                     <button type="button" class="btn-apagar-acervo" data-file="${imgName}" title="Excluir foto do acervo permanentemente" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 4px; background: rgba(220, 38, 38, 0.85); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; opacity: 0.75; transition: opacity 0.2s, background 0.2s;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
-                    <img src="/assets/products/${imgName}" alt="${imgName}" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
+                    <img src="${this.resolverCaminhoFoto(imgName)}" alt="${imgName}" onerror="window.handleAdminImgError && window.handleAdminImgError(this)">
                     <span>${imgName.replace(/\.[^/.]+$/, "")}</span>
                 </div>
             `;
@@ -1628,7 +1781,7 @@ class AdminApp {
                 const previewEl = document.getElementById(`landingPreview${this.landingTargetPicker}`);
 
                 if (inputEl) inputEl.value = fullPath;
-                if (previewEl) previewEl.src = fullPath;
+                if (previewEl) previewEl.src = this.resolverCaminhoFoto(fileName);
 
                 this.fecharSeletorFotoLanding();
             });
@@ -1649,12 +1802,11 @@ class AdminApp {
         if (!confirmou) return;
 
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/deletar-imagem'), {
+            const data = await this.fetchApi('/api/admin/deletar-imagem', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome: nomeArquivo })
             });
-            const data = await res.json();
             if (data.sucesso) {
                 this.imagensDisponiveis = this.imagensDisponiveis.filter(img => img !== nomeArquivo);
 
@@ -1705,13 +1857,12 @@ class AdminApp {
         };
 
         try {
-            const res = await fetch(this.getApiUrl(`/api/admin/landing-pages/${slug}`), {
+            const data = await this.fetchApi(`/api/admin/landing-pages/${slug}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            const data = await res.json();
             if (data.sucesso) {
                 // Atualiza na memória
                 const idx = this.landingPages.findIndex(p => p.slug === slug);

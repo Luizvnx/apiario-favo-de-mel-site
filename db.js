@@ -28,6 +28,26 @@ const CANONICAL_PHOTOS_FALLBACK = {
     14: 'Mel-in-Natura-1400g.webp'
 };
 
+// Erros de indisponibilidade da conexão: nesses casos o sistema aceita gravação
+// local e enfileira a operação para sincronizar quando o PostgreSQL voltar.
+const CONNECTION_ERROR_CODES = new Set([
+    'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EHOSTUNREACH',
+    'ENETUNREACH', 'EPIPE', '57P01', '57P02', '57P03', '08000', '08001',
+    '08003', '08006', '08004', '53300', '53400'
+]);
+
+function ehErroDeConexao(err) {
+    if (!err) return false;
+    if (CONNECTION_ERROR_CODES.has(err.code)) return true;
+    const msg = String(err.message || '').toLowerCase();
+    return msg.includes('connection terminated') ||
+           msg.includes('connection refused') ||
+           msg.includes('timeout exceeded') ||
+           msg.includes('postgresql desconectado') ||
+           msg.includes('client has encountered a connection error') ||
+           msg.includes('terminating connection');
+}
+
 function normalizarFotoProduto(id, foto) {
     // Se há foto cadastrada (não vazia, não nula) → respeita exatamente o que o admin salvou
     if (foto && String(foto).trim() !== '' && String(foto).trim() !== 'null' && String(foto).trim() !== 'undefined') {
@@ -44,6 +64,11 @@ class DatabaseAdapter {
         this.isConnected = false;
         this.hasCheckedInitial = false;
         this.reconnectTimer = null;
+
+        // Fila de operações feitas enquanto o PostgreSQL estava indisponível.
+        // Garante que nenhuma edição do painel admin seja perdida.
+        this.pendingSync = [];
+        this.syncingPending = false;
     }
 
     // Leitura e escrita de JSON como fallback resiliente e cache
@@ -72,7 +97,183 @@ class DatabaseAdapter {
         }
     }
 
+    // =========================================================================
+    // FILA DE SINCRONIZAÇÃO (gravações feitas com PostgreSQL offline)
+    // =========================================================================
+    temPendencias() {
+        return Array.isArray(this.pendingSync) && this.pendingSync.length > 0;
+    }
+
+    enfileirarSincronizacao(operacao) {
+        this.pendingSync.push({ ...operacao, criado_em: new Date().toISOString() });
+        this.writeJson('pending_sync.json', this.pendingSync);
+        console.warn(`[Sync] Operação "${operacao.tipo}" salva localmente e enfileirada para sincronizar com o PostgreSQL.`);
+    }
+
+    gravarFilaSincronizacao() {
+        this.writeJson('pending_sync.json', this.pendingSync);
+    }
+
+    formatarProduto(row) {
+        return {
+            id: row.id,
+            categoria_id: row.categoria_id,
+            nome: row.nome,
+            preco: parseFloat(row.preco),
+            descricao: row.descricao || '',
+            foto: normalizarFotoProduto(row.id, row.foto),
+            peso: row.peso || '',
+            estoque: parseInt(row.estoque, 10),
+            ativo: row.ativo !== false,
+            criado_em: row.criado_em,
+            atualizado_em: row.atualizado_em
+        };
+    }
+
+    async processarFilaSincronizacao() {
+        if (!this.isConnected || this.syncingPending || !this.temPendencias()) return;
+
+        this.syncingPending = true;
+        const fila = [...this.pendingSync];
+        let enviadas = 0;
+
+        try {
+            while (fila.length > 0) {
+                const op = fila[0];
+                try {
+                    if (op.tipo === 'produto_criar') {
+                        const d = op.dados || {};
+                        const res = await this.query(`
+                            INSERT INTO tb_produtos (categoria_id, nome, preco, descricao, foto, peso, estoque, ativo, criado_em, atualizado_em)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                            RETURNING *;
+                        `, [
+                            String(d.categoria_id || '1'),
+                            (d.nome || 'Novo Produto').trim(),
+                            parseFloat(d.preco) || 0,
+                            d.descricao ? String(d.descricao).trim() : '',
+                            d.foto || 'Mel-in-natura-500g.webp',
+                            d.peso || '',
+                            parseInt(d.estoque, 10) || 0,
+                            d.ativo !== false
+                        ]);
+                        const novo = this.formatarProduto(res.rows[0]);
+
+                        // Atualiza o cache local trocando o id local pelo id real do banco
+                        const cache = this.readJson('produtos.json', []);
+                        const ix = cache.findIndex(p => String(p.id) === String(op.local_id));
+                        if (ix !== -1) cache[ix] = novo; else cache.unshift(novo);
+                        this.writeJson('produtos.json', cache);
+
+                        // Demais operações pendentes passam a usar o id real
+                        for (const restante of fila) {
+                            if (restante.tipo && restante.tipo.startsWith('produto_') && String(restante.id) === String(op.local_id)) {
+                                restante.id = novo.id;
+                            }
+                        }
+                        console.log(`[Sync] ✓ Produto "${novo.nome}" criado no PostgreSQL (id ${novo.id}).`);
+                    } else if (op.tipo === 'produto_atualizar') {
+                        const d = op.dados || {};
+                        const res = await this.query(`
+                            UPDATE tb_produtos
+                            SET categoria_id = COALESCE($1, categoria_id),
+                                nome = COALESCE($2, nome),
+                                preco = COALESCE($3, preco),
+                                descricao = COALESCE($4, descricao),
+                                foto = COALESCE($5, foto),
+                                peso = COALESCE($6, peso),
+                                estoque = COALESCE($7, estoque),
+                                ativo = COALESCE($8, ativo),
+                                atualizado_em = CURRENT_TIMESTAMP
+                            WHERE id = $9
+                            RETURNING *;
+                        `, [
+                            d.categoria_id !== undefined ? String(d.categoria_id) : null,
+                            d.nome !== undefined ? String(d.nome).trim() : null,
+                            d.preco !== undefined ? parseFloat(d.preco) : null,
+                            d.descricao !== undefined ? String(d.descricao).trim() : null,
+                            d.foto !== undefined ? d.foto : null,
+                            d.peso !== undefined ? d.peso : null,
+                            d.estoque !== undefined ? parseInt(d.estoque, 10) : null,
+                            d.ativo !== undefined ? (d.ativo !== false) : null,
+                            parseInt(op.id, 10)
+                        ]);
+                        if (res.rows.length > 0) {
+                            const atualizado = this.formatarProduto(res.rows[0]);
+                            const cache = this.readJson('produtos.json', []);
+                            const ix = cache.findIndex(p => String(p.id) === String(atualizado.id));
+                            if (ix !== -1) cache[ix] = atualizado; else cache.unshift(atualizado);
+                            this.writeJson('produtos.json', cache);
+                            console.log(`[Sync] ✓ Produto id ${atualizado.id} atualizado no PostgreSQL.`);
+                        }
+                    } else if (op.tipo === 'produto_excluir') {
+                        await this.query('DELETE FROM tb_produtos WHERE id = $1', [parseInt(op.id, 10)]);
+                        console.log(`[Sync] ✓ Produto id ${op.id} excluído no PostgreSQL.`);
+                    } else if (op.tipo === 'categoria_salvar') {
+                        const d = op.dados || {};
+                        await this.query(`
+                            INSERT INTO tb_categorias (id, nome, descricao, icone, ordem, ativo)
+                            VALUES ($1, $2, $3, $4, $5, $6)
+                            ON CONFLICT (id) DO UPDATE SET
+                                nome = EXCLUDED.nome,
+                                descricao = EXCLUDED.descricao,
+                                icone = EXCLUDED.icone,
+                                ordem = EXCLUDED.ordem,
+                                ativo = EXCLUDED.ativo;
+                        `, [
+                            String(d.id),
+                            d.nome || 'Categoria',
+                            d.descricao || '',
+                            d.icone || 'droplet',
+                            parseInt(d.ordem, 10) || 1,
+                            d.ativo !== false
+                        ]);
+                        console.log(`[Sync] ✓ Categoria "${d.nome}" sincronizada no PostgreSQL.`);
+                    } else if (op.tipo === 'categoria_excluir') {
+                        await this.query('DELETE FROM tb_categorias WHERE id = $1', [String(op.id)]);
+                        console.log(`[Sync] ✓ Categoria id ${op.id} excluída no PostgreSQL.`);
+                    }
+
+                    enviadas += 1;
+                    fila.shift();
+                    this.pendingSync = [...fila];
+                    this.gravarFilaSincronizacao();
+                } catch (err) {
+                    console.warn(`[Sync] Falha ao sincronizar "${op.tipo}":`, err.message);
+                    if (ehErroDeConexao(err)) {
+                        this.isConnected = false;
+                        break;
+                    }
+                    // Erro definitivo (ex.: FK inválida): descarta para não travar a fila,
+                    // mas mantém o dado local para o admin corrigir.
+                    console.error(`[Sync] Operação "${op.tipo}" descartada após erro definitivo.`);
+                    fila.shift();
+                    this.pendingSync = [...fila];
+                    this.gravarFilaSincronizacao();
+                }
+            }
+        } finally {
+            this.syncingPending = false;
+        }
+
+        if (enviadas > 0) {
+            console.log(`[Sync] ✓ ${enviadas} operação(ões) pendente(s) sincronizada(s).`);
+            try {
+                await this.listarProdutos(false);
+                await this.listarCategorias(false);
+            } catch (_) {}
+        }
+    }
+
     init() {
+        // Recupera fila de sincronização pendente de execuções anteriores
+        try {
+            const fila = this.readJson('pending_sync.json', []);
+            this.pendingSync = Array.isArray(fila) ? fila : [];
+        } catch (_) {
+            this.pendingSync = [];
+        }
+
         const config = {
             host: process.env.DB_HOST || 'localhost',
             port: parseInt(process.env.DB_PORT, 10) || 5432,
@@ -132,6 +333,12 @@ class DatabaseAdapter {
                     await this.initTables(client);
                     await this.seedInitialData(client);
                 }
+
+                // Assim que a conexão é restabelecida, envia ao banco tudo o que
+                // foi editado no painel admin durante a indisponibilidade.
+                if (this.temPendencias()) {
+                    await this.processarFilaSincronizacao();
+                }
             } finally {
                 client.release();
             }
@@ -179,11 +386,17 @@ class DatabaseAdapter {
                     preco NUMERIC(10,2) NOT NULL,
                     descricao TEXT,
                     foto TEXT,
+                    peso VARCHAR(50) DEFAULT '',
                     estoque INT DEFAULT 999,
                     ativo BOOLEAN DEFAULT TRUE,
                     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
+            `);
+
+            // Migração idempotente para bancos criados antes do campo "peso"
+            await client.query(`
+                ALTER TABLE tb_produtos ADD COLUMN IF NOT EXISTS peso VARCHAR(50) DEFAULT '';
             `);
 
             // 4. Pedidos
@@ -243,14 +456,15 @@ class DatabaseAdapter {
                 const produtosIniciais = this.readJson('produtos.json', []);
                 for (const p of produtosIniciais) {
                     await client.query(`
-                        INSERT INTO tb_produtos (categoria_id, nome, preco, descricao, foto, estoque, ativo)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                        INSERT INTO tb_produtos (categoria_id, nome, preco, descricao, foto, peso, estoque, ativo)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                     `, [
                         String(p.categoria_id || '1'),
                         p.nome,
                         parseFloat(p.preco) || 0,
                         p.descricao || '',
                         p.foto || 'Mel-in-Natura-500g.png',
+                        p.peso || '',
                         parseInt(p.estoque, 10) || 50,
                         p.ativo !== false
                     ]);
@@ -260,7 +474,7 @@ class DatabaseAdapter {
 
             // Sincronização automática contínua das fotos dos produtos para formato WebP canônico
             try {
-                for (const [idStr, fotoWebp] of Object.entries(CANONICAL_PHOTOS)) {
+                for (const [idStr, fotoWebp] of Object.entries(CANONICAL_PHOTOS_FALLBACK)) {
                     await client.query('UPDATE tb_produtos SET foto = $1 WHERE id = $2 AND (foto IS NULL OR foto = \'\')', [fotoWebp, parseInt(idStr, 10)]);
                 }
             } catch (errFoto) {
@@ -413,10 +627,13 @@ class DatabaseAdapter {
     // =========================================================================
     async listarCategorias(apenasAtivas = false) {
         const fallback = this.readJson('categorias.json', []);
-
-        if (!this.isConnected) {
+        const listarLocal = () => {
             const list = apenasAtivas ? fallback.filter(c => c.ativo !== false) : fallback;
             return { categorias: list, fonte: 'local_json' };
+        };
+
+        if (!this.isConnected || this.temPendencias()) {
+            return listarLocal();
         }
 
         try {
@@ -430,8 +647,8 @@ class DatabaseAdapter {
             return { categorias, fonte: 'postgresql' };
         } catch (err) {
             console.warn('[DB] Erro ao listar categorias no PostgreSQL:', err.message);
-            const list = apenasAtivas ? fallback.filter(c => c.ativo !== false) : fallback;
-            return { categorias: list, fonte: 'local_json' };
+            if (ehErroDeConexao(err)) this.isConnected = false;
+            return listarLocal();
         }
     }
 
@@ -462,7 +679,8 @@ class DatabaseAdapter {
         this.writeJson('categorias.json', fallback);
 
         if (!this.isConnected) {
-            return { categoria: categoriaAtualizada, categorias: fallback, fonte: 'local_json' };
+            this.enfileirarSincronizacao({ tipo: 'categoria_salvar', dados: categoriaAtualizada });
+            return { categoria: categoriaAtualizada, categorias: fallback, fonte: 'local_json', pendente: true };
         }
 
         try {
@@ -490,8 +708,13 @@ class DatabaseAdapter {
             const listaCompleta = await this.listarCategorias(false);
             return { categoria: res.rows[0], categorias: listaCompleta.categorias, fonte: 'postgresql' };
         } catch (err) {
+            if (ehErroDeConexao(err)) {
+                this.isConnected = false;
+                this.enfileirarSincronizacao({ tipo: 'categoria_salvar', dados: categoriaAtualizada });
+                return { categoria: categoriaAtualizada, categorias: fallback, fonte: 'local_json', pendente: true };
+            }
             console.error('[DB] Erro ao salvar categoria no PostgreSQL:', err.message);
-            return { categoria: categoriaAtualizada, categorias: fallback, fonte: 'local_json' };
+            throw new Error('Não foi possível salvar a categoria no banco de dados: ' + err.message);
         }
     }
 
@@ -500,8 +723,20 @@ class DatabaseAdapter {
         fallback = fallback.filter(c => String(c.id) !== String(id));
         this.writeJson('categorias.json', fallback);
 
+        // Categoria criada/alterada durante uma queda do banco: remove da fila em vez
+        // de agendar uma exclusão (a criação nunca chegou ao PostgreSQL).
+        const antes = this.pendingSync.length;
+        this.pendingSync = this.pendingSync.filter(
+            op => !(op.tipo === 'categoria_salvar' && String(op.dados && op.dados.id) === String(id))
+        );
+        if (this.pendingSync.length !== antes) {
+            this.gravarFilaSincronizacao();
+            return { sucesso: true, categorias: fallback, fonte: 'local_json', pendente: true };
+        }
+
         if (!this.isConnected) {
-            return { sucesso: true, categorias: fallback, fonte: 'local_json' };
+            this.enfileirarSincronizacao({ tipo: 'categoria_excluir', id: String(id) });
+            return { sucesso: true, categorias: fallback, fonte: 'local_json', pendente: true };
         }
 
         try {
@@ -509,8 +744,13 @@ class DatabaseAdapter {
             const listaCompleta = await this.listarCategorias(false);
             return { sucesso: true, categorias: listaCompleta.categorias, fonte: 'postgresql' };
         } catch (err) {
+            if (ehErroDeConexao(err)) {
+                this.isConnected = false;
+                this.enfileirarSincronizacao({ tipo: 'categoria_excluir', id: String(id) });
+                return { sucesso: true, categorias: fallback, fonte: 'local_json', pendente: true };
+            }
             console.error('[DB] Erro ao deletar categoria no PostgreSQL:', err.message);
-            return { sucesso: true, categorias: fallback, fonte: 'local_json' };
+            throw new Error('Não foi possível excluir a categoria no banco de dados: ' + err.message);
         }
     }
 
@@ -519,51 +759,44 @@ class DatabaseAdapter {
     // =========================================================================
     async listarProdutos(apenasAtivos = false) {
         const fallback = this.readJson('produtos.json', []);
-
-        if (!this.isConnected) {
+        const listarLocal = () => {
             const list = (apenasAtivos ? fallback.filter(p => p.ativo !== false) : fallback).map(p => ({
                 ...p,
                 foto: normalizarFotoProduto(p.id, p.foto)
             }));
             return { produtos: list, fonte: 'local_json' };
+        };
+
+        // Enquanto existir edição local esperando sincronização, ela é a fonte da verdade.
+        // Isso evita que o catálogo mostre dados antigos do banco e "engula" as alterações.
+        if (!this.isConnected || this.temPendencias()) {
+            return listarLocal();
         }
 
         try {
             const sql = apenasAtivos
-                ? `SELECT p.id, p.categoria_id, c.nome as categoria_nome, p.nome, p.preco, p.descricao, p.foto, p.estoque, p.ativo, p.criado_em, p.atualizado_em
+                ? `SELECT p.id, p.categoria_id, c.nome as categoria_nome, p.nome, p.preco, p.descricao, p.foto, p.peso, p.estoque, p.ativo, p.criado_em, p.atualizado_em
                    FROM tb_produtos p
                    LEFT JOIN tb_categorias c ON p.categoria_id = c.id
                    WHERE p.ativo = true
                    ORDER BY p.id ASC`
-                : `SELECT p.id, p.categoria_id, c.nome as categoria_nome, p.nome, p.preco, p.descricao, p.foto, p.estoque, p.ativo, p.criado_em, p.atualizado_em
+                : `SELECT p.id, p.categoria_id, c.nome as categoria_nome, p.nome, p.preco, p.descricao, p.foto, p.peso, p.estoque, p.ativo, p.criado_em, p.atualizado_em
                    FROM tb_produtos p
                    LEFT JOIN tb_categorias c ON p.categoria_id = c.id
                    ORDER BY p.id ASC`;
             const res = await this.query(sql);
             const produtosFormatados = res.rows.map(p => ({
-                id: p.id,
-                categoria_id: p.categoria_id,
-                categoria_nome: p.categoria_nome || '',
-                nome: p.nome,
-                preco: parseFloat(p.preco),
-                descricao: p.descricao || '',
-                foto: normalizarFotoProduto(p.id, p.foto),
-                estoque: parseInt(p.estoque, 10),
-                ativo: p.ativo !== false,
-                criado_em: p.criado_em,
-                atualizado_em: p.atualizado_em
+                ...this.formatarProduto(p),
+                categoria_nome: p.categoria_nome || ''
             }));
 
-            // Atualiza cache local
+            // Atualiza cache local com os dados confirmados pelo PostgreSQL
             this.writeJson('produtos.json', produtosFormatados);
             return { produtos: produtosFormatados, fonte: 'postgresql' };
         } catch (err) {
             console.warn('[DB] Erro ao listar produtos no PostgreSQL:', err.message);
-            const list = (apenasAtivos ? fallback.filter(p => p.ativo !== false) : fallback).map(p => ({
-                ...p,
-                foto: normalizarFotoProduto(p.id, p.foto)
-            }));
-            return { produtos: list, fonte: 'local_json' };
+            if (ehErroDeConexao(err)) this.isConnected = false;
+            return listarLocal();
         }
     }
 
@@ -574,70 +807,70 @@ class DatabaseAdapter {
         const novoProduto = {
             id: novoIdLocal,
             categoria_id: String(dados.categoria_id || '1'),
-            nome: dados.nome || 'Novo Produto',
+            categoria_nome: '',
+            nome: (dados.nome || 'Novo Produto').trim(),
             preco: parseFloat(dados.preco) || 0,
             descricao: dados.descricao || '',
-            foto: dados.foto || 'Mel-in-Natura-500g.png',
+            foto: dados.foto || 'Mel-in-natura-500g.webp',
+            peso: dados.peso || '',
             estoque: parseInt(dados.estoque, 10) || 0,
             ativo: dados.ativo !== false,
-            criado_em: new Date().toISOString()
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
         };
 
         if (!this.isConnected) {
             produtos.unshift(novoProduto);
             this.writeJson('produtos.json', produtos);
-            return { produto: novoProduto, fonte: 'local_json' };
+            this.enfileirarSincronizacao({ tipo: 'produto_criar', local_id: novoProduto.id, dados: novoProduto });
+            return { produto: novoProduto, fonte: 'local_json', pendente: true };
         }
 
         try {
             const sql = `
-                INSERT INTO tb_produtos (categoria_id, nome, preco, descricao, foto, estoque, ativo, criado_em, atualizado_em)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                INSERT INTO tb_produtos (categoria_id, nome, preco, descricao, foto, peso, estoque, ativo, criado_em, atualizado_em)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 RETURNING *;
             `;
             const res = await this.query(sql, [
                 String(dados.categoria_id || '1'),
-                dados.nome.trim(),
+                (dados.nome || 'Novo Produto').trim(),
                 parseFloat(dados.preco) || 0,
-                dados.descricao ? dados.descricao.trim() : '',
-                dados.foto || 'Mel-in-Natura-500g.png',
+                dados.descricao ? String(dados.descricao).trim() : '',
+                dados.foto || 'Mel-in-natura-500g.webp',
+                dados.peso || '',
                 parseInt(dados.estoque, 10) || 0,
                 dados.ativo !== false
             ]);
 
-            const row = res.rows[0];
-            const formatado = {
-                id: row.id,
-                categoria_id: row.categoria_id,
-                nome: row.nome,
-                preco: parseFloat(row.preco),
-                descricao: row.descricao || '',
-                foto: row.foto || 'Mel-in-Natura-500g.png',
-                estoque: parseInt(row.estoque, 10),
-                ativo: row.ativo !== false,
-                criado_em: row.criado_em,
-                atualizado_em: row.atualizado_em
-            };
+            const formatado = this.formatarProduto(res.rows[0]);
 
-            // Atualiza cache local
+            // Atualiza cache local (remove eventual duplicata de mesmo id/nome)
+            produtos = produtos.filter(p => String(p.id) !== String(formatado.id));
             produtos.unshift(formatado);
             this.writeJson('produtos.json', produtos);
 
             return { produto: formatado, fonte: 'postgresql' };
         } catch (err) {
+            if (ehErroDeConexao(err)) {
+                this.isConnected = false;
+                produtos.unshift(novoProduto);
+                this.writeJson('produtos.json', produtos);
+                this.enfileirarSincronizacao({ tipo: 'produto_criar', local_id: novoProduto.id, dados: novoProduto });
+                console.warn('[DB] PostgreSQL caiu ao criar produto. Salvo localmente e enfileirado para sincronizar.');
+                return { produto: novoProduto, fonte: 'local_json', pendente: true };
+            }
             console.error('[DB] Erro ao criar produto no PostgreSQL:', err.message);
-            produtos.unshift(novoProduto);
-            this.writeJson('produtos.json', produtos);
-            return { produto: novoProduto, fonte: 'local_json' };
+            throw new Error('Não foi possível cadastrar o produto no banco de dados: ' + err.message);
         }
     }
 
     async atualizarProduto(id, dados) {
         let produtos = this.readJson('produtos.json', []);
         const idx = produtos.findIndex(p => String(p.id) === String(id));
-        let atualizado = null;
 
-        if (idx !== -1) {
+        const aplicarAtualizacaoLocal = () => {
+            if (idx === -1) return null;
             produtos[idx] = {
                 ...produtos[idx],
                 ...dados,
@@ -645,14 +878,29 @@ class DatabaseAdapter {
                 preco: dados.preco !== undefined ? parseFloat(dados.preco) : produtos[idx].preco,
                 categoria_id: dados.categoria_id !== undefined ? String(dados.categoria_id) : produtos[idx].categoria_id,
                 estoque: dados.estoque !== undefined ? parseInt(dados.estoque, 10) : produtos[idx].estoque,
+                peso: dados.peso !== undefined ? dados.peso : produtos[idx].peso,
                 atualizado_em: new Date().toISOString()
             };
-            atualizado = produtos[idx];
             this.writeJson('produtos.json', produtos);
+            return produtos[idx];
+        };
+
+        // Produto criado durante uma queda do banco: atualiza a própria criação pendente
+        const pendenteCriacao = this.pendingSync.find(
+            op => op.tipo === 'produto_criar' && String(op.local_id) === String(id)
+        );
+        if (pendenteCriacao) {
+            const atualizadoLocal = aplicarAtualizacaoLocal();
+            pendenteCriacao.dados = { ...pendenteCriacao.dados, ...dados };
+            this.gravarFilaSincronizacao();
+            return { produto: atualizadoLocal, fonte: 'local_json', pendente: true };
         }
 
         if (!this.isConnected) {
-            return { produto: atualizado, fonte: 'local_json' };
+            const atualizadoLocal = aplicarAtualizacaoLocal();
+            if (!atualizadoLocal) throw new Error('Produto não encontrado para atualização.');
+            this.enfileirarSincronizacao({ tipo: 'produto_atualizar', id: parseInt(id, 10) || id, dados });
+            return { produto: atualizadoLocal, fonte: 'local_json', pendente: true };
         }
 
         try {
@@ -664,55 +912,70 @@ class DatabaseAdapter {
                     preco = COALESCE($3, preco),
                     descricao = COALESCE($4, descricao),
                     foto = COALESCE($5, foto),
-                    estoque = COALESCE($6, estoque),
-                    ativo = COALESCE($7, ativo),
+                    peso = COALESCE($6, peso),
+                    estoque = COALESCE($7, estoque),
+                    ativo = COALESCE($8, ativo),
                     atualizado_em = CURRENT_TIMESTAMP
-                WHERE id = $8
+                WHERE id = $9
                 RETURNING *;
             `;
             const res = await this.query(sql, [
                 dados.categoria_id !== undefined ? String(dados.categoria_id) : null,
-                dados.nome !== undefined ? dados.nome.trim() : null,
+                dados.nome !== undefined ? String(dados.nome).trim() : null,
                 dados.preco !== undefined ? parseFloat(dados.preco) : null,
-                dados.descricao !== undefined ? dados.descricao.trim() : null,
+                dados.descricao !== undefined ? String(dados.descricao).trim() : null,
                 dados.foto !== undefined ? dados.foto : null,
+                dados.peso !== undefined ? dados.peso : null,
                 dados.estoque !== undefined ? parseInt(dados.estoque, 10) : null,
                 dados.ativo !== undefined ? (dados.ativo !== false) : null,
                 parseInt(id, 10)
             ]);
 
-            if (res.rows.length === 0) {
-                return { produto: atualizado, fonte: 'local_json' };
-            }
+            let formatado = null;
 
-            const row = res.rows[0];
-            const formatado = {
-                id: row.id,
-                categoria_id: row.categoria_id,
-                nome: row.nome,
-                preco: parseFloat(row.preco),
-                descricao: row.descricao || '',
-                foto: normalizarFotoProduto(row.id, row.foto),
-                estoque: parseInt(row.estoque, 10),
-                ativo: row.ativo !== false,
-                criado_em: row.criado_em,
-                atualizado_em: row.atualizado_em
-            };
-
-            // Sincroniza o cache local (produtos.json) com os dados confirmados pelo PostgreSQL
-            let produtosCache = this.readJson('produtos.json', []);
-            const idxCache = produtosCache.findIndex(p => String(p.id) === String(formatado.id));
-            if (idxCache !== -1) {
-                produtosCache[idxCache] = formatado;
+            if (res.rows.length > 0) {
+                formatado = this.formatarProduto(res.rows[0]);
             } else {
-                produtosCache.unshift(formatado);
+                // O produto não existia no PostgreSQL (ex.: criado durante indisponibilidade
+                // do banco). Recria para que o catálogo nunca fique sem ele.
+                const base = idx !== -1 ? produtos[idx] : {};
+                const merged = { ...base, ...dados };
+                const inserido = await this.query(`
+                    INSERT INTO tb_produtos (categoria_id, nome, preco, descricao, foto, peso, estoque, ativo, criado_em, atualizado_em)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    RETURNING *;
+                `, [
+                    String(merged.categoria_id || '1'),
+                    String(merged.nome || 'Produto').trim(),
+                    parseFloat(merged.preco) || 0,
+                    merged.descricao ? String(merged.descricao).trim() : '',
+                    merged.foto || 'Mel-in-natura-500g.webp',
+                    merged.peso || '',
+                    parseInt(merged.estoque, 10) || 0,
+                    merged.ativo !== false
+                ]);
+                formatado = this.formatarProduto(inserido.rows[0]);
+                console.log(`[DB] Produto id ${id} não existia no PostgreSQL e foi recriado como id ${formatado.id}.`);
             }
+
+            // Sincroniza o cache local com os dados confirmados pelo PostgreSQL
+            let produtosCache = this.readJson('produtos.json', []);
+            produtosCache = produtosCache.filter(p => String(p.id) !== String(id) && String(p.id) !== String(formatado.id));
+            produtosCache.unshift(formatado);
             this.writeJson('produtos.json', produtosCache);
 
             return { produto: formatado, fonte: 'postgresql' };
         } catch (err) {
+            if (ehErroDeConexao(err)) {
+                this.isConnected = false;
+                const atualizadoLocal = aplicarAtualizacaoLocal();
+                if (!atualizadoLocal) throw new Error('Produto não encontrado para atualização.');
+                this.enfileirarSincronizacao({ tipo: 'produto_atualizar', id: parseInt(id, 10) || id, dados });
+                console.warn('[DB] PostgreSQL caiu ao atualizar produto. Salvo localmente e enfileirado para sincronizar.');
+                return { produto: atualizadoLocal, fonte: 'local_json', pendente: true };
+            }
             console.error('[DB] Erro ao atualizar produto no PostgreSQL:', err.message);
-            return { produto: atualizado, fonte: 'local_json' };
+            throw new Error('Não foi possível atualizar o produto no banco de dados: ' + err.message);
         }
     }
 
@@ -721,16 +984,32 @@ class DatabaseAdapter {
         produtos = produtos.filter(p => String(p.id) !== String(id));
         this.writeJson('produtos.json', produtos);
 
+        // Se havia uma criação pendente ainda não enviada ao banco, basta removê-la da fila.
+        const antes = this.pendingSync.length;
+        this.pendingSync = this.pendingSync.filter(
+            op => !(op.tipo === 'produto_criar' && String(op.local_id) === String(id))
+        );
+        if (this.pendingSync.length !== antes) {
+            this.gravarFilaSincronizacao();
+            return { sucesso: true, fonte: 'local_json', pendente: true };
+        }
+
         if (!this.isConnected) {
-            return { sucesso: true, fonte: 'local_json' };
+            this.enfileirarSincronizacao({ tipo: 'produto_excluir', id: parseInt(id, 10) || id });
+            return { sucesso: true, fonte: 'local_json', pendente: true };
         }
 
         try {
             await this.query("DELETE FROM tb_produtos WHERE id = $1", [parseInt(id, 10)]);
             return { sucesso: true, fonte: 'postgresql' };
         } catch (err) {
+            if (ehErroDeConexao(err)) {
+                this.isConnected = false;
+                this.enfileirarSincronizacao({ tipo: 'produto_excluir', id: parseInt(id, 10) || id });
+                return { sucesso: true, fonte: 'local_json', pendente: true };
+            }
             console.error('[DB] Erro ao deletar produto no PostgreSQL:', err.message);
-            return { sucesso: true, fonte: 'local_json' };
+            throw new Error('Não foi possível excluir o produto no banco de dados: ' + err.message);
         }
     }
 

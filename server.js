@@ -193,19 +193,81 @@ function getCacheControl(ext, safePath) {
     if (safePath.startsWith('/api/') || safePath.startsWith('/admin')) {
         return 'no-store, no-cache, must-revalidate';
     }
+
+    // config.js muda a URL da API e precisa ser lido sempre do servidor.
+    if (/\/config\.js$/i.test(safePath)) {
+        return 'no-store, no-cache, must-revalidate';
+    }
+
     if (['.webp', '.png', '.jpg', '.jpeg', '.svg', '.gif', '.ico', '.woff', '.woff2', '.ttf'].includes(ext)) {
+        // O catálogo adiciona ?v=<atualizado_em> nas fotos, então o cache pode ser longo.
         return 'public, max-age=31536000, immutable';
     }
     if (['.css', '.js'].includes(ext)) {
-        return 'public, max-age=86400, stale-while-revalidate=604800';
+        // Revalida sempre: uma atualização do painel/catálogo chega ao cliente em minutos.
+        return 'public, max-age=300, must-revalidate';
     }
     if (['.xml', '.txt'].includes(ext)) {
-        return 'public, max-age=86400, stale-while-revalidate=604800';
-    }
-    if (['.html'].includes(ext) || safePath === '/' || safePath === '/catalogo') {
         return 'public, max-age=3600, must-revalidate';
     }
+    if (['.html'].includes(ext) || safePath === '/' || safePath === '/catalogo') {
+        return 'public, max-age=0, must-revalidate';
+    }
     return 'public, max-age=3600';
+}
+
+function normalizarTexto(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+}
+
+const PALAVRAS_IGNORADAS_PRODUTO = new Set([
+    'de', 'da', 'do', 'das', 'dos', 'com', 'e', 'em', 'para', 'por', 'ao',
+    'a', 'o', 'as', 'os', 'um', 'uma', 'no', 'na', 'nos', 'nas', 'the', 'and', 'of'
+]);
+
+function tokensComparaveis(valor) {
+    return normalizarTexto(valor)
+        .split(/[^a-z0-9]+/)
+        .filter(t => t && t.length >= 3 && !PALAVRAS_IGNORADAS_PRODUTO.has(t) && !/^\d+([a-z]{0,3})?$/.test(t));
+}
+
+// Verifica se o produto realmente corresponde à página. Isso evita que um
+// produto_id desatualizado faça a landing page exibir preço/foto de outro produto.
+function produtoCompativelComPagina(pagina, produto) {
+    if (!produto || !produto.nome || !pagina) return false;
+
+    const nomeProduto = normalizarTexto(produto.nome);
+    const slugComoTexto = normalizarTexto(String(pagina.slug || '').replace(/-/g, ' '));
+    const tituloPagina = normalizarTexto(`${pagina.titulo || ''} ${slugComoTexto}`);
+    if (!nomeProduto || !tituloPagina) return false;
+
+    if (nomeProduto.length >= 10 && tituloPagina.includes(nomeProduto)) {
+        return true;
+    }
+
+    const tokensProduto = tokensComparaveis(produto.nome);
+    const tokensPagina = new Set(tokensComparaveis(`${pagina.titulo || ''} ${slugComoTexto}`));
+    if (tokensProduto.length < 2 || tokensPagina.size === 0) return false;
+
+    const comuns = tokensProduto.filter(t => tokensPagina.has(t)).length;
+    const coberturaProduto = comuns / tokensProduto.length;
+    const coberturaPagina = comuns / tokensPagina.size;
+
+    return comuns >= 2 && coberturaProduto >= 0.75 && coberturaPagina >= 0.7;
+}
+
+function encontrarProdutoDaPagina(pagina, produtos) {
+    if (!Array.isArray(produtos) || produtos.length === 0) return null;
+
+    if (pagina.produto_id) {
+        const porId = produtos.find(p => String(p.id) === String(pagina.produto_id));
+        if (porId && produtoCompativelComPagina(pagina, porId)) return porId;
+    }
+
+    return produtos.find(p => produtoCompativelComPagina(pagina, p)) || null;
 }
 
 function normalizarCaminhoFoto(foto) {
@@ -314,13 +376,7 @@ function sincronizarTodasLandingPages() {
 
         for (const pag of paginas) {
             if (!pag.arquivo_html) continue;
-            let prod = null;
-            if (pag.produto_id) {
-                prod = produtos.find(p => String(p.id) === String(pag.produto_id));
-            }
-            if (!prod) {
-                prod = produtos.find(p => (p.nome || '').toLowerCase().includes((pag.slug || '').replace(/-/g, ' ')));
-            }
+            const prod = encontrarProdutoDaPagina(pag, produtos);
 
             if (prod && prod.preco) {
                 atualizarHtmlLandingPage(pag.arquivo_html, {
@@ -398,13 +454,35 @@ const server = http.createServer(async (req, res) => {
         safePath = safePath.replace(/^\/(admin|favodemel)/, '');
     }
 
-    // Endpoint dinâmico de configuração para frontend
+    // Endpoint dinâmico de configuração para frontend.
+    // Em modo integrado a API é a mesma origem, mas o helper getFavodemelApiBases
+    // precisa existir para catálogo, admin e landing pages.
     if (safePath === '/config.js') {
-        res.writeHead(200, { 
+        res.writeHead(200, {
             'Content-Type': 'text/javascript; charset=utf-8',
-            'Cache-Control': 'public, max-age=86400'
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
         });
-        return res.end(`window.FAVODEMEL_API_URL = "";\nconsole.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
+        return res.end(`window.FAVODEMEL_API_URL = window.FAVODEMEL_API_URL || "";
+window.getFavodemelApiBases = function () {
+    var bases = [];
+    var add = function (valor) {
+        var base = String(valor || "").trim().replace(/\\/+$/, "");
+        if (base && bases.indexOf(base) === -1) bases.push(base);
+    };
+
+    add(window.FAVODEMEL_API_URL);
+
+    try {
+        if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+            add(window.location.origin);
+        }
+    } catch (_) {}
+
+    add("https://favodemel.137.131.164.202.sslip.io");
+    return bases;
+};
+
+console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
     }
 
     const serveFile = (targetFile) => {
@@ -536,11 +614,66 @@ const server = http.createServer(async (req, res) => {
                     sucesso: true,
                     produtos,
                     categorias,
-                    fonte: fonteP === 'postgresql' || fonteC === 'postgresql' ? 'postgresql' : 'local_json'
+                    fonte: fonteP === 'postgresql' || fonteC === 'postgresql' ? 'postgresql' : 'local_json',
+                    pendente: typeof db.temPendencias === 'function' ? db.temPendencias() : false,
+                    sincronizado_em: new Date().toISOString()
                 });
             } catch (err) {
                 return sendJson(res, 500, { sucesso: false, erro: err.message });
             }
+        }
+    }
+
+    // 2.1. Dados públicos de uma landing page (usado para sincronizar fotos/preços em tempo real)
+    if (safePath.startsWith('/api/catalogo/landing-pages/') && req.method === 'GET') {
+        const slug = safePath.replace('/api/catalogo/landing-pages/', '').trim();
+        if (!slug) {
+            return sendJson(res, 400, { sucesso: false, erro: 'Slug da página não informado.' });
+        }
+
+        try {
+            const pagina = await db.obterLandingPage(slug);
+            if (!pagina) {
+                return sendJson(res, 404, { sucesso: false, erro: 'Página não encontrada.' });
+            }
+
+            let produto = null;
+            try {
+                const { produtos } = await db.listarProdutos(false);
+                produto = encontrarProdutoDaPagina(pagina, produtos);
+            } catch (errProd) {
+                console.warn('[Landing] Não foi possível carregar produtos:', errProd.message);
+            }
+
+            return sendJson(res, 200, {
+                sucesso: true,
+                pagina,
+                produto,
+                pendente: typeof db.temPendencias === 'function' ? db.temPendencias() : false,
+                sincronizado_em: new Date().toISOString()
+            });
+        } catch (err) {
+            return sendJson(res, 500, { sucesso: false, erro: err.message });
+        }
+    }
+
+    // 2.2. Força o envio da fila local para o PostgreSQL (chamado pelo painel admin)
+    if (safePath === '/api/admin/sincronizar' && (req.method === 'POST' || req.method === 'GET')) {
+        try {
+            if (typeof db.processarFilaSincronizacao === 'function') {
+                await db.processarFilaSincronizacao();
+            }
+            const { produtos } = await db.listarProdutos(false);
+            const { categorias } = await db.listarCategorias(false);
+            return sendJson(res, 200, {
+                sucesso: true,
+                mensagem: 'Sincronização executada.',
+                produtos,
+                categorias,
+                pendente: typeof db.temPendencias === 'function' ? db.temPendencias() : false
+            });
+        } catch (err) {
+            return sendJson(res, 500, { sucesso: false, erro: err.message });
         }
     }
 
@@ -552,7 +685,12 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'GET') {
             try {
                 const { produtos, fonte } = await db.listarProdutos(false);
-                return sendJson(res, 200, { sucesso: true, produtos, fonte });
+                return sendJson(res, 200, {
+                    sucesso: true,
+                    produtos,
+                    fonte,
+                    pendente: typeof db.temPendencias === 'function' ? db.temPendencias() : false
+                });
             } catch (err) {
                 return sendJson(res, 500, { sucesso: false, erro: err.message });
             }
@@ -561,8 +699,8 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'POST') {
             try {
                 const body = await parseBody(req);
-                const { produto, fonte } = await db.criarProduto(body);
-                return sendJson(res, 201, { sucesso: true, produto, fonte });
+                const { produto, fonte, pendente } = await db.criarProduto(body);
+                return sendJson(res, 201, { sucesso: true, produto, fonte, pendente: !!pendente });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: 'Erro ao criar produto: ' + err.message });
             }
@@ -571,14 +709,16 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'PUT' && produtoId) {
             try {
                 const body = await parseBody(req);
-                const { produto, fonte } = await db.atualizarProduto(produtoId, body);
+                const { produto, fonte, pendente } = await db.atualizarProduto(produtoId, body);
 
                 // Sincroniza automaticamente a landing page vinculada se o preço mudar
                 try {
                     const landingPagesPath = path.join(DATA_DIR, 'landing_pages.json');
                     if (fs.existsSync(landingPagesPath)) {
                         const paginas = JSON.parse(fs.readFileSync(landingPagesPath, 'utf8'));
-                        const paginaVinculada = paginas.find(p => String(p.produto_id) === String(produtoId));
+                        const paginaVinculada = paginas.find(p =>
+                            String(p.produto_id) === String(produtoId) && produtoCompativelComPagina(p, produto)
+                        );
                         if (paginaVinculada && paginaVinculada.arquivo_html) {
                             atualizarHtmlLandingPage(paginaVinculada.arquivo_html, {
                                 ...paginaVinculada,
@@ -590,7 +730,7 @@ const server = http.createServer(async (req, res) => {
                     console.warn('[Sync Landing] Erro ao sincronizar landing page com produto:', errSync.message);
                 }
 
-                return sendJson(res, 200, { sucesso: true, produto, fonte });
+                return sendJson(res, 200, { sucesso: true, produto, fonte, pendente: !!pendente });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: 'Erro ao atualizar produto: ' + err.message });
             }
@@ -598,8 +738,13 @@ const server = http.createServer(async (req, res) => {
 
         if (req.method === 'DELETE' && produtoId) {
             try {
-                const { fonte } = await db.deletarProduto(produtoId);
-                return sendJson(res, 200, { sucesso: true, mensagem: 'Produto excluído com sucesso', fonte });
+                const { fonte, pendente } = await db.deletarProduto(produtoId);
+                return sendJson(res, 200, {
+                    sucesso: true,
+                    mensagem: 'Produto excluído com sucesso',
+                    fonte,
+                    pendente: !!pendente
+                });
             } catch (err) {
                 return sendJson(res, 500, { sucesso: false, erro: err.message });
             }
@@ -608,13 +753,18 @@ const server = http.createServer(async (req, res) => {
 
     // 4. Gestão de Categorias (Admin)
     if (safePath.startsWith('/api/admin/categorias')) {
-        const idMatch = safePath.match(/\/api\/admin\/categorias\/(\d+)/);
-        const catId = idMatch ? idMatch[1] : null;
+        const idMatch = safePath.match(/\/api\/admin\/categorias\/([^/]+)/);
+        const catId = idMatch ? decodeURIComponent(idMatch[1]) : null;
 
         if (req.method === 'GET') {
             try {
                 const { categorias, fonte } = await db.listarCategorias(false);
-                return sendJson(res, 200, { sucesso: true, categorias, fonte });
+                return sendJson(res, 200, {
+                    sucesso: true,
+                    categorias,
+                    fonte,
+                    pendente: typeof db.temPendencias === 'function' ? db.temPendencias() : false
+                });
             } catch (err) {
                 return sendJson(res, 500, { sucesso: false, erro: err.message });
             }
@@ -623,8 +773,8 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'POST') {
             try {
                 const body = await parseBody(req);
-                const { categoria, categorias, fonte } = await db.salvarCategoria(body);
-                return sendJson(res, 200, { sucesso: true, categoria, categorias, fonte });
+                const { categoria, categorias, fonte, pendente } = await db.salvarCategoria(body);
+                return sendJson(res, 200, { sucesso: true, categoria, categorias, fonte, pendente: !!pendente });
             } catch (err) {
                 return sendJson(res, 400, { sucesso: false, erro: err.message });
             }
@@ -632,8 +782,8 @@ const server = http.createServer(async (req, res) => {
 
         if (req.method === 'DELETE' && catId) {
             try {
-                const { categorias, fonte } = await db.deletarCategoria(catId);
-                return sendJson(res, 200, { sucesso: true, categorias, fonte });
+                const { categorias, fonte, pendente } = await db.deletarCategoria(catId);
+                return sendJson(res, 200, { sucesso: true, categorias, fonte, pendente: !!pendente });
             } catch (err) {
                 return sendJson(res, 500, { sucesso: false, erro: err.message });
             }

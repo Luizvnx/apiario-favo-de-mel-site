@@ -23,6 +23,7 @@ logs/
 scratch/
 caddy_data/
 caddy_config/
+data/pending_sync.json
 
 # Sistema Operacional e Editores
 .DS_Store
