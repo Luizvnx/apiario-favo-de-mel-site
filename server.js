@@ -93,6 +93,58 @@ db.init();
 let PORT = parseInt(process.env.PORT, 10) || 3300;
 const API_URL = process.env.API_URL || 'http://localhost:8080';
 
+const ADMIN_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function getAdminTokenSecret() {
+    if (process.env.ADMIN_TOKEN_SECRET) return process.env.ADMIN_TOKEN_SECRET;
+    return crypto
+        .createHash('sha256')
+        .update([
+            process.env.DB_PASSWORD || 'favodemel',
+            process.env.DB_NAME || 'apiario',
+            BASE_DIR
+        ].join('::'))
+        .digest('hex');
+}
+
+function gerarAdminToken(email) {
+    const exp = Date.now() + ADMIN_TOKEN_TTL_MS;
+    const nonce = crypto.randomBytes(8).toString('hex');
+    const payload = Buffer.from(JSON.stringify({ email, exp, nonce })).toString('base64url');
+    const sig = crypto.createHmac('sha256', getAdminTokenSecret()).update(payload).digest('base64url');
+    return `adm.${payload}.${sig}`;
+}
+
+function verificarAdminToken(req) {
+    const authHeader = String(req.headers.authorization || '').trim();
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!match) return { valido: false, erro: 'Autenticação administrativa necessária.' };
+
+    const token = match[1].trim();
+    const parts = token.split('.');
+    if (parts.length !== 3 || parts[0] !== 'adm') {
+        return { valido: false, erro: 'Token administrativo inválido.' };
+    }
+
+    const [, payload, sig] = parts;
+    const expectedSig = crypto.createHmac('sha256', getAdminTokenSecret()).update(payload).digest('base64url');
+    const sigBuf = Buffer.from(sig);
+    const expectedBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+        return { valido: false, erro: 'Token administrativo inválido ou adulterado.' };
+    }
+
+    try {
+        const dados = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+        if (!dados || !dados.exp || Date.now() > dados.exp) {
+            return { valido: false, erro: 'Sessão administrativa expirada. Faça login novamente.' };
+        }
+        return { valido: true, admin: dados };
+    } catch (_) {
+        return { valido: false, erro: 'Token administrativo corrompido.' };
+    }
+}
+
 // =========================================================================
 // RATE LIMITER ANTI-BRUTE FORCE PARA LOGIN ADMINISTRATIVO
 // =========================================================================
@@ -581,6 +633,18 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
     // ROTAS DE API
     // =========================================================================
 
+    // Proteção centralizada para todas as rotas /api/admin/* (exceto POST /api/admin/login)
+    if (safePath.startsWith('/api/admin/') && !(safePath === '/api/admin/login' && req.method === 'POST')) {
+        const auth = verificarAdminToken(req);
+        if (!auth.valido) {
+            return sendJson(res, 401, {
+                sucesso: false,
+                codigo: 'nao_autorizado',
+                erro: auth.erro
+            });
+        }
+    }
+
     // 0. Status do Banco de Dados
     if (safePath === '/api/admin/status-banco' && req.method === 'GET') {
         return sendJson(res, 200, {
@@ -603,6 +667,16 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
         }
 
         if (req.method === 'POST') {
+            if (safePath === '/api/catalogo/config') {
+                const auth = verificarAdminToken(req);
+                if (!auth.valido) {
+                    return sendJson(res, 401, {
+                        sucesso: false,
+                        codigo: 'nao_autorizado',
+                        erro: auth.erro
+                    });
+                }
+            }
             try {
                 const body = await parseBody(req);
                 const { dados, fonte } = await db.salvarConfigLoja(body);
@@ -1004,6 +1078,39 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
                 });
             }
 
+            const clienteNome = String(body.cliente_nome || '').trim();
+            const telefoneDigitos = String(body.cliente_telefone || '').replace(/\D/g, '');
+            const tipoEntrega = body.tipo_entrega === 'retirada' ? 'retirada' : 'entrega';
+            const endereco = (body.endereco && typeof body.endereco === 'object') ? body.endereco : {};
+
+            if (clienteNome.length < 2) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    codigo: 'cliente_nome_invalido',
+                    erro: 'Informe seu nome completo para concluir o pedido.'
+                });
+            }
+
+            if (telefoneDigitos.length < 10 || telefoneDigitos.length > 13) {
+                return sendJson(res, 400, {
+                    sucesso: false,
+                    codigo: 'telefone_invalido',
+                    erro: 'Informe um telefone ou WhatsApp válido com DDD (mínimo 10 dígitos).'
+                });
+            }
+
+            if (tipoEntrega === 'entrega') {
+                const rua = String(endereco.rua || '').trim();
+                const numero = String(endereco.numero || '').trim();
+                if (rua.length < 2 || numero.length < 1) {
+                    return sendJson(res, 400, {
+                        sucesso: false,
+                        codigo: 'endereco_invalido',
+                        erro: 'Informe rua e número no endereço para envio do pedido.'
+                    });
+                }
+            }
+
             // O banco é a fonte da verdade: preço, nome, disponibilidade e estoque
             // são reconferidos aqui, ignorando os valores enviados pelo navegador.
             const { produtos } = await db.listarProdutos(false);
@@ -1078,10 +1185,10 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
             const novoPedido = {
                 codigo_pedido: codigoPedido,
                 token_acesso: tokenAcesso,
-                cliente_nome: body.cliente_nome || 'Cliente',
+                cliente_nome: clienteNome,
                 cliente_telefone: body.cliente_telefone || '',
-                tipo_entrega: body.tipo_entrega || 'entrega',
-                endereco: body.endereco || {},
+                tipo_entrega: tipoEntrega,
+                endereco,
                 forma_pagamento: body.forma_pagamento || 'pix',
                 troco_para: body.troco_para || '',
                 observacoes: body.observacoes || '',
@@ -1217,7 +1324,7 @@ console.log("[Config] Modo Integrado Ativo - API Favo de Mel");`);
 
             if (emailValido && senhaValida) {
                 resetLoginAttempts(clientIp);
-                const token = 'adm_' + Date.now() + '_' + crypto.randomBytes(12).toString('hex');
+                const token = gerarAdminToken(emailCorreto);
                 return sendJson(res, 200, {
                     sucesso: true,
                     token,

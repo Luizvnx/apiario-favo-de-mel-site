@@ -22,9 +22,11 @@
         const letras = texto.replace(/[^a-zA-ZÀ-ÿ]/g, '');
         if (!letras) return texto;
 
+        const normalizarUnidades = (str) => str.replace(/\b(\d+)\s*(G|KG|ML)\b/gi, (_, num, unit) => `${num}${unit.toLowerCase()}`);
+
         const maiusculas = (letras.match(/[A-ZÀ-Ý]/g) || []).length;
         if (maiusculas / letras.length < 0.65) {
-            return texto;
+            return normalizarUnidades(texto);
         }
 
         const conectivos = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'com', 'para', 'no', 'na', 'nos', 'nas', 'por', 'a', 'o']);

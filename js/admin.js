@@ -87,9 +87,12 @@ class AdminApp {
         this.configurarEventosLandingPages();
         this.configurarEventosSeguranca();
 
-        if (this.token) {
+        const tokenValido = typeof this.token === 'string' && /^adm\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(this.token);
+        if (tokenValido) {
             this.iniciarSessao();
         } else {
+            this.token = null;
+            sessionStorage.removeItem('favodemel_admin_token');
             this.exibirTelaLogin();
         }
     }
@@ -122,12 +125,40 @@ class AdminApp {
         return bases;
     }
 
+    getAuthHeaders(extraHeaders = {}) {
+        const headers = { ...extraHeaders };
+        if (this.token && !headers.Authorization) {
+            headers.Authorization = `Bearer ${this.token}`;
+        }
+        return headers;
+    }
+
+    tratarNaoAutorizado() {
+        this.token = null;
+        sessionStorage.removeItem('favodemel_admin_token');
+        this.exibirTelaLogin();
+    }
+
+    async adminFetch(endpoint, options = {}) {
+        const headers = this.getAuthHeaders(options.headers || {});
+        const res = await fetch(this.getApiUrl(endpoint), {
+            ...options,
+            cache: 'no-store',
+            headers
+        });
+        if (res.status === 401 && !String(endpoint).includes('/api/admin/login')) {
+            this.tratarNaoAutorizado();
+        }
+        return res;
+    }
+
     // Requisição resiliente com validação de JSON e fallback de base.
     async fetchApi(endpoint, options = {}) {
         const bases = this.getApiBases();
         const timeoutMs = options.timeoutMs || 15000;
         const opcoesFetch = { ...options };
         delete opcoesFetch.timeoutMs;
+        opcoesFetch.headers = this.getAuthHeaders(opcoesFetch.headers || {});
         let ultimoErro = null;
 
         for (const base of bases) {
@@ -145,6 +176,10 @@ class AdminApp {
                     data = JSON.parse(texto);
                 } catch (_) {
                     throw new Error(`Resposta inválida de ${base} (não é JSON)`);
+                }
+                if (res.status === 401 && !String(endpoint).includes('/api/admin/login')) {
+                    this.tratarNaoAutorizado();
+                    throw new Error((data && data.erro) || 'Sessão administrativa expirada.');
                 }
                 if (!res.ok) {
                     throw new Error((data && data.erro) || `HTTP ${res.status}`);
@@ -262,7 +297,7 @@ class AdminApp {
         if (!statusTextEl) return;
 
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/status-banco'));
+            const res = await this.adminFetch('/api/admin/status-banco');
             const data = await res.json();
             if (data.sucesso) {
                 statusTextEl.innerText = 'Catálogo Online & Sincronizado';
@@ -288,7 +323,7 @@ class AdminApp {
 
     async carregarCredenciaisAdmin() {
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/credenciais'));
+            const res = await this.adminFetch('/api/admin/credenciais');
             const data = await res.json();
             if (data.sucesso && data.email) {
                 const el = document.getElementById('emailAtualDisplay');
@@ -343,7 +378,7 @@ class AdminApp {
     // =========================================================================
     async carregarConfiguracoes() {
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/config'));
+            const res = await this.adminFetch('/api/admin/config');
             const data = await res.json();
             if (data.sucesso && data.config) {
                 this.config = { ...this.config, ...data.config };
@@ -443,7 +478,7 @@ class AdminApp {
 
     async carregarPedidos() {
         try {
-            const res = await fetch(this.getApiUrl('/api/admin/pedidos'));
+            const res = await this.adminFetch('/api/admin/pedidos');
             const data = await res.json();
             if (data.sucesso && Array.isArray(data.pedidos)) {
                 this.pedidos = data.pedidos;
@@ -1067,7 +1102,7 @@ class AdminApp {
                 };
 
                 try {
-                    const res = await fetch(this.getApiUrl('/api/admin/config'), {
+                    const res = await this.adminFetch('/api/admin/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -1153,7 +1188,7 @@ class AdminApp {
                 };
 
                 try {
-                    await fetch(this.getApiUrl('/api/admin/config'), {
+                    await this.adminFetch('/api/admin/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -1248,7 +1283,7 @@ class AdminApp {
                 sel.disabled = true;
 
                 try {
-                    const res = await fetch(this.getApiUrl(`/api/admin/pedidos/${codigo}`), {
+                    const res = await this.adminFetch(`/api/admin/pedidos/${codigo}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status: novoStatus })
@@ -1287,13 +1322,13 @@ class AdminApp {
 
                 let msg = '';
                 if (status === 'preparando') {
-                    msg = `🍯 Olá, ${nome}! Seu pedido #${codigo} no Apiário Favo de Mel já está sendo preparado com muito carinho. Acompanhe em tempo real pelo link: ${rastreioUrl}`;
+                    msg = `Olá, ${nome}! Seu pedido #${codigo} no Apiário Favo de Mel já está sendo preparado com muito carinho. Acompanhe em tempo real pelo link: ${rastreioUrl}`;
                 } else if (status === 'enviado') {
-                    msg = `🛵 Olá, ${nome}! Seu pedido #${codigo} do Apiário Favo de Mel acabou de sair para entrega e está a caminho! Acompanhe pelo link: ${rastreioUrl}`;
+                    msg = `Olá, ${nome}! Seu pedido #${codigo} do Apiário Favo de Mel acabou de sair para entrega e está a caminho! Acompanhe pelo link: ${rastreioUrl}`;
                 } else if (status === 'entregue') {
-                    msg = `🎉 Olá, ${nome}! Seu pedido #${codigo} foi entregue com sucesso. Esperamos que aprecie a pureza dos nossos méis do Apiário Favo de Mel! 🐝`;
+                    msg = `Olá, ${nome}! Seu pedido #${codigo} foi entregue com sucesso. Esperamos que aprecie a pureza dos nossos méis do Apiário Favo de Mel!`;
                 } else {
-                    msg = `🍯 Olá, ${nome}! Informações sobre seu pedido #${codigo} no Apiário Favo de Mel. Acompanhe em tempo real pelo link: ${rastreioUrl}`;
+                    msg = `Olá, ${nome}! Informações sobre seu pedido #${codigo} no Apiário Favo de Mel. Acompanhe em tempo real pelo link: ${rastreioUrl}`;
                 }
 
                 window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -1351,7 +1386,7 @@ class AdminApp {
             btnSalvar.innerText = 'Atualizando...';
 
             try {
-                const res = await fetch(this.getApiUrl('/api/admin/alterar-credenciais'), {
+                const res = await this.adminFetch('/api/admin/alterar-credenciais', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

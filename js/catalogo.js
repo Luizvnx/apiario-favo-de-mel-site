@@ -145,9 +145,11 @@ class CatalogoApp {
         const letras = texto.replace(/[^a-zA-ZÀ-ÿ]/g, '');
         if (!letras) return texto;
 
+        const normalizarUnidades = (str) => str.replace(/\b(\d+)\s*(G|KG|ML)\b/gi, (_, num, unit) => `${num}${unit.toLowerCase()}`);
+
         const maiusculas = (letras.match(/[A-ZÀ-Ý]/g) || []).length;
         if (maiusculas / letras.length < 0.65) {
-            return texto;
+            return normalizarUnidades(texto);
         }
 
         const conectivos = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'com', 'para', 'no', 'na', 'nos', 'nas', 'por', 'a', 'o']);
@@ -466,28 +468,26 @@ class CatalogoApp {
             const el = document.createElement('div');
             el.id = 'catalogoSyncStatus';
             el.style.cssText = [
-                'position:fixed', 'left:16px', 'bottom:16px', 'z-index:9999',
+                'position:fixed', 'right:16px', 'top:84px', 'z-index:999',
                 'display:flex', 'align-items:center', 'gap:8px',
-                'padding:10px 14px', 'border-radius:999px',
+                'padding:9px 14px', 'border-radius:10px',
+                'background:#FFFFFF', 'color:#1A130D', 'border:1px solid #E8DFD3',
                 'font-family:inherit', 'font-size:0.8rem', 'font-weight:600',
-                'box-shadow:0 6px 18px rgba(0,0,0,0.18)',
+                'box-shadow:0 8px 24px rgba(26,19,13,0.1)',
                 'transition:opacity .3s ease', 'max-width:calc(100vw - 32px)'
             ].join(';');
             document.body.appendChild(el);
             this.statusEl = el;
         }
 
-        const estilos = {
-            ok: { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' },
-            aviso: { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' },
-            erro: { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FCA5A5' }
+        const pontos = {
+            ok: '#15803D',
+            aviso: '#A35A00',
+            erro: '#B91C1C'
         };
-        const estilo = estilos[tipo] || estilos.ok;
+        const dotColor = pontos[tipo] || pontos.ok;
         const el = this.statusEl;
-        el.style.background = estilo.background;
-        el.style.color = estilo.color;
-        el.style.border = estilo.border;
-        el.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:0 0 auto;"></span><span>${mensagem}</span>`;
+        el.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${dotColor};display:inline-block;flex:0 0 auto;"></span><span>${mensagem}</span>`;
         el.style.opacity = '1';
         el.style.display = 'flex';
 
@@ -1898,7 +1898,7 @@ class CatalogoApp {
 
             if (statusMsg) {
                 statusMsg.className = 'cep-status-msg success';
-                statusMsg.innerText = `✓ Endereço localizado: ${data.localidade} - ${data.uf}. Agora digite o número da sua casa!`;
+                statusMsg.innerText = `Endereço localizado: ${data.localidade} - ${data.uf}. Agora digite o número da sua casa.`;
                 statusMsg.style.display = 'block';
             }
 

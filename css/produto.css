@@ -266,8 +266,8 @@
 
 /* 2. Botão Secundário: WhatsApp (Tirar Dúvidas / Suporte) */
 .btn-buy-whatsapp {
-    background: #F0FDF4;
-    border: 1.5px solid #22C55E;
+    background: #FFFFFF;
+    border: 1.5px solid #15803D;
     color: #15803D;
     font-size: 1rem;
     font-weight: 600;
@@ -284,11 +284,11 @@
 }
 
 .btn-buy-whatsapp:hover {
-    background: #DCFCE7;
-    border-color: #16A34A;
+    background: #F8FBF9;
+    border-color: #166534;
     color: #166534;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 4px 12px rgba(21, 128, 61, 0.14);
 }
 
 /* Selos de Confiança */
@@ -467,13 +467,17 @@
     background: var(--color-bg-alt);
 }
 
+.comp-table-wrap,
 .comparison-table-wrap {
+    width: 100%;
     max-width: 900px;
     margin: 3rem auto 0 auto;
     background: #FFFFFF;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
     border: 1px solid var(--color-border);
 }
 
@@ -713,6 +717,14 @@
 @media (max-width: 992px) {
     .service-step-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .comp-table th,
+    .comp-table td {
+        padding: 0.85rem 1rem;
+        font-size: 0.88rem;
     }
 }
 
